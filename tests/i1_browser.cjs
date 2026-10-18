@@ -16,6 +16,7 @@ function memo(id, ymd) {
 async function main() {
   const browser = await chromium.launch({headless:true, executablePath:process.env.PLAYWRIGHT_CHROMIUM});
   const page = await browser.newPage({viewport:{width:1440,height:1080}});
+  await page.clock.setFixedTime(new Date('2026-10-18T03:00:00Z'));
   page.setDefaultTimeout(10000);page.on('pageerror', e=>errors.push(e.message));
   await page.route('**/*', async route => {
     const req=route.request(), url=new URL(req.url());
