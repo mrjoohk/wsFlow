@@ -1,5 +1,11 @@
 {
   "source": ".codex/skills/ci-evidence-automation/scripts/mutation_runner.py",
   "sha256": "87263e8d7e136ffbff0909a0007f16fafec4bae06405ed2bb00ace16721faaa2",
-  "copied_without_changes": true
+  "copied_without_changes": false,
+  "local_sha256": "1ec8c6adbebba9e088add71483caf1f344a23dcca82dc7da8bad0fd6280aa4c4",
+  "patches": [
+    "CI fresh-output-only profile refuses existing out/resume/budget/summary to avoid environment-dependent cached proof",
+    "reject unittest baselines whose every test is skipped"
+  ],
+  "upstream_preserved": true
 }

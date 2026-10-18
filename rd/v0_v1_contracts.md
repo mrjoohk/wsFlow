@@ -31,3 +31,7 @@ Windows Python3.10은 최소 호환성 시험용이며 운영 권장 버전으�
 최종 수용 정본은 새 P-023 validation과 보고서다. 원격 CI 권한/저장소가 없으면 구성·로컬 재현만 보고하고 V1의 provider 실행/아티팩트 수용을 UNKNOWN/PARTIAL로 둔다. 이전 F/D/M 상태를 실제 CI verified로 소급 올리지 않는다.
 
 CI 검증 브랜치의 push는 정상 회귀2개와 의도한 실패 게이트3개를 실행한다. 후자에는 continue-on-error를 쓰지 않으므로 workflow 전체는 failure가 예상된다. 수용 판정은 정상2개 success, 통제 주입3개 failure 및 각 gate.json의 정확한 원인·artifact를 대조한다. 일반 pull_request는 의도한 실패 job을 실행하지 않는다. 비밀·업무 데이터가 없는 allowlist만 게시한다.
+
+독립 delta 검토에서 도구의 환경 변경 후 cache 재사용과 전체 skip baseline의 거짓 승격을 재현했다. 기존 스킬 원본은 보존하고 `tools/ci/mutation_runner.py`의 CI 사본만 보강한다. 이 사본은 매번 새 결과 파일을 요구하며 resume/budget/summary·기존 out 재사용을 지원하지 않는다. 최종 신선도는 동결 manifest·새 baseline/실행 결과·source 재검사로 확인한다. baseline의 실행된 본문 수가0이면 거부한다. 변경 provenance는 `ci/runner_provenance.json`에 기록한다.
+
+명령 제한·중단은 taskkill의 해당 PID tree와 직접 Popen handle fallback을 사용한다. Windows 제한 호스트가 tree 정리를 거부한 관측과 프로세스 관리가 허용된 로컬/hosted 실행을 구분한다. 임의 외부 프로세스·Windows 모든 보안 경계의 손자 프로세스 정리를 보장하지 않는다. 실패·artifact 복사 오류는 result.json에 남긴다.

@@ -893,7 +893,9 @@ def ran_no_tests(out, code):
     with exit 0 or 5 (both runners use 5 for 'nothing ran')."""
     ran = UT_RAN.findall(out)
     if ran:
-        return ran[-1] == "0"
+        tail = out[list(UT_RAN.finditer(out))[-1].end():]
+        skipped = re.search(r"(?m)^OK \([^\n]*\bskipped=(\d+)[^\n]*\)$", tail)
+        return int(ran[-1]) <= (int(skipped.group(1)) if skipped else 0)
     return code in (0, 5) and bool(NO_TESTS.search(out))
 
 
@@ -1264,6 +1266,10 @@ def _secs(v, what):
 
 
 def _main(a, t_start):
+    # wsFlow CI profile: an unknown inherited runtime must never reuse cached proof.
+    # Keep the upstream skill untouched; this local runner intentionally supports fresh runs only.
+    if a.resume or a.budget is not None or a.summary or (a.out and Path(a.out).exists()):
+        raise SpecError("wsFlow CI requires a fresh --out; resume/budget/summary and existing results are unsupported")
     spec = load_spec(a.spec)
     for n in spec["notes"]:
         print("note:", n, file=sys.stderr)

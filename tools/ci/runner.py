@@ -5,6 +5,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -162,6 +163,7 @@ def g4(root):
         source = (root / m.get('source', '')).resolve()
         if (not {'metric_id', 'value', 'threshold', 'comparison', 'status', 'unit', 'source', 'mode'} <= m.keys()
                 or type(m['value']) not in (int, float) or type(m['threshold']) not in (int, float)
+                or any(isinstance(m[k], float) and not math.isfinite(m[k]) for k in ('value', 'threshold'))
                 or m['comparison'] not in ('eq', 'gte', 'lte') or m['status'] not in ('PASS', 'FAIL', 'WARN')
                 or m['mode'] != 'PLANNED' or not source.is_relative_to(root) or not source.is_file()
                 or m['metric_id'] in ids):
@@ -196,12 +198,19 @@ def command(args, cwd, log, env=None, timeout=900):
                                  stdout=stream, stderr=subprocess.STDOUT, start_new_session=os.name != 'nt')
         try:
             code = child.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
+        except BaseException as exc:
             if os.name == 'nt':
-                subprocess.run(['taskkill', '/PID', str(child.pid), '/T', '/F'], stdout=stream, stderr=stream)
+                try:
+                    subprocess.run(['taskkill', '/PID', str(child.pid), '/T', '/F'], stdout=stream, stderr=stream, timeout=10)
+                except (OSError, subprocess.TimeoutExpired):
+                    pass
             else:
                 os.killpg(child.pid, signal.SIGKILL)
+            if child.poll() is None:
+                child.kill()  # Only our Popen handle; fallback when taskkill cannot access the tree.
             child.wait(timeout=15)
+            if not isinstance(exc, subprocess.TimeoutExpired):
+                raise
             code = 124
     return {'command': args, 'exit_code': code, 'seconds': round(time.monotonic() - start, 3), 'log': str(log)}
 
@@ -255,6 +264,7 @@ def run(root, out, expected_python, step, jobs):
     new_output(root, out)
     out.mkdir(parents=True, exist_ok=False)
     result = {'at': datetime.now(timezone.utc).isoformat(), 'status': 'executing', 'steps': [],
+              'step': step, 'jobs': jobs,
               'provider': 'github_actions' if os.environ.get('GITHUB_ACTIONS') == 'true' else 'local isolated runner',
               'live_providers': False, 'python': platform.python_version(), 'platform': platform.platform()}
     logs = root / 'logs/test_evidence/ci' / uuid4().hex
@@ -265,8 +275,11 @@ def run(root, out, expected_python, step, jobs):
         if platform.python_version() != expected_python or sys.prefix == sys.base_prefix or site.ENABLE_USER_SITE:
             raise ValueError('expected isolated Python runtime not active')
         result['environment'] = {'executable': sys.executable, 'prefix': sys.prefix, 'base_prefix': sys.base_prefix,
-                                 'user_site': site.ENABLE_USER_SITE, 'node': subprocess.check_output(['node', '--version'], text=True).strip()}
+                                 'user_site': site.ENABLE_USER_SITE}
         env = clean_env(out, logs)
+        node = command(['node', '--version'], root, out / 'node_version.log', env, 30)
+        result['steps'].append(node); accepted(node)
+        result['environment']['node'] = (out / 'node_version.log').read_text(encoding='utf-8').strip()
         if (root / 'ci/node_modules').exists():
             raise ValueError('install Node dependencies outside the frozen source')
         selection = read(root / 'ci/selection.json')
@@ -329,9 +342,13 @@ def run(root, out, expected_python, step, jobs):
     except Exception as exc:
         result.update(status='FAIL', error=str(exc))
     finally:
-        if logs.exists():
-            shutil.copytree(logs, out / 'artifacts')
-        save(out / 'result.json', result)
+        try:
+            if logs.exists():
+                shutil.copytree(logs, out / 'artifacts')
+        except OSError as exc:
+            result.update(status='FAIL', artifact_error=str(exc))
+        finally:
+            save(out / 'result.json', result)
     return result
 
 

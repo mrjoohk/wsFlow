@@ -1,9 +1,13 @@
 {
-  "created_at": "2026-10-18T09:00:26.910390+00:00",
+  "created_at": "2026-10-18T09:15:42.130004+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "36f0b0603ef6121ec1b5db8b1b9182b32bb3d272b18aa839ebe02015ce6a172a",
       "sha256": "36f0b0603ef6121ec1b5db8b1b9182b32bb3d272b18aa839ebe02015ce6a172a"
+    },
+    "ci/README.md": {
+      "raw_sha256": "32fa6331c1e632291e6f270afb3d06287b453fb11833ecae9c7833597cd1cfca",
+      "sha256": "32fa6331c1e632291e6f270afb3d06287b453fb11833ecae9c7833597cd1cfca"
     },
     "ci/baseline_evidence.json": {
       "raw_sha256": "6dd8b3cf832b70f8e60f214c8c33da9824f3f3d6e19acc793c8be641cf323ada",
@@ -30,8 +34,8 @@
       "sha256": "d34e42c2420041f8e558ae41a8b88bb84c5db607e94565f2868dfcaf9d85d7d1"
     },
     "ci/runner_provenance.json": {
-      "raw_sha256": "ab2f8970575e4af3aa942557022ceca6182ddc1bad16410876064eb944c099d5",
-      "sha256": "260bc09926e42fae87f72eae287b0b1645d2c152241dda49f159b3be15844140"
+      "raw_sha256": "58b00fc3020ee045d53818ad8e310f725af2caeb49dcecbc4579a84b6a820b80",
+      "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
       "raw_sha256": "dc1b38322869877638cc6a8b29a39efa129e3ffea5e8b4fb3bbb7bca5fbdde86",
@@ -90,8 +94,8 @@
       "sha256": "8251b75b2c568e6a8c2d81614b836ef59a6370bd476a1455413f4f033d6d9e49"
     },
     "ci/tests/test_runner.py": {
-      "raw_sha256": "7283720091ab8fc42460ba5413ad2ecbbdba14ac7d588acd5b95aa6daa2a8970",
-      "sha256": "7283720091ab8fc42460ba5413ad2ecbbdba14ac7d588acd5b95aa6daa2a8970"
+      "raw_sha256": "8326d3794fd46e1e68ac4a8278c62b0e24f807acb22d2770e80ef03caf56d745",
+      "sha256": "8326d3794fd46e1e68ac4a8278c62b0e24f807acb22d2770e80ef03caf56d745"
     },
     "run.cmd": {
       "raw_sha256": "7da31dfd7dcfb8df3c0c70fb7381337bff4f0d4d081ec1ee4b5366f38e0534a1",
@@ -338,12 +342,12 @@
       "sha256": "b5609c81c5d2dff46959d0e3520e9f03fd9c31f62f93b2702caa5fa952573cb2"
     },
     "tools/ci/mutation_runner.py": {
-      "raw_sha256": "87263e8d7e136ffbff0909a0007f16fafec4bae06405ed2bb00ace16721faaa2",
-      "sha256": "f7a967323f01a32dacaed322203acc1705925a2117f8ba09bc392b1126c38176"
+      "raw_sha256": "1ec8c6adbebba9e088add71483caf1f344a23dcca82dc7da8bad0fd6280aa4c4",
+      "sha256": "b616676e32222cca2232bf7609245b3736bf99e9c9cbe6e338783ce2f6ee5a90"
     },
     "tools/ci/runner.py": {
-      "raw_sha256": "0d0bb0476b4a635db5ed0644ce93f901c1e5e2efc56390c2c58640a5c3c6a63f",
-      "sha256": "0d0bb0476b4a635db5ed0644ce93f901c1e5e2efc56390c2c58640a5c3c6a63f"
+      "raw_sha256": "6a507a8c740f102af6768326f2075a4266434661823757ba0a5305d5c48aaef3",
+      "sha256": "6a507a8c740f102af6768326f2075a4266434661823757ba0a5305d5c48aaef3"
     },
     "tools/graph_checks.py": {
       "raw_sha256": "e5bc369c4542bbe999fd0a00f7b9ecb93b70546303b418db3d82ecdf36414cb7",
@@ -518,7 +522,7 @@
       "sha256": "89ed42ca6e653571eb02ba3e9e93e51a6993442bd43b010a0b3d753d4a310164"
     }
   },
-  "fingerprint": "dc24eba7d071f0f232622028cb9fe05d69be201ae7585cdc98092046fb946219",
+  "fingerprint": "654c9a7f60e50d71a4fa457e4cc7bb02649123853d5c4dbdf18212f294a74242",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }
