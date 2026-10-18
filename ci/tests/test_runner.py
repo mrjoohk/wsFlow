@@ -153,9 +153,9 @@ class EvidenceTests(unittest.TestCase):
             self.assertEqual(cp.returncode, 0);self.assertEqual(cp.stdout.strip(), 'False')
             self.assertTrue(Path(env['APPDATA']).is_relative_to(output))
             self.assertEqual(Path(env['GIT_CONFIG_GLOBAL']).read_text(), '')
-            cp = subprocess.run([sys.executable, '-c', 'import tempfile;print(tempfile.gettempdir())'],
+            cp = subprocess.run([sys.executable, '-c', 'import json,os,tempfile;print(json.dumps([os.environ[k] for k in ("TEMP","TMP","TMPDIR")]+[tempfile.gettempdir()]))'],
                                 env=env, capture_output=True, text=True, timeout=15)
-            self.assertEqual(cp.returncode, 0);self.assertEqual(cp.stdout.strip(), str(self.root.resolve()))
+            self.assertEqual(cp.returncode, 0);self.assertEqual(json.loads(cp.stdout), [str(self.root.resolve())] * 4)
 
     def test_owned_child_timeout_and_interrupt_are_cleaned(self):
         # Child is finite even if the watchdog regresses; the outer test process also has a CI deadline.
