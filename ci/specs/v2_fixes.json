@@ -1,0 +1,521 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_v2_fixes.py"
+  ],
+  "timeout": 60,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "M01_drop_unknown_state",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "preview",
+          "old": "{**state, 'schema_version': wfhome.SCHEMA_VERSION}",
+          "new": "{'schema_version': wfhome.SCHEMA_VERSION}"
+        }
+      ]
+    },
+    {
+      "id": "M02_omit_backup",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "apply",
+          "old": "fileio.atomic_write(backup, current)",
+          "new": "pass # omitted original backup"
+        }
+      ]
+    },
+    {
+      "id": "M03_overwrite_external_edit",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "apply",
+          "old": "if sp.read_bytes() != current or _sha(backup.read_bytes()) != plan['before_sha256']:",
+          "new": "if _sha(backup.read_bytes()) != plan['before_sha256']:"
+        }
+      ]
+    },
+    {
+      "id": "M04_ignore_plan_expiry",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "apply",
+          "old": "if time.time() > plan['expires_at']:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "M05_ignore_binding",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "_selected",
+          "old": "plan.get('kind') != 'schema_upgrade' or plan.get('binding') != writeplans.binding(project, home)",
+          "new": "plan.get('kind') != 'schema_upgrade'"
+        }
+      ]
+    },
+    {
+      "id": "M06_accept_changed_backup",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "apply",
+          "old": "if op['status'] not in ('executing', 'uncertain') or not backup.is_file() or _sha(backup.read_bytes()) != plan['before_sha256']:",
+          "new": "if op['status'] not in ('executing', 'uncertain') or not backup.is_file():"
+        }
+      ]
+    },
+    {
+      "id": "M07_remove_result_cache",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "apply",
+          "old": "if op['status'] == 'succeeded':",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "M08_skip_target_replace",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "apply",
+          "old": "fileio.atomic_write(sp, target, gate)",
+          "new": "pass # skipped state replacement"
+        }
+      ]
+    },
+    {
+      "id": "M09_corrupt_backup",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "apply",
+          "old": "fileio.atomic_write(backup, current)",
+          "new": "fileio.atomic_write(backup, b'corrupt')"
+        }
+      ]
+    },
+    {
+      "id": "T01_restore_local_DST_subtraction",
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "previous.astimezone(timezone.utc) - timedelta(minutes=2)",
+          "new": "previous.astimezone(zone) - timedelta(minutes=2)"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_dst_batch"
+      ]
+    },
+    {
+      "id": "T02_remove_overlap",
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "timedelta(minutes=2)",
+          "new": "timedelta(minutes=0)"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_dst_batch"
+      ]
+    },
+    {
+      "id": "T03_remove_minute_floor",
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": ".replace(second=0, microsecond=0)",
+          "new": ""
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_dst_batch"
+      ]
+    },
+    {
+      "id": "T04_drop_absolute_since",
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "jiraapi.fetch(state, stage, run_id, creds, send, since=since)",
+          "new": "jiraapi.fetch(state, stage, run_id, creds, send)"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_dst_batch"
+      ]
+    },
+    {
+      "id": "T05_allow_naive_clock",
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "if instant.tzinfo is None or instant.utcoffset() is None:",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_naive_clock"
+      ]
+    },
+    {
+      "id": "T06_quote_epoch",
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "build_queries",
+          "old": "f'AND updated >= {lower} ORDER BY updated DESC'",
+          "new": "f'AND updated >= \"{lower}\" ORDER BY updated DESC'"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_epoch_queries"
+      ]
+    },
+    {
+      "id": "T07_drop_offset_conversion",
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "build_queries",
+          "old": "since.astimezone(timezone.utc)",
+          "new": "since.replace(tzinfo=timezone.utc)"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_offset_equivalence"
+      ]
+    },
+    {
+      "id": "T08_wrong_epoch_units",
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "build_queries",
+          "old": "delta.seconds * 1000",
+          "new": "delta.seconds * 1"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_epoch_queries"
+      ]
+    },
+    {
+      "id": "R01_accept_client_cfg",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "if set(body) != {'plan_id', 'operation_id'} or any(not isinstance(v, str) or not v for v in body.values()):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_api_requires"
+      ]
+    },
+    {
+      "id": "R02_ignore_gitignore",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "if gi['applicable'] and gi['missing']:",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_v2_fixes.py",
+        "-k",
+        "test_api_requires"
+      ]
+    },
+    {
+      "id": "M10_ignore_duplicate_keys",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "_unique",
+          "old": "if key in result:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "M11_allow_NaN",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "_decode",
+          "old": "parse_constant=invalid,",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "id": "M12_ignore_status_backup",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "status",
+          "old": "verified = backup.is_file() and _sha(backup.read_bytes()) == plan['before_sha256']",
+          "new": "verified = True"
+        }
+      ]
+    },
+    {
+      "id": "M13_ignore_status_target",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "status",
+          "old": "target = _sha(current) == plan['target_sha256']",
+          "new": "target = True"
+        }
+      ]
+    },
+    {
+      "id": "M14_ignore_status_source",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "status",
+          "old": "'source_unchanged': _sha(current) == plan['before_sha256']",
+          "new": "'source_unchanged': True"
+        }
+      ]
+    },
+    {
+      "id": "M15_allow_numeric_loss",
+      "edits": [
+        {
+          "file": "wsflow/wf_migrate.py",
+          "func": "_decode",
+          "old": "if not math.isfinite(value) or Decimal(str(value)) != Decimal(text):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "R03_ignore_external_home_gitignore",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "repository = wfinit.gitignore_target(home)\n                    gi = wfinit.gitignore_report(repository)",
+          "new": "repository = wfinit.gitignore_target(pr['path'])\n                    gi = wfinit.gitignore_report(repository)"
+        }
+      ]
+    },
+    {
+      "id": "R04_expose_local_as_remote",
+      "edits": [
+        {
+          "file": "wsflow/jirawrite.py",
+          "func": "operation_status",
+          "old": "if op.get('kind') in KINDS",
+          "new": "if True"
+        }
+      ]
+    },
+    {
+      "id": "R05_repair_local_as_Jira",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "or pending.get('kind') not in jirawrite.KINDS ",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "id": "R06_direct_repair_local",
+      "edits": [
+        {
+          "file": "wsflow/jirawrite.py",
+          "func": "repair",
+          "old": "or op.get('kind') not in KINDS ",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "id": "R07_ignore_parent_repo",
+      "edits": [
+        {
+          "file": "wsflow/wfinit.py",
+          "func": "gitignore_target",
+          "old": "(location, *location.parents)",
+          "new": "(location,)"
+        }
+      ]
+    },
+    {
+      "id": "R08_hide_all_remote_operations",
+      "edits": [
+        {
+          "file": "wsflow/jirawrite.py",
+          "func": "operation_status",
+          "old": "if op.get('kind') in KINDS",
+          "new": "if False"
+        }
+      ]
+    },
+    {
+      "id": "R09_fix_wrong_gitignore",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "return wfinit.gitignore_apply(wfinit.gitignore_target(info['wf_home']))",
+          "new": "return wfinit.gitignore_apply(pr['path'])"
+        }
+      ]
+    }
+  ]
+}

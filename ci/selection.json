@@ -1,6 +1,6 @@
 {
   "mode": "PLANNED",
-  "request": "P-023",
+  "request": "P-026",
   "baseline": "rd/evaluation_plan.md V0-04/V1-03",
   "specs": [
     {
@@ -117,7 +117,21 @@
       "spec": "ci/specs/i7_ui.json",
       "count": 9,
       "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "v2_fixes",
+      "source": "P-025 F044/F045 contracts; preserved initial and strengthened negative controls",
+      "spec": "ci/specs/v2_fixes.json",
+      "count": 32,
+      "changes": "explicitly qualify schema-only preservation, recovery, Git boundary and UTC epoch protections in CI"
+    },
+    {
+      "stage": "v2_fixes_ui",
+      "source": "P-025 F044 migration UI contracts",
+      "spec": "ci/specs/v2_fixes_ui.json",
+      "count": 2,
+      "changes": "explicitly qualify schema3 migration visibility and apply handler in CI"
     }
   ],
-  "total": 208
+  "total": 242
 }

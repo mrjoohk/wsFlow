@@ -4,7 +4,9 @@
 하나의 로컬 도구. 브라우저에서 프로젝트 폴더를 고르면 그 폴더의 git 상태·규칙 준수와
 **매핑된 Jira 태스크·날짜별 메모·마감·신규 태스크**를 한 화면에서 다룬다.
 
-외부 의존 0 — Python 3.10+ 표준 라이브러리와 git CLI 만 있으면 된다. Jira 는 `urllib` 로 REST 를 직접 호출한다.
+Python 코드는 표준 라이브러리와 git CLI를 사용한다. Calendar/Jira의 IANA 시간대 기능에는 시스템 시간대 DB 또는 `tzdata`가 필요하며, Windows에서는 `python -m pip install tzdata`로 준비한다. Jira REST는 `urllib`로 호출한다. Python3.10은 지원 종료된 최소 호환 시험용이다.
+
+현재 V0+V1 동결·검증 결과: [output_docs/261018_1825_v0_v1_verification_report.md](output_docs/261018_1825_v0_v1_verification_report.md). Windows의 명시한 canonical NTFS 프로파일에서 로컬/실제 CI를 수용했다. Git 공통 작업ID·일일 메모 계약 GAP와 실제 계정·Codex/Claude 인식은 후속 범위다. 재현 방법은 [ci/README.md](ci/README.md), 실제 결과는 `logs/test_evidence/261018_P023/validation.json`을 따른다. Node/Playwright/browser는 시험 전용 의존이다.
 
 ## 실행
 
@@ -259,3 +261,18 @@ Jira 탭의 **오늘 일일 갱신**은 해당 Jira 계정 timeZone의 오늘에
 `sprint_mode=active`는 legacy 값이며 스프린트를 필터링하지 않는다. `all`/미지정도 전체 스프린트 대상이다. 그 외 mode는 지원하지 않는다. 사이트별 Jira 자격은 credentials의 `sites` URL exact match로 지정한다. 환경변수/평탄 자격 파일은 공유 계정 용도다.
 
 `python tools/check_jira_vendor.py --upstream ../jiraWorkFlow/jiraWF`로 모체 commit과 vendor 9파일을 대조한다. 모체 없이 배포된 경우 `--upstream`을 생략해 고정 manifest와 비교한다. I7 계약은 [rd/i7_contracts.md](rd/i7_contracts.md), 결과는 `logs/test_evidence/261018_P021/validation.json`이 연결하는 새 보고서를 따른다. 실제 Jira/Google 계정·Codex/Claude 인식·타 OS·CI 수용은 별도다. 실행 중인 이전 서버는 새 코드를 사용하려면 다시 시작해야 한다.
+
+## P-024 실제 Jira 읽기 검증
+
+현재 검증 결과는 [V2 보고서](output_docs/261018_1957_v2_verification_report.md)와 `logs/test_evidence/261018_P024/validation.json`을 따른다. 한 사이트·계정의 읽기82회, 실제23페이지/46키, schema4 시험 WF_HOME의 일일7단계·메모 보존·실패 watermark 보존을 확인했다. 원격 업무 쓰기·원본 WF_HOME 변경은 없으며 제품 소스는 V0/V1 동결본과 같다.
+
+V2는2 PASS/4 PARTIAL이다. 기존9개를 포함한 필수46개는11 PASS/4 PARTIAL/31 NOT_RUN이며 전체 완료가 아니다. 추가 사이트 없음이 확인돼 다사이트와 실제 CSC 양성·parent:null·완료 Epic·새 변경 색인 지연은 미확정이다. 등록된 schema3은 schema4 배치에서 차단되므로 보존형 설정 전환이 필요하다(F-044). DST 전환의 현지시각 감산 문제(F-045)는 합성 대조로 확인했으며 현재 UTC 계정의 성공을 다른 시간대 수용으로 확대하지 않는다. 기존 보고서·증거·사용자 파일은 보존한다.
+
+
+## P-025 F044/F045 보강 결과
+
+최신 보강 보고서는 [output_docs/261018_2318_f044_f045_implementation_report.md](output_docs/261018_2318_f044_f045_implementation_report.md), 증거 정본은 `logs/test_evidence/261018_P025/validation.json`이다. schema3은 명시 계획·원본 byte backup·CAS로 schema_version만4로 전환하며 UI에서 미리보기/적용/결과 확인이 가능하다. 실제 WF_HOME의 근접 Git 경계에서 제외 설정을 조회·수정한다. 로컬 전환 작업은 Jira 원격 복구에서 분리한다. 일일 증분 조회는 UTC에서2분을 뺀 뒤 분 내림한 정수 epoch ms로 DST 모호성을 피한다. 기존 since 미지정 조회 계약은 유지한다.
+
+격리 회귀432개 실패0/오류0/skip1, 기존browser82+신규5, CI도구15, 선택 음성대조45+32+UI2=79개 검출을 확인했다. 실제 schema3 설정과 기존 수집 자료의 사본 replay도7단계 성공·메모 bytes 유지였다. 실사용 원본13개와 기존 보호파일5,038개/자격/로그 prefix를 대조했다. 실제 원본 migration·실제 Jira 재호출·공개게시/CI실행·원격 업무쓰기는 하지 않았다.
+
+최종 fingerprint `73ea43d0f27320b33a8e9d2a33acac65e045b7a8f577bac68be825681717b759`. 회귀 실행 fingerprint와 차이는 변이패턴1파일뿐이며 raw bytes bridge와 최종 변이 재실행을 보존했다. 이전 P024/V0/V1의 계정·CI 수용은 당시 소스의 결과다. 새 소스의 epoch 공급자 해석·실계정/CI 수용과 미확보 V2 표본은 별도 재검증한다. 새spec32/UI2는 이번 로컬 명시실행이며 기존 CI선택208은 보존했다.

@@ -124,7 +124,10 @@ def run(home, creds, *, send=None, clock=None, checkpoint=None):
                     if not me.get('accountId') or not me.get('timeZone'):
                         raise ValueError('Jira 계정과 timeZone을 확인해야 합니다')
                     zone = ZoneInfo(me['timeZone'])
-                    captured = (clock() if clock else datetime.now(timezone.utc)).astimezone(zone)
+                    instant = clock() if clock else datetime.now(timezone.utc)
+                    if instant.tzinfo is None or instant.utcoffset() is None:
+                        raise ValueError('실행 시각에 UTC offset이 필요합니다')
+                    captured = instant.astimezone(zone)
                     previous = datetime.fromisoformat(state['watermark'])
                     if previous.tzinfo is None or captured < previous:
                         raise ValueError('watermark 시각/offset이 잘못되었거나 실행 시계가 후퇴했습니다')
@@ -155,8 +158,9 @@ def run(home, creds, *, send=None, clock=None, checkpoint=None):
                     receipt.update(date=day, watermark_in=state['watermark'], watermark_out=captured.isoformat(),
                                    support=supported, vendor=provenance)
                 elif phase == 'collect':
-                    query_state = {**state, 'watermark': (previous.astimezone(zone) - timedelta(minutes=2)).isoformat()}
-                    collected = jiraapi.fetch(query_state, stage, run_id, creds, send)
+                    since = (previous.astimezone(timezone.utc) - timedelta(minutes=2)).replace(second=0, microsecond=0)
+                    collected = jiraapi.fetch(state, stage, run_id, creds, send, since=since)
+                    receipt['incremental_since_utc'] = since.isoformat()
                     receipt['queries'] = collected['queries']
                     if any(q['truncated'] for q in collected['queries']):
                         raise ValueError('완전한 Jira 조회가 아닙니다 — watermark를 유지합니다')

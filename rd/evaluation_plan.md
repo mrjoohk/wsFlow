@@ -5,9 +5,9 @@
 - Source: `rd/wsflow_integrated_design.md`, `rd/wsflow_verification_plan.md`, I0~I7 계약, `logs/test_evidence/261018_P022/analysis_facts.json`.
 - Domain: 로컬 업무 허브의 데이터 보존·외부 API 정합성·개발 도구 관측·재현성 검증. ML 모델 평가는 아니다.
 - Date: 2026-10-18 (Asia/Seoul).
-- 현재성: **계획만 작성. V0~V7 실행 결과는 모두 NOT_RUN**. 코드·시험·CI 설정·실계정·도구 세션을 이번 요청에서 변경/실행하지 않는다.
+- 현재성: P-022는 계획만 작성한 이력이다. **P-023에서 V0/V1 9개를 명시 Windows/NTFS 프로파일로 수용했고 V2~V7의37개는 NOT_RUN**이다. 원46개 기준/분모는 유지한다. 현재 실행 결과는 `logs/test_evidence/261018_P023/validation.json`과 새 V0/V1 보고서를 따른다. 실계정/실제 도구는 이번에 실행하지 않았다.
 - 정본: Stage 8의 현재 실행 기준은 본 문서다. 기존 v2 검증 계획과 I0~I7 계약은 원문·요구·과거 근거로 보존한다. 새 계획이 원 요구를 축소하지 않는다.
-- 기준 소스: head `30238b912c487c6fec1f00f91be6c7befe4261d0`, 미커밋 소스 fingerprint `109e7c3f5a08`. commit만으로 현재 구현을 재현할 수 없으므로 V0에서 전체 소스 manifest와 함께 동결한다.
+- P-022 당시 기준 소스: head `30238b912c487c6fec1f00f91be6c7befe4261d0`, 미커밋 소스 fingerprint `109e7c3f5a08`. commit만으로 현재 구현을 재현할 수 없으므로 V0에서 전체 소스 manifest와 함께 동결한다.
 
 ## 판단 근거
 
@@ -52,7 +52,7 @@ V0-03은 문서 선택만으로 원래 CTX-14 전체 충족을 증명하지 않�
 
 ## V1 — 깨끗한 환경·CI 수용 (5개)
 
-현재 CI workflow 실행 증거가 없고 `.github` 설정도 없다. 다음 지시는 코드/CI 변경을 포함할 수 있으므로 후속 구현 요청에서 수행한다.
+P-022 당시에는 CI 설정/실행 증거가 없었다. P-023의 `.github/workflows/verify.yml`과 `tools/ci/runner.py`로 실제 실행했다. 최종 source/정상2·통제실패3·artifact별 수용은 `logs/test_evidence/261018_P023/validation.json`을 따른다. 원 기준과 선언 환경·제품 alias 한계를 유지한다.
 
 | ID | 실행·확인 | 통과 기준 |
 |---|---|---|
@@ -184,10 +184,38 @@ V7-01은 우선 측정 게이트다. 초기 SLO 제안은 일정1000/프로젝�
 
 외부 효과를 실행하기 전 대상 sheet에서 계정·캘린더/프로젝트·exact parent/issue/event·허용 create/update/delete·정리 방법·상한을 구체화한다. 초기 제안 상한은 Google 생성 event10개/쓰기40회, Jira issue5개/comment5개이며 V0에서 실제 대상과 함께 확정한다. 효과가 불확실하면 상한 이내여도 재전송하지 않고 대조한다. Google 정리는 생성한 exact ID만 별도 명시 삭제; Jira는 Done 전이를 앱 시험/정리 수단으로 사용하지 않고 소유자가 시험 자료를 확인·정리한다. 이미 승인된 exact 범위는 반복 승인하지 않으며, 새 대상/범위 확대는 별도 결정이다.
 
-실제 provider write가 없는 V1 CI와 live smoke를 분리한다. 일반 PR job에 사용자 credentials를 제공하지 않는다. 신규 CI/하네스·수정이 필요하면 다음 코드 구현 요청에 별도 변경·회귀·음성 대조를 연결한다. 본 요청은 그러한 파일을 만들지 않는다.
+실제 provider write가 없는 V1 CI와 live smoke를 분리한다. 일반 PR job에 사용자 credentials를 제공하지 않는다. 신규 CI/하네스·수정이 필요하면 다음 코드 구현 요청에 별도 변경·회귀·음성 대조를 연결한다. P-022는 그러한 파일을 만들지 않았으며 P-023의 후속 실행 요청에서 필요한 CI/하네스를 추가했다.
 
 ## 종료 판정과 실패 라우팅
 
 V0~V7의 필수46개 통과는 **명시한 환경·계정·scope의 실사용 후보**를 뜻한다. 원 요구 GAP(F-032), 실측 불가 범위나 안전 조건 위반이 남으면 “전체 설계 완료”로 표현하지 않는다. actual provider 미관측 항목을 합성 PASS로 대체하지 않는다. FAIL은 발견 대장과 최소 재현/교정 계획, UNKNOWN/SKIP은 필요한 계정/권한/관측 수단과 재실행 조건에 연결한다. 코드를 고쳐야 하면 그때 별도 구현을 요청받아 진행한다.
 
-다음 요청의 첫 권장 범위는 **V0+V1**이다. 실행 가능한 동결본과 CI 증거 기반을 먼저 만들고, 사용자 시험 자격/도구가 준비된 뒤 V2/V3/V6를 수용한다. 이 문서의 통과 수치는 목표이며 이번에 새로 실행한 기능 결과가 아니다.
+P-022의 첫 권장 범위였던 **V0+V1**은 P-023에서 명시 프로파일로 수용했다. 다음 범위는 **V2·V3·V6**이다. 실행 가능한 동결본과 CI 증거 기반을 먼저 만들고, 사용자 시험 자격/도구가 준비된 뒤 V2/V3/V6를 수용한다. 이 문서의 통과 수치는 목표이며 이번에 새로 실행한 기능 결과가 아니다.
+
+
+## P-023 실행 overlay — 기준은 보존하고 결과를 연결
+
+최종 결과는 `output_docs/261018_1825_v0_v1_verification_report.md`와 `logs/test_evidence/261018_P023/acceptance_scenarios.json`이다. V0/V1은9/9 PASS, 전체 필수46개는9/46이며 나머지37개는 NOT_RUN이다. 위 Metrics 표의0/46은 P-022 baseline이고 현재 관측은 P-023 metrics.json이다. 선정208변이를 네 프로파일에서 각각 fresh baseline 후 수용했으며 모든 코드/요구를 완전히 검증한 coverage로 확대하지 않는다.
+
+실행 source commit `01b64dbd5098da1ca811b29fd34840acb8116c35`, normalized fingerprint `f55919f751535e9b3f2705aa80d2326989dca5d9d938ca2bc7b72b46bf232717`, `frozen7/freeze.json` raw archive, 각 env/job/artifact hash를 연결한다. 지원은 canonical full path NTFS의 선언 Windows/Python 프로파일이다. 제품 short alias F-042와 부하 잠금 F-039는 미수용 한계, CTX-14는 F-032/F-041로 PARTIAL 유지다. 실제 계정/도구·운영 수용 기준과 기존 승인 범위 규칙은 유지한다.
+
+## P-024 V2 실행 overlay·잔여 검증 조건
+
+새 결과는 `output_docs/261018_1957_v2_verification_report.md`, 46개/31요구 overlay는 `logs/test_evidence/261018_P024/acceptance_scenarios.json` 및 `requirements_status.json`이다. 기존 기준/이전 결과는 수정하지 않는다. V2-04/05만 현재 한 계정 Etc/GMT·schema4 시험 WF_HOME에서 PASS, 나머지4개 PARTIAL이다. 전체11 PASS/4 PARTIAL/31 NOT_RUN이며, 제품 코드/기존 시험/vendor/CI는 동일 source다. 실제 provider와 fault·clock·PAGE 변형을 구분한 P024 증거를 따른다.
+
+사용자가 추가 사이트/지정 표본 없음으로 답했으므로 V2-01 다사이트는 UNKNOWN 유지한다. V2-02는 현재15개 표본의5개 기대집합 대조 성공 외 실제 CSC 양성·완료 Epic이 필요하다. V2-03은 실제 parent:null과 추가 hierarchy/custom-field 형식을 확보한다. V2-06의 기존 이슈10회 가시성은 새 변경 색인 지연이 아니므로 독립 변경 시각·최소10회 관측 분포·관측 기한을 사전 고정해 재검증한다. 원격 쓰기 없는 현재 범위로 준비하지 못한 입력을 성공으로 바꾸지 않는다.
+
+F-044의 schema3 운영 전환은 기존 wfinit.build_state를 재사용한 사본 성공과 구분하여 계획/사전대조·백업·업무/roots/watermark 보존·복구를 검증한다. F-045는 DST 시작/종료·반시간 이동·gap/fold에서 UTC 경과시간 기준과 독립 대조하고 실제 Jira JQL 해석을 확인한다. 현재 제품은 수정하지 않았으며 DST 수용을 선언하지 않는다. F-046/047의 하네스 labels 범위·부분 보고·외부 deadline은 새 live 재사용 전에 보완한다. 원 기준 숫자를 줄여 미관측 조건을 없애지 않는다.
+
+판단 근거: P024 실제 읽기82회·표본15·23페이지/46키·7단계 shadow 및 memo bytes·정확한 실패 단계의14장애·회귀415·제품45/하네스18변이를 연결했다. 독립 검토 후 하네스만 보강했고 현재 실제 프로파일의 범위와 새 제품 발견을 분리했다. V3/V6 및 이후 V4/V5/V7 검증 순서·원격 효과 승인 경계는 유지한다.
+
+
+## P-025 F044/F045 보강 결과
+
+평가정본은 `logs/test_evidence/261018_P025/validation.json`과 `output_docs/261018_2318_f044_f045_implementation_report.md`다. 이전수용평가는당시소스의이력으로보존한다. 이번은원격업무쓰기0/실계정재호출0의격리로컬수정검증이다.
+
+F044: unknown/None/roots/watermark/last_batch값과 byte backup, client조작/TTL/binding/stale/CAS/동시적용/쓰기전후실패/DB응답유실/status행렬을실측한다. 실제schema3사본+기존raw의오프라인replay도7단계/메모bytes/원본13파일유지로대조했다. F045: UTC정수독립oracle700×4offset과DST/반시간/자정6배치, 별도1,500시각/7,500대조를통과했다. 현지감산/overlap/분내림/단위/offset/인용등보호제거를검출했다.
+
+전체Python432(F0/E0/skip1), browser82+5, CI자체15, 최종선택변이79(기존I7 45/신규32/UI2)와baseline/source/spec/runner hash를대조한다. 초기실패·생존·패턴오류는모두보존하며잘못된setup을killed로집계하지않는다. 최종R03패턴한정은제품/시험무변경bridge와새동결변이실행으로검증한다. 기존CI선택208전체나실제CI를이번에실행했다는주장은하지않는다.
+
+남은수용: 새 epoch JQL의공급자해석·실계정동일키/페이지/UTC경계·DST계정표본, 독립변경시각이있는색인지연, 실제원본전환, 새source CI. V2다사이트/CSC양성/완료Epic/parent:null 및F046/047조건은유지한다. 미관측은UNKNOWN/NOT_RUN으로남기고P024의11/46을새소스수용률로재사용하지않는다.

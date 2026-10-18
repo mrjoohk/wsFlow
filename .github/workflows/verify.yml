@@ -54,6 +54,8 @@ jobs:
           & "$env:RUNNER_TEMP/venv/Scripts/python.exe" -X utf8 tools/ci/runner.py run --root "$env:GITHUB_WORKSPACE" --out "$env:RUNNER_TEMP/evidence" --expected-python '${{ matrix.python }}' --jobs 4
           exit $LASTEXITCODE
       - name: Upload exact source and execution evidence
+        # Historical 82 named browser cases stay in runner.py; the new local
+        # migration UI uses its own five-case, actual-server evidence below.
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -62,6 +64,24 @@ jobs:
             ${{ runner.temp }}/evidence
             ci/source-manifest.json
             ci/selection.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: V2 migration UI with the actual local server
+        shell: pwsh
+        env:
+          WSFLOW_BROWSER_OUTPUT: ${{ runner.temp }}/v2-migration-ui
+        run: |
+          $env:PATH = "$env:RUNNER_TEMP/venv/Scripts;$env:PATH"
+          node tests/v2_fixes_browser.cjs
+          exit $LASTEXITCODE
+      - name: Upload V2 migration UI evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: v2-ui-windows-${{ matrix.python }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/v2-migration-ui
+            ci/source-manifest.json
           if-no-files-found: error
           retention-days: 30
 

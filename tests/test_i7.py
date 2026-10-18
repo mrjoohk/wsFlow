@@ -287,7 +287,8 @@ class BatchTests(Home):
         self.assertEqual(result['status'],'succeeded',result);self.assertEqual(result['date'],'2026-10-17')
         self.assertEqual(wfhome.read_state(self.home)['watermark'],'2026-10-17T21:30:00-04:00')
         change=next(body['jql'] for url,body,_ in original.calls if body and 'updated >=' in body.get('jql',''))
-        self.assertIn('2026-10-17 16:58',change)
+        # 16:58 America/New_York is the same instant; batch now sends unquoted epoch ms.
+        self.assertIn('updated >= 1792270680000',change)
 
     def test_concurrent_batches_serialize_without_original_memo_loss(self):
         memo=wfhome.read_memo(self.home,'261018');wfhome.write_memo(self.home,'261018','THREAD PRIVATE',memo['sha']);original=wfhome.read_memo(self.home,'261018')['text']

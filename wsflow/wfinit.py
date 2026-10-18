@@ -214,6 +214,12 @@ def write_state(wf_home: str | Path, new_state: dict) -> str:
 
 
 # ------------------------------------------------------------------ .gitignore (D-005)
+def gitignore_target(wf_home: str | Path) -> Path:
+    """Nearest repository containing the actual workflow files; external checkout is unrelated."""
+    location = Path(wf_home).resolve()
+    return next((p for p in (location, *location.parents) if (p / '.git').exists()), location)
+
+
 def gitignore_report(project_path: str | Path) -> dict:
     p = Path(project_path)
     if not (p / ".git").exists():

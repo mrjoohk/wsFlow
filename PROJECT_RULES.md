@@ -12,7 +12,7 @@
   - `jiraWorkFlow/jiraWF` (원년 2026-08-25) — 결정적 파이프라인 스크립트를 `vendor/jira_worklog/` 에 **무수정 이관**했다. 그 저장소는 public·단독 설치용으로 계속 살아 있으며, `vendor/` 를 고칠 일이 생기면 **거기서 고치고 다시 가져온다**(D-003).
 - **구조**: 브라우저(단일 `static/index.html`) → HTTP JSON API(`wsflow/server.py`, 표준 라이브러리 `http.server`, 127.0.0.1 + F-001 가드) → git 어댑터 · 규칙 스캐너 · 관리 목록(`projects.json`) · 배포 · **Jira REST 어댑터** · **쓰기 단일 통로**.
 - **범위 외**: 원격 배포·다중 사용자·앱 사용자 계정 인증(로컬 전용). 폴더·파일 삭제. 파괴적 git 명령. git init·GitHub 저장소 생성. **Jira 완료(Done) 전이**·자동 구현·할 일 유형 분류·팀 롤업·Jira 양방향 자동 동기화·git 커밋 자동 수집 — 마지막 다섯은 `jiraWF/DESIGN.md` §하지 않는 것을 그대로 승계한다. 융합했다고 풀리지 않는다. Google 외부 계정 OAuth와 일정 동기화는 I3/I4에서 로컬·합성 provider 범위를 구현했고 실계정 수용은 미검증이다. 현재 통합 상태는 §19를 따른다.
-- **언어/빌드**: Python 3.10+ 표준 라이브러리만(외부 의존 0). 빌드 없음. 시험은 `python tests/run_tests.py`, 실행은 `python run.py` 또는 `run.cmd`.
+- **언어/빌드**: Python 코드의 import는 표준 라이브러리, Git은 git CLI. Calendar/Jira IANA 시간대에는 시스템 DB 또는 tzdata가 필요하며 Windows는 tzdata 설치를 전제한다. Node/Playwright/browser는 시험 전용이다. Python3.10은 EOL 호환 시험용. 빌드 없음. 시험은 `python tests/run_tests.py`, 실행은 `python run.py` 또는 `run.cmd`.
 
 ## 2. 정본 문서 (canonical documents)
 
@@ -45,6 +45,8 @@
 | P-010 상세 분석 보존본 | `review_docs/261016_1808_project_design_implementation_analysis.md` | 원문 보존. P-011 보존 해시 근거는 `logs/test_evidence/261016_P011_context_inventory.json` |
 | P-011 최종 분석 보존본 | `output_docs/261016_1852_final_design_analysis.md` | 원문 보존. P-013이 새 최종 보고서 |
 | P-012 캘린더 검토 보존본 | `review_docs/261016_1909_calendar_feature_review.md` | CAL-01~CAL-16 원 요구 유지. P-013에서 정식 목표에 통합 |
+| V0/V1 수용 정본 | `output_docs/261018_1825_v0_v1_verification_report.md` | P-023 최종 source·선언 환경·실제 CI·잔여 GAP. P-022 분석은 이력 보존 |
+| V0/V1 동결·실행 계약 | `rd/v0_v1_contracts.md` | G2/G4·Git 지원 범위·격리/신선도·CI 수용 |
 
 ## 3. 원년 (ledger epoch)
 
@@ -215,3 +217,29 @@ ROOT/checkout/worktree·원본/사본/support·소유 profile/manifest·선택·
 현재 최종 분석은 `output_docs/261018_1715_i0_i7_final_analysis.md`, 후속 검증 실행 정본은 `rd/evaluation_plan.md`다. 기존 통합 목표/검증 v2와 단계별 계약·보고서는 원문 이력으로 유지한다. I0~I7의 로컬 계약 범위 구현·회귀는 연결됐지만 CTX-14의 Git 공통 plan/operation 경계는 부분(F-032)이며 실계정·실제 도구·CI/다른 OS 수용은 미완료다. 이전 단계의 미착수/미구현 표시는 그 요청 시점의 기록이고 현재 상태를 대체하지 않는다.
 
 P-022는 코드·시험·도구·vendor·기존 보고서/검증 산출물을 변경하지 않는다. 기존2377파일 보호 기준과 과거 P-016 고정 출력 재실행 예외를 구분한다. V0~V7 필수46개는 계획/NOT_RUN이며 현재415시험·Chrome82·I7 음성 대조54의 기존 로컬 결과와 혼동하지 않는다. 원격 효과·CI/하네스 구현과 사용자 ROOT 적용은 후속 요청에서 구체적 범위를 정한다.
+
+
+## 20. P-023 V0+V1 현재 수용 상태
+
+현재 검증 결과 정본은 `output_docs/261018_1825_v0_v1_verification_report.md`, 실행 증거는 `logs/test_evidence/261018_P023/validation.json`이다. P-022 분석·이전 단계별 보고서/증거는 당시 원문 이력으로 보존한다. V0/V1의9개는 명시 Windows/NTFS canonical full path 프로파일에서 PASS이며 전체46개 중 나머지37개는 NOT_RUN이다. 원 CTX-14는 Git F-032와 일일 메모 F-041의 공통 plan/operation UUID 차이 때문에 PARTIAL을 유지한다. 제품 short alias 직접 입력 F-042와 느린 부하 잠금 F-039는 deferred다.
+
+최종 source commit `01b64dbd5098da1ca811b29fd34840acb8116c35`, fingerprint `f55919f751535e9b3f2705aa80d2326989dca5d9d938ca2bc7b72b46bf232717`. 별도 승인된 공개 codex 브랜치에서 실제 CI 정상2개와 의도 실패3개의 원인/아티팩트를 대조했다. 원격 main·원 작업 폴더 HEAD/index·사용자 파일·기존2396파일을 유지했다. 애플리케이션·기존 시험·vendor는 수정하지 않았다. 최종 각 프로파일의415/15/82/208 수치는 새 evidence 정본을 따른다.
+
+판단 근거: D-075~078/M-014 및 `rd/v0_v1_contracts.md`. CI가 통과해도 실계정 Google/Jira와 실제 Codex/Claude 세션 수용을 대신하지 않는다. V2/V3/V6 이후 V4/V5/V7 순서를 유지한다. 이번 snapshot의 보조 안내 문서는 freeze 당시 이력이며 본 현재 링크 갱신은 실행 소스 fingerprint 밖 문서 변경이다.
+
+## 21. P-024 V2 읽기·일일 수집 수용 상태
+
+현재 결과 정본은 `output_docs/261018_1957_v2_verification_report.md`, 증거는 `logs/test_evidence/261018_P024/validation.json`, 계약은 `rd/v2_execution_contracts.md`다. 이전 보고서/검증 산출물은 원문 보존한다. 제품·기존 시험·vendor·CI 소스는 동일 동결 fingerprint이며 새 하네스와 문서만 추가/보강했다. 읽기82회와 별도 schema4 WF_HOME에서 수행했고 원격 업무 쓰기·원본 설정 migration·공개 게시를 하지 않았다.
+
+V2-04/05는 현재 UTC 계정·schema4 shadow 프로파일에서 PASS, V2-01/02/03/06은 PARTIAL이다. 원46개는11 PASS/4 PARTIAL/31 NOT_RUN. source fingerprint만 같다는 이유로 실계정 표본 조건을 생략하지 않는다. schema3 운영 전환(F-044), DST의 경과시간 계산/실제 gap·fold 수용(F-045), 하네스의 비labels oracle/부분 오류 보고(F-046/047)는 남은 경계다. 하네스 판정/보호 시험은 F-048~050에 기록한다. 기존 F-032/039/041/042 상태는 유지한다.
+
+판단 근거: D-079/M-015, 실제 공급자/통제 replay의 분리·사전 표본/키 대조·정확한 단계/최종 state/메모 bytes·독립 검토를 연결한다. 하네스 source·초기 생존 변이·강화 후 fresh 결과를 모두 보존한다. 원래 schema3을 자동 고치거나 이번 UTC 결과로 DST/두 번째 사이트·색인 지연을 통과시켜서는 안 된다.
+
+
+## 22. P-025 F044/F045 보강 결과
+
+현재 보강 정본: `output_docs/261018_2318_f044_f045_implementation_report.md`, `review_docs/261018_2318_f044_f045_delta_audit.md`, `logs/test_evidence/261018_P025/validation.json`, 계약 `rd/v2_fixes_contracts.md`. F044/F045는 시험 WF_HOME의 보존형 전환·UTC 산술 범위에서 검증했다. 실제 사용자 원본은 schema3 그대로 보존하며 원격 업무 쓰기는0이다. 기존 보고서/증거는 수정하지 않는다. D080/D081/M016은 보존 전환·절대시각 조회·근거 연결을 정의한다.
+
+F051~058은 두 독립3관점 회차와 비독립 고침 확인으로 보강했다. 성공 작업 cache는 과거 실행, status.committed는 현재 hash 대조이며 외부 변경을 덮지 않는다. 정밀 값 보존 불가 JSON은 미리보기에서 거부한다. Git 제외는 실제 WF_HOME의 근접 경계를 기준으로 모든 관련 동선에서 일치시킨다.
+
+최종 회귀432(F0/E0/skip1), browser82+5, CI자체15, 선택변이79개. 최종 source와 회귀 source의 차이는 R03 패턴 한정1파일뿐이며 bridge로 제품/시험 bytes 동등성을 확인하고 최종 source의 변이는 재실행했다. 신규spec을 실제 CI가 이미 실행했다는 뜻이 아니다. 이전46개 수용 수치는 이전 source의 이력이며 새소스에 자동 승계하지 않는다. 후속 실계정 epoch·CI·V2표본 수용 및 F032/039/041/042·F046/047은 유지한다.

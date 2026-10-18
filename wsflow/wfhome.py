@@ -95,16 +95,19 @@ def detect(project: dict) -> dict:
         out["schema_ok"] = False
         return out
     out["schema_ok"] = state.get("schema_version") == SCHEMA_VERSION
+    out['schema_version'] = state.get('schema_version')
+    out['migration_available'] = type(state.get('schema_version')) is int and state['schema_version'] == 3
     if not out["schema_ok"]:
-        out["reason"] = (f"schema_version={state.get('schema_version')} — {SCHEMA_VERSION} 가 아니면 "
-                         "마감·배치가 멈춥니다(/wf-init 필요)")
+        out["reason"] = (f"schema_version={state.get('schema_version')} — {SCHEMA_VERSION} 가 아니면 마감·배치가 멈춥니다. "
+                         + ('보존형 설정 전환으로 원본 백업과 버전 변경을 미리 확인하십시오.' if out['migration_available'] else '지원 버전의 설정을 확인하십시오.'))
     out["site_url"] = (state.get("issue_type_map") or {}).get("site_url")
     out["scope"] = {"project_key": state.get("project_key"),
                     "csc_field": state.get("csc_field"), "csc_value": state.get("csc_value"),
                     "epic_keys": state.get("epic_keys") or [],
                     "title_include": state.get("title_include") or [],
                     "title_exclude": state.get("title_exclude") or []}
-    out["gitignore_ok"] = gitignore_ok(home)
+    from . import wfinit
+    out["gitignore_ok"] = gitignore_ok(wfinit.gitignore_target(home))
     return out
 
 

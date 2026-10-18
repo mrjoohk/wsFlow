@@ -77,7 +77,7 @@ def wm_for_jql(watermark: str) -> str:
     return f"{m.group(1)} {m.group(2)}"
 
 
-def build_queries(state: dict) -> list[dict]:
+def build_queries(state: dict, *, since: datetime | None = None) -> list[dict]:
     """state.json 의 바깥 경계를 JQL 3종으로 옮긴다 (worklog-daily/SKILL.md:53-55).
 
     ``csc_value`` 가 있으면 **CSC 미지정 조회를 반드시 함께** 낸다 — INV-6.
@@ -97,10 +97,18 @@ def build_queries(state: dict) -> list[dict]:
         scope = ' AND parent in (' + ','.join(issue_key(k) for k in state['epic_keys']) + ')'
     issue_key(key + '-1')
 
+    if since is None:
+        lower = '"' + wm_for_jql(state.get('watermark', '')) + '"'
+    else:
+        if not isinstance(since, datetime) or since.tzinfo is None or since.utcoffset() is None:
+            raise JiraError('증분 조회 시작 시각에는 UTC offset이 필요합니다')
+        # Unquoted date numbers are epoch milliseconds, independent of account DST gap/fold.
+        delta = since.astimezone(timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)
+        lower = str(delta.days * 86400000 + delta.seconds * 1000 + delta.microseconds // 1000)
     qs = [
         {"kind": "changes",
          "jql": f'project = {key}{scope} AND assignee = currentUser() '
-                f'AND updated >= "{wm_for_jql(state.get("watermark", ""))}" ORDER BY updated DESC'},
+                f'AND updated >= {lower} ORDER BY updated DESC'},
         {"kind": "open",
          "jql": f'project = {key}{scope} AND assignee = currentUser() '
                 f'AND statusCategory != Done ORDER BY updated DESC'},
@@ -219,7 +227,7 @@ def search(creds: dict, base: str, jql: str, fields: list[str], send=None) -> di
             **({'_raw_issues': raw_issues} if reasons else {})}
 
 
-def fetch(state: dict, wf_home: str | Path, stamp: str, creds: dict, send=None) -> dict:
+def fetch(state: dict, wf_home: str | Path, stamp: str, creds: dict, send=None, *, since=None) -> dict:
     """JQL 3종을 돌려 원본을 ``.workflow/raw/{stamp}_{kind}.json`` 에 그대로 남긴다.
 
     **응답을 가공하지 않는다.** 이 파일이 재집계·대조의 근거이고, 없으면 INV-4
@@ -230,7 +238,7 @@ def fetch(state: dict, wf_home: str | Path, stamp: str, creds: dict, send=None) 
     raw_dir = Path(wf_home) / ".workflow" / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
     out = {"stamp": stamp, "queries": [], "files": []}
-    for q in build_queries(state):
+    for q in build_queries(state, since=since):
         res = search(creds, base, q["jql"], fields, send)
         doc = {"_provenance": {"tool": f"wsFlow jiraapi {SEARCH_PATH}", "jql": q["jql"],
                                "captured": stamp, "fields": fields,

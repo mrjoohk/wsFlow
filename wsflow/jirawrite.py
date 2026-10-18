@@ -287,7 +287,7 @@ def repair(wf_home, operation_id):
     """Known success only: repair local exports without sending a Jira request."""
     with fileio.locked(wf_home):
         store = operations.Store(wf_home); op = store.get(operation_id)
-        if not op or op['status'] != 'succeeded':
+        if not op or op.get('kind') not in KINDS or op['status'] != 'succeeded':
             raise operations.StateConflict('확정 성공 작업만 로컬 기록을 복구할 수 있습니다')
         _export_result(wf_home, op)
         if op['kind'] == 'create_issue' and not op['local_recorded']:
@@ -300,7 +300,7 @@ def repair(wf_home, operation_id):
 def operation_status(wf_home):
     with fileio.locked(wf_home):
         pushed = {r.get('id') for r in _read(approvals_path(wf_home)) if r.get('event') == 'pushed'}
-        return [{**op, 'receipt_exported': op['operation_id'] in pushed} for op in operations.Store(wf_home).list()]
+        return [{**op, 'receipt_exported': op['operation_id'] in pushed} for op in operations.Store(wf_home).list() if op.get('kind') in KINDS]
 
 
 def unpushed(wf_home: str | Path) -> list[dict]:

@@ -651,6 +651,31 @@
       "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
       "search_file": "wsflow/calendar_sync.py",
       "quote": "if remote.get('recurrence') or remote.get('recurringEventId') or remote.get('attendees') or remote.get('eventType','default') != 'default':"
+    },
+    {
+      "doc": "output_docs/261018_1825_v0_v1_verification_report.md",
+      "search_file": "wsflow/server.py",
+      "quote": "return gitops.fetch(repo) if r0=='fetch' else gitops.pull_ff(repo)"
+    },
+    {
+      "doc": "output_docs/261018_1825_v0_v1_verification_report.md",
+      "search_file": "wsflow/server.py",
+      "quote": "return gitops.push(repo, body.get(\"remote\") or \"origin\", body.get(\"branch\"), bool(body.get(\"set_upstream\")))"
+    },
+    {
+      "doc": "output_docs/261018_1825_v0_v1_verification_report.md",
+      "search_file": "wsflow/server.py",
+      "quote": "return wfhome.write_memo(home, ymd, body.get(\"text\", \"\"), body.get(\"sha\", \"\"),"
+    },
+    {
+      "doc": "output_docs/261018_1825_v0_v1_verification_report.md",
+      "search_file": "wsflow/wfhome.py",
+      "quote": "if expected_sha != cur:"
+    },
+    {
+      "doc": "output_docs/261018_1825_v0_v1_verification_report.md",
+      "search_file": "wsflow/deploy.py",
+      "quote": "plan 과 같은 계산을 다시 하고 new/changed 만 복사한다(항상 덮어쓰기, 백업 없음)."
     }
   ],
   "known_open": {

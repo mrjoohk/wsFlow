@@ -48,6 +48,9 @@ API
   GET    /api/projects/<id>/jira/tasks        지금 조회해 분류한 태스크 목록 + 조용한 유실 신호
   GET    /api/projects/<id>/jira/batch        I7 실행 기록·최종 state marker (읽기 전용)
   POST   /api/projects/<id>/jira/batch/run {}  I7 명시 일일 순환 (Jira 원격 쓰기 없음)
+  POST   /api/projects/<id>/jira/migration/plan {} schema3 보존 전환 계획
+  POST   /api/projects/<id>/jira/migration/apply {plan_id,operation_id} 원본 백업·schema-only 전환
+  GET    /api/projects/<id>/jira/migration?plan_id=&operation_id= 로컬 전환 결과 확인
   GET    /api/projects/<id>/jira/memo?ymd=    진행 메모 (sha 동봉)
   PUT    /api/projects/<id>/jira/memo {ymd, text, sha, document_id}   문서/sha 불일치는 409 (INV-1)
   POST   /api/projects/<id>/jira/close/plan  {ymd}  서버 조회 범위의 승인 표
@@ -76,7 +79,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import (__version__, auth, calendar_query, calendar_store, calendar_view, closeflow, context_inventory, context_projection, session_prep,
                deploy, fileio, gitops, google_calendar, calendar_sync, jiraapi, jirawrite, newtask, operations,
-               pickdir, scanner, wfhome, wfinit, writeplans, workflow)
+               pickdir, scanner, wfhome, wfinit, writeplans, workflow, wf_migrate)
 from .store import Store
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -595,11 +598,28 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
             # 그 상태를 벗어나려고 부르는 경로이기 때문이다.
             if rest[1:2] == ["gitignore"]:
                 if len(rest) == 2 and m == "GET":
-                    return wfinit.gitignore_report(pr["path"])
+                    return wfinit.gitignore_report(wfinit.gitignore_target(info['wf_home']))
                 if rest[2:] == ["fix"] and m == "POST":
-                    return wfinit.gitignore_apply(pr["path"])
+                    return wfinit.gitignore_apply(wfinit.gitignore_target(info['wf_home']))
             if rest[1:2] == ["init"]:
                 return self._jira_init(m, pr, info, rest, q, body)
+
+            if rest[1:2] == ['migration']:
+                home = info['wf_home']
+                if rest == ['jira', 'migration'] and m == 'GET':
+                    return wf_migrate.status(pr, home, q.get('plan_id', [''])[0], q.get('operation_id', [''])[0])
+                if rest == ['jira', 'migration', 'plan'] and m == 'POST':
+                    if body != {}:raise ApiError(400, '전환 대상과 변경값은 서버가 결정합니다')
+                    return wf_migrate.preview(pr, home)
+                if rest == ['jira', 'migration', 'apply'] and m == 'POST':
+                    if set(body) != {'plan_id', 'operation_id'} or any(not isinstance(v, str) or not v for v in body.values()):
+                        raise ApiError(400, '서버가 발급한 계획·작업 ID만 필요합니다')
+                    repository = wfinit.gitignore_target(home)
+                    gi = wfinit.gitignore_report(repository)
+                    if gi['applicable'] and gi['missing']:
+                        raise ApiError(409, '업무 데이터 제외 설정을 확인한 뒤 전환하십시오: '+str(repository), {'gitignore': gi})
+                    return wf_migrate.apply(pr, home, body['plan_id'], body['operation_id'])
+                raise ApiError(404, '지원하지 않는 전환 경로입니다')
 
             if not info["enabled"]:
                 raise ApiError(409, info["reason"], {"jira": info})
@@ -622,7 +642,7 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                     if state.get('schema_version') != wfhome.SCHEMA_VERSION:
                         raise operations.StateConflict('업무 schema가 바뀌었습니다 — 설정을 확인하십시오')
                     pending = operations.Store(home).get(rest[2])
-                    if not pending or not pending.get('plan_id'):
+                    if not pending or pending.get('kind') not in jirawrite.KINDS or not pending.get('plan_id'):
                         raise operations.StateConflict('서버 발급 작업을 찾지 못했습니다')
                     saved = operations.Store(home).plan(pending['plan_id'])
                     if saved['binding'] != writeplans.binding(pr, home) or saved['site'] != jiraapi.site_url(state).rstrip('/'):
@@ -746,7 +766,8 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                     existing = wfhome.read_state(home)
                 new_state = wfinit.build_state(existing, **cfg)
                 pv = wfinit.preview(home, new_state)
-                gi = wfinit.gitignore_report(pr["path"])
+                repository = wfinit.gitignore_target(home)
+                gi = wfinit.gitignore_report(repository)
                 if tail == ["preview"]:
                     return {"preview": pv, "state": new_state, "gitignore": gi}
                 # D-005 — 제외가 없으면 쓰기 전에 멈춘다. 고칠지는 사람이 정한다.
@@ -755,7 +776,7 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                                         "추가에 동의하거나 직접 넣은 뒤 다시 시도하십시오",
                                    {"gitignore": gi})
                 if gi["applicable"] and gi["missing"]:
-                    gi = wfinit.gitignore_apply(pr["path"])
+                    gi = wfinit.gitignore_apply(repository)
                 path = wfinit.write_state(home, new_state)
                 return {"written": path, "preview": pv, "gitignore": gi,
                         "jira": wfhome.detect(pr)}

@@ -1,0 +1,39 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "node",
+    "tests/v2_fixes_browser.cjs"
+  ],
+  "timeout": 90,
+  "mutants": [
+    {
+      "id": "UI01_hide_schema3_transition",
+      "edits": [
+        {
+          "file": "wsflow/wfhome.py",
+          "func": "detect",
+          "old": "out['migration_available'] = type(state.get('schema_version')) is int and state['schema_version'] == 3",
+          "new": "out['migration_available'] = False"
+        }
+      ]
+    },
+    {
+      "id": "UI02_disable_transition_action",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "$('#jMigrateApply').onclick=async()=>{",
+          "new": "$('#jMigrateApply').onclick=async()=>{return;"
+        }
+      ]
+    }
+  ]
+}
