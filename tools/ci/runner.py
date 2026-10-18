@@ -154,6 +154,7 @@ def freeze(root, destination):
 
 
 def g4(root):
+    root = root.resolve()
     metrics = read(root / 'evidence_pack/metrics.yaml')  # JSON is a YAML 1.2 subset.
     if not isinstance(metrics, list) or not metrics:
         raise ValueError('Gate G4 empty metrics')

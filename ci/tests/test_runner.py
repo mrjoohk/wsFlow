@@ -121,6 +121,10 @@ class EvidenceTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'G4'):
                     runner.g4(self.root)
 
+    def test_g4_accepts_canonical_equivalent_root(self):
+        equivalent = self.root / '..' / self.root.name
+        self.assertEqual(runner.g4(equivalent)['status'], 'PASS')
+
     def test_fingerprint_only_tamper_is_rejected(self):
         d = runner.read(self.root / runner.MANIFEST);d['fingerprint'] = '0' * 64
         runner.save(self.root / runner.MANIFEST, d)
