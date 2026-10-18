@@ -143,7 +143,8 @@ class EvidenceTests(unittest.TestCase):
 
     def test_credentials_are_removed_from_child_environment(self):
         with mock.patch.dict(os.environ, {'JIRA_API_TOKEN': 'synthetic-only', 'GOOGLE_SECRET': 'synthetic-only',
-                                         'GITHUB_TOKEN': 'synthetic-only', 'PYTHONPATH': 'synthetic-only'}):
+                                         'GITHUB_TOKEN': 'synthetic-only', 'PYTHONPATH': 'synthetic-only'}), \
+             mock.patch.object(runner.tempfile, 'gettempdir', return_value=str(self.root / '..' / self.root.name)):
             output = self.base / 'environment';output.mkdir()
             env = runner.clean_env(output, self.base / 'logs')
             cp = subprocess.run([sys.executable, '-c', 'import os;print(any(k in os.environ for k in ("JIRA_API_TOKEN","GOOGLE_SECRET","GITHUB_TOKEN","PYTHONPATH")))'],
@@ -151,6 +152,9 @@ class EvidenceTests(unittest.TestCase):
             self.assertEqual(cp.returncode, 0);self.assertEqual(cp.stdout.strip(), 'False')
             self.assertTrue(Path(env['APPDATA']).is_relative_to(output))
             self.assertEqual(Path(env['GIT_CONFIG_GLOBAL']).read_text(), '')
+            cp = subprocess.run([sys.executable, '-c', 'import tempfile;print(tempfile.gettempdir())'],
+                                env=env, capture_output=True, text=True, timeout=15)
+            self.assertEqual(cp.returncode, 0);self.assertEqual(cp.stdout.strip(), str(self.root.resolve()))
 
     def test_owned_child_timeout_and_interrupt_are_cleaned(self):
         # Child is finite even if the watchdog regresses; the outer test process also has a CI deadline.

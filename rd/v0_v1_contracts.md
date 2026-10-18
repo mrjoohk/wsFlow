@@ -26,7 +26,7 @@ chain: U1의 manifest → U2/U3 실행·신선도 → U4 게이트 → U5 provid
 
 CI evidence pack의 JSON subset YAML은 최소 metric_id/value/threshold/comparison/status/unit 및 계획/증거 provenance를 검사한다. 과거 P021 baseline과 새 V1 실측은 분리한다. Gate G4는 schema/provenance 검사이며 실계정/CI 성공 판정이 아니다.
 
-Windows Python3.10은 최소 호환성 시험용이며 운영 권장 버전으로 신규 배포하지 않는다. 3.14.3 기준과3.10.11 호환 런타임을 사용자 전역 설치/설정 변경 없이 분리한다. IANA tzdata와 Node/Playwright/브라우저는 검증 의존이며 Python 애플리케이션의 외부 패키지 의존0과 구분한다.
+Windows Python3.10은 최소 호환성 시험용이며 운영 권장 버전으로 신규 배포하지 않는다. 3.14.3 기준과3.10.11 호환 런타임을 사용자 전역 설치/설정 변경 없이 분리한다. Python 코드는 표준 라이브러리를 import하지만 IANA 시간대를 쓰는 Calendar/Jira 기능에는 시스템 시간대 DB 또는 tzdata 배포 데이터가 필요하다. Windows 검증은 tzdata를 명시 설치한다. Node/Playwright/브라우저는 시험 전용이며 이 시간대 데이터 전제와 구분한다.
 
 최종 수용 정본은 새 P-023 validation과 보고서다. 원격 CI 권한/저장소가 없으면 구성·로컬 재현만 보고하고 V1의 provider 실행/아티팩트 수용을 UNKNOWN/PARTIAL로 둔다. 이전 F/D/M 상태를 실제 CI verified로 소급 올리지 않는다.
 
@@ -35,3 +35,5 @@ CI 검증 브랜치의 push는 정상 회귀2개와 의도한 실패 게이트3�
 독립 delta 검토에서 도구의 환경 변경 후 cache 재사용과 전체 skip baseline의 거짓 승격을 재현했다. 기존 스킬 원본은 보존하고 `tools/ci/mutation_runner.py`의 CI 사본만 보강한다. 이 사본은 매번 새 결과 파일을 요구하며 resume/budget/summary·기존 out 재사용을 지원하지 않는다. 최종 신선도는 동결 manifest·새 baseline/실행 결과·source 재검사로 확인한다. baseline의 실행된 본문 수가0이면 거부한다. 변경 provenance는 `ci/runner_provenance.json`에 기록한다.
 
 명령 제한·중단은 taskkill의 해당 PID tree와 직접 Popen handle fallback을 사용한다. Windows 제한 호스트가 tree 정리를 거부한 관측과 프로세스 관리가 허용된 로컬/hosted 실행을 구분한다. 임의 외부 프로세스·Windows 모든 보안 경계의 손자 프로세스 정리를 보장하지 않는다. 실패·artifact 복사 오류는 result.json에 남긴다.
+
+V1의 Windows 시험 임시 디렉터리는 실제 NTFS의 canonical full path를 사용한다. hosted 기본 TEMP의 RUNNER~1 별칭에서 기존415시험 중 경로 문자열/Reader 경계5건이 실패한 결과는 보존한다. child TEMP/TMP를 `Path(tempfile.gettempdir()).resolve()`로 명시하고 원본 시험을 전부 다시 실행한다. 제품 Reader가 별칭 경계를 직접 입력받을 때 정상 파일을 차단하는 범위는 별도 미해결 한계이며 이를 고쳤다고 주장하지 않는다. 등록 경로를 실경로로 처리하는 표준 경로와 alias 입력 전체 수용을 구분한다.

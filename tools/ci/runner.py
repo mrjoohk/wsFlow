@@ -183,10 +183,12 @@ def clean_env(out, logdir):
     profile.mkdir()
     config = profile / 'gitconfig'
     config.write_text('', encoding='utf-8')
+    temporary = str(Path(tempfile.gettempdir()).resolve())
     env.update(PYTHONNOUSERSITE='1', PYTHONUTF8='1', PYTHONIOENCODING='utf-8',
                GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=str(config), GIT_TERMINAL_PROMPT='0',
                APPDATA=str(profile / 'AppData'), LOCALAPPDATA=str(profile / 'Local'),
                XDG_CONFIG_HOME=str(profile / 'config'), WSFLOW_DATA_DIR=str(profile / 'userdata'),
+               TEMP=temporary, TMP=temporary,
                WSFLOW_RUN_EVIDENCE_DIR=str(logdir / 'unit'), WSFLOW_TEST_EVIDENCE_DIR=str(logdir / 'details'))
     env['PATH'] = str(Path(sys.executable).parent) + os.pathsep + env.get('PATH', '')
     return env
@@ -282,6 +284,7 @@ def run(root, out, expected_python, step, jobs):
                                  'image_version': os.environ.get('ImageVersion'),
                                  'ci_run_id': os.environ.get('GITHUB_RUN_ID'), 'ci_sha': os.environ.get('GITHUB_SHA')}
         env = clean_env(out, logs)
+        result['environment']['temporary_directory'] = env['TEMP']
         node = command(['node', '--version'], root, out / 'node_version.log', env, 30)
         result['steps'].append(node); accepted(node)
         result['environment']['node'] = (out / 'node_version.log').read_text(encoding='utf-8').strip()

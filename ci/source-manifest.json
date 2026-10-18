@@ -1,13 +1,13 @@
 {
-  "created_at": "2026-10-18T09:33:09.119393+00:00",
+  "created_at": "2026-10-18T09:46:45.289000+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "18d2e989bbb04f1463bbee120d33793a6fc33c8b9c7e22baf309c06cb3ccfd3d",
       "sha256": "18d2e989bbb04f1463bbee120d33793a6fc33c8b9c7e22baf309c06cb3ccfd3d"
     },
     "ci/README.md": {
-      "raw_sha256": "32fa6331c1e632291e6f270afb3d06287b453fb11833ecae9c7833597cd1cfca",
-      "sha256": "32fa6331c1e632291e6f270afb3d06287b453fb11833ecae9c7833597cd1cfca"
+      "raw_sha256": "af173e94481452e6a691928673c1294e7ae38523176f43b2995fb96b45bc472d",
+      "sha256": "af173e94481452e6a691928673c1294e7ae38523176f43b2995fb96b45bc472d"
     },
     "ci/baseline_evidence.json": {
       "raw_sha256": "6dd8b3cf832b70f8e60f214c8c33da9824f3f3d6e19acc793c8be641cf323ada",
@@ -94,8 +94,8 @@
       "sha256": "8251b75b2c568e6a8c2d81614b836ef59a6370bd476a1455413f4f033d6d9e49"
     },
     "ci/tests/test_runner.py": {
-      "raw_sha256": "8a7314b16b5f375fa8d9d14f48804f5e67a78e7f1e99286ca56fcbdbebef7ab1",
-      "sha256": "8a7314b16b5f375fa8d9d14f48804f5e67a78e7f1e99286ca56fcbdbebef7ab1"
+      "raw_sha256": "5f08c4d10b3ceacc63c5c9e47fb5a6af93553475f0e2041c240f48ec0c31a81f",
+      "sha256": "5f08c4d10b3ceacc63c5c9e47fb5a6af93553475f0e2041c240f48ec0c31a81f"
     },
     "run.cmd": {
       "raw_sha256": "7da31dfd7dcfb8df3c0c70fb7381337bff4f0d4d081ec1ee4b5366f38e0534a1",
@@ -346,8 +346,8 @@
       "sha256": "b616676e32222cca2232bf7609245b3736bf99e9c9cbe6e338783ce2f6ee5a90"
     },
     "tools/ci/runner.py": {
-      "raw_sha256": "f3fda2b43b5ca675f7a02246c8bc3c8c9233f18d3a38620eb480c2216869da1e",
-      "sha256": "f3fda2b43b5ca675f7a02246c8bc3c8c9233f18d3a38620eb480c2216869da1e"
+      "raw_sha256": "1131db2d0cfcc5b387d7d1d1abf479a1a941cd12e3494f6a4aefcaf22ac79629",
+      "sha256": "1131db2d0cfcc5b387d7d1d1abf479a1a941cd12e3494f6a4aefcaf22ac79629"
     },
     "tools/graph_checks.py": {
       "raw_sha256": "e5bc369c4542bbe999fd0a00f7b9ecb93b70546303b418db3d82ecdf36414cb7",
@@ -522,7 +522,7 @@
       "sha256": "89ed42ca6e653571eb02ba3e9e93e51a6993442bd43b010a0b3d753d4a310164"
     }
   },
-  "fingerprint": "556eecfda32ed4fda1f4c926fe58de34294de3f8319d6ad26f3c7a53317f24b9",
+  "fingerprint": "4b4c0f95f771195d258f03b911dc0eb8742cc51fc118fab87c78560dd18250aa",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }
