@@ -1,0 +1,287 @@
+{
+  "request": "P-022",
+  "basis": "rd/wsflow_verification_plan.md",
+  "report": "output_docs/261018_1715_i0_i7_final_analysis.md",
+  "plan": "rd/evaluation_plan.md",
+  "requirements": [
+    {
+      "requirement_id": "CTX-01",
+      "original_acceptance": "읽기 조사로 원본 쓰기·무관한 형제 본문 수집 0",
+      "local_implementation": "I0 출처 조사/원본 무쓰기",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 사용자 자료 규모·권한 확인",
+      "next_checks": "V6-01/02,V7-01",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-02",
+      "original_acceptance": "공통/전용 출처 해석, 미해결 충돌의 ready 표시 0",
+      "local_implementation": "I0/I5 명시 참조·override/구조적 충돌",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "자연어 의미 충돌 전체 분석은 아님; 실제 tool 해석",
+      "next_checks": "V6-01/02",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-03",
+      "original_acceptance": "독립 Git 경계 밖 정본 직접 참조, 접근 불가를 성공 처리 0",
+      "local_implementation": "I5 얇은 진입점에서 ROOT 직접 참조",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 외부 import 승인/거부·공백 경로",
+      "next_checks": "V6-01/02",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-04",
+      "original_acceptance": "선택 스킬만 노출, 동명·case·의존 경로 충돌 차단",
+      "local_implementation": "I5 선택 전체 패키지/동명·case/의존 충돌 차단",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "도구 예약 이름·실제 발견 범위 적합성",
+      "next_checks": "V6-03",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-05",
+      "original_acceptance": "A의 작업에서 B 전용 지침 혼입·B 쓰기 0",
+      "local_implementation": "I0/I5 형제 본문/쓰기 분리",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "글로벌/개인/plugin 포함 실제 세션은 부분 관측",
+      "next_checks": "V6-01/02/04",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-06",
+      "original_acceptance": "source/target/link 사전조건 불일치시 효과 0",
+      "local_implementation": "I1/I4/I5 계획·source/target 전제 확인",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 외부 효과 전 재확인·비협조 race 한계",
+      "next_checks": "V4-04/07,V5-04",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-07",
+      "original_acceptance": "비관리 파일 무단 덮기·삭제 0, 사후 사용자 편집 보존",
+      "local_implementation": "I5 사용자 블록/비관리 파일 보존·후편집 차단",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "운영 백업·복원·실제 사용자 채택",
+      "next_checks": "V7-02/03",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-08",
+      "original_acceptance": "cwd/checkout·도구·snapshot 일치하는 시작 패킷",
+      "local_implementation": "I6 cwd/도구/profile/snapshot 패킷",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 대상 도구/선택 surface 시작 확인",
+      "next_checks": "V6-01/02",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-09",
+      "original_acceptance": "static_only/agent_reported/tool_observed/unknown 구분",
+      "local_implementation": "I6 정적/자체보고/수동출력/미확인 구분",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "전체 인식·준수/출력 진위 독립증명은 미제공",
+      "next_checks": "V6-04/06",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-10",
+      "original_acceptance": "초기화 재실행 시 사용자 블록·프로젝트 규칙·Jira 상태 손실 0",
+      "local_implementation": "I5 초기화 재실행·정책/Jira state 보존",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "사용자 기존 ROOT 전환 pilot·복원",
+      "next_checks": "V7-02/05",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-11",
+      "original_acceptance": "공유 변경 영향과 이전 receipt의 stale 처리",
+      "local_implementation": "I5 영향 목록·I6 snapshot/receipt stale",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 세션 재준비 후 인식 확인",
+      "next_checks": "V6-05",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-12",
+      "original_acceptance": "허용 밖 링크·순환·이동·worktree 불일치 감지",
+      "local_implementation": "I0/I5/I6 경계·링크/UID/worktree 불일치 감지",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "fail-closed이며 이동/재결합 자동 이관은 아님",
+      "next_checks": "V1-04,V7-03",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-13",
+      "original_acceptance": "기존 project id·URL·응답 의미 보존, 새 버전 응답 분리",
+      "local_implementation": "기존 ID/URL·별도 API 버전·I7 화면 회귀",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "깨끗한 후보·이전 데이터/클라이언트 호환",
+      "next_checks": "V1-01/02,V7-04",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-14",
+      "original_acceptance": "불변 계획·고유 작업 ID·독점 실행·uncertain 복구",
+      "local_implementation": "**부분**: Jira/Calendar/context 불변 계획·claim·uncertain/복구; 메모 CAS. Git은 기존 직접 실행",
+      "local_status": "PARTIAL",
+      "remaining": "넓은 Git 포함 계약과 차이 F-032; 지원 범위 또는 추가 구현 결정 필요",
+      "next_checks": "V0-03,V4,V5,V7-04",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CTX-15",
+      "original_acceptance": "F-014~F-027의 책임·단계·회귀 증거 연결",
+      "local_implementation": "F-014~027 책임/시험 연결·I1/I7 로컬 fixed",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실서비스/CI verified 아님; 신규 발견도 추적",
+      "next_checks": "V1,V2,V5",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-01",
+      "original_acceptance": "월/주 전환 시 선택 날짜 유지·동일 날짜 집계 일치",
+      "local_implementation": "I2 월/주·선택 날짜 유지",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 장기 사용/환경 재현",
+      "next_checks": "V1-01/02,V7-04",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-02",
+      "original_acceptance": "날짜 한 번 선택으로 같은 snapshot의 우측 상세",
+      "local_implementation": "I2 한 번 선택·같은 snapshot 상세",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 통합 자료의 동시 변경",
+      "next_checks": "V3-05,V7-04",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-03",
+      "original_acceptance": "칸에는 event 내용만, task/메모는 건수; 일정 overflow 정확",
+      "local_implementation": "I2 일정 본문/overflow·업무/메모 건수만 칸에 표시",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 외부 긴 제목·표시량/접근성",
+      "next_checks": "V3-05,V7-01/04",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-04",
+      "original_acceptance": "진행 중 포함 작업 기록 있는 고유 task; 같은 날 중복 기록 1건",
+      "local_implementation": "I0/I2 저장 기록의 고유 업무, 진행 중/과거 업무 포함",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 daily 표본 형식·누락 진단",
+      "next_checks": "V7-04/05",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-05",
+      "original_acceptance": "독립 note/기존 공통 묶음 집계, 줄 수·task 기록 중복 계산 0",
+      "local_implementation": "독립 note와 기존 공통 묶음, task 중복 계산 방지",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 기존 메모/로컬 후보 표본",
+      "next_checks": "V7-04/05",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-06",
+      "original_acceptance": "직접 등록·Google 조회, 출처·캘린더 권한·실패 구분",
+      "local_implementation": "I2 직접 등록·I3 Google 선택/출처/권한",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 OAuth/API 응답·scope/role",
+      "next_checks": "V3-01~03",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-07",
+      "original_acceptance": "로컬→Google 추가·수정 및 Google 변경 재반영, 표시 객체 1개",
+      "local_implementation": "I4 Google 추가/갱신/pull·연결 ID로1객체",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 왕복/권한·색인 적합성",
+      "next_checks": "V4-01~03",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-08",
+      "original_acceptance": "응답 유실/재시도의 원격 ID 유지·결과 대조",
+      "local_implementation": "고정 원격 ID·응답 유실/409·대조",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 원격 효과+통제 수신 장애",
+      "next_checks": "V4-05",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-09",
+      "original_acceptance": "etag/revision 충돌 시 양쪽 보존, 임의 overwrite 0",
+      "local_implementation": "etag/local revision 양쪽 보존·명시 해결",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제412/사용자 해결·전송 중 편집",
+      "next_checks": "V4-04/07",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-10",
+      "original_acceptance": "종일·자정·여러 날·반복/취소·시간대의 날짜 정확성",
+      "local_implementation": "종일·자정·DST·반복/취소 조회 모델",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 recurrence/exception·UI Seoul 제한",
+      "next_checks": "V3-05",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-11",
+      "original_acceptance": "기간 조회만으로 daily/설정/Google 원본 쓰기 0",
+      "local_implementation": "기간 조회로 daily/정본 생성·수정0",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "캐시 갱신과 원본 쓰기를 구분해 운영 확인",
+      "next_checks": "V7-04",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-12",
+      "original_acceptance": "complete/last_sync·필터·snapshot 일치, 실패를 0 처리 0",
+      "local_implementation": "same snapshot/filter·complete/last_sync·unknown/null",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 권한/부분 실패·지연/캐시 현재성",
+      "next_checks": "V3-03/06,V7-04",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-13",
+      "original_acceptance": "task·메모·Jira·참석자 목록의 임의 외부 반영 0",
+      "local_implementation": "task/note/Jira 임의 업로드0·미지원 event 거부",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 전송 body·대상 밖 변경 검사",
+      "next_checks": "V4-06/07",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-14",
+      "original_acceptance": "outbox·재시작·오프라인·인증/권한 해제와 자격 보관",
+      "local_implementation": "자격 분리·outbox/restart/offline·해제/권한",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 OS 자격/refresh·복원 환경",
+      "next_checks": "V3-06,V4-08,V7-02",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-15",
+      "original_acceptance": "화면 숨김/원격 삭제·취소·반복 편집 범위 구분",
+      "local_implementation": "숨김/표시와 Google DELETE·취소/반복 구분",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "실제 exact ID 삭제·archive 복원",
+      "next_checks": "V4-06",
+      "overall_acceptance": "PENDING"
+    },
+    {
+      "requirement_id": "CAL-16",
+      "original_acceptance": "키보드·좁은 화면·선택 표시·늦은 응답 격리",
+      "local_implementation": "I2 키보드·좁은 화면·늦은 응답 경합",
+      "local_status": "PASS_WITHIN_DECLARED_CONTRACT",
+      "remaining": "다른 브라우저·보조 기술 전체 접근성 미감사",
+      "next_checks": "V1-01/02,V7-05",
+      "overall_acceptance": "PENDING"
+    }
+  ]
+}

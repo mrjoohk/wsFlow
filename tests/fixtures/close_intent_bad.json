@@ -1,0 +1,64 @@
+{
+ "tasks": [
+  {
+   "key": "XXX-302",
+   "summary": "--002-- 담당자가 남",
+   "parent": "XXX-180",
+   "csc_field": "customfield_10999",
+   "assignee": "acct-me",
+   "sprint_id": 3084
+  },
+  {
+   "key": "XXX-303",
+   "summary": "--003-- CSC 미지정",
+   "parent": "XXX-180",
+   "csc_field": "customfield_10999",
+   "assignee": "acct-me",
+   "sprint_id": 3084
+  },
+  {
+   "key": "XXX-304",
+   "summary": "--004-- 부모가 다름",
+   "parent": "XXX-180",
+   "csc_field": "customfield_10999",
+   "assignee": "acct-me",
+   "sprint_id": 3084
+  },
+  {
+   "key": "XXX-305",
+   "summary": "--005-- 설명 오염",
+   "parent": "XXX-180",
+   "csc_field": "customfield_10999",
+   "assignee": "acct-me",
+   "sprint_id": 3084
+  },
+  {
+   "key": "XXX-306",
+   "summary": "--006-- 스프린트에 안 들어감",
+   "parent": "XXX-180",
+   "csc_field": "customfield_10999",
+   "assignee": "acct-me",
+   "sprint_id": 3084
+  },
+  {
+   "key": "XXX-307",
+   "summary": "--007-- 아예 안 만들어짐",
+   "parent": "XXX-180",
+   "csc_field": "customfield_10999",
+   "assignee": "acct-me",
+   "sprint_id": 3084
+  }
+ ],
+ "comments": [
+  {
+   "key": "XXX-310",
+   "body": "초안과 다른 본문."
+  }
+ ],
+ "transitions": [
+  {
+   "key": "XXX-310",
+   "status": "해야 할 일"
+  }
+ ]
+}

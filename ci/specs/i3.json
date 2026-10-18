@@ -1,0 +1,268 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_i3.py"
+  ],
+  "timeout": 180,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "G01",
+      "name": "state mismatch accepted",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "secrets.compare_digest(q['state'][0],pending['state'])",
+          "new": "True",
+          "func": "Service.connect"
+        }
+      ]
+    },
+    {
+      "id": "G02",
+      "name": "callback expiry ignored",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "pending['expires_at'] > time.time()",
+          "new": "True",
+          "func": "Service.connect"
+        }
+      ]
+    },
+    {
+      "id": "G03",
+      "name": "callback Host guard omitted",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "self.headers.get('Host') == expected",
+          "new": "True",
+          "func": "Service.connect"
+        }
+      ]
+    },
+    {
+      "id": "G04",
+      "name": "PKCE challenge incorrect",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "challenge(self.pending['verifier'])",
+          "new": "'wrong-challenge'",
+          "func": "Service.connect"
+        }
+      ]
+    },
+    {
+      "id": "G05",
+      "name": "scope validation skipped",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "not has_read_scopes(scopes)",
+          "new": "False",
+          "func": "Service.connect"
+        }
+      ]
+    },
+    {
+      "id": "G06",
+      "name": "callback process epoch ignored",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "service.store.get_value('oauth_epoch') != pending['epoch']",
+          "new": "False",
+          "func": "Service.connect"
+        }
+      ]
+    },
+    {
+      "id": "G07",
+      "name": "free busy role accepted",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "'writerWithoutPrivateAccess'}",
+          "new": "'writerWithoutPrivateAccess', 'freeBusyReader'}"
+        }
+      ]
+    },
+    {
+      "id": "G08",
+      "name": "partial first page treated complete",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "page = result.get('nextPageToken')",
+          "new": "page = None",
+          "func": "Service._pages"
+        }
+      ]
+    },
+    {
+      "id": "G09",
+      "name": "cursor absence accepted",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "if cursor and (not isinstance(result.get('nextSyncToken'),str) or not result['nextSyncToken']):",
+          "new": "if False:",
+          "func": "Service._pages"
+        }
+      ]
+    },
+    {
+      "id": "G10",
+      "name": "failed sync advances cursor",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "{**previous,'complete':False,'error':str(exc)}",
+          "new": "{**previous,'cursor':'partial-cursor','complete':False,'error':str(exc)}",
+          "func": "Service.sync"
+        }
+      ]
+    },
+    {
+      "id": "G11",
+      "name": "410 merges old generation rather than replacing",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "full = True\n                        items, cursor",
+          "new": "full = False\n                        items, cursor",
+          "func": "Service.sync"
+        }
+      ]
+    },
+    {
+      "id": "G12",
+      "name": "profile change reuses old cursor",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "or previous.get('profile') != PROFILE",
+          "new": "or False",
+          "func": "Service.sync"
+        }
+      ]
+    },
+    {
+      "id": "G13",
+      "name": "cancelled instances displayed",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "if i.get('status') != 'cancelled'",
+          "new": "if True",
+          "func": "Service.range"
+        }
+      ]
+    },
+    {
+      "id": "G14",
+      "name": "range failure reports complete",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "error = 'Google 기간 조회 확인 불가 — 이전 결과가 표시될 수 있습니다'",
+          "new": "complete = True\n                    error = 'Google 기간 조회 확인 불가 — 이전 결과가 표시될 수 있습니다'",
+          "func": "Service.range"
+        }
+      ]
+    },
+    {
+      "id": "G15",
+      "name": "expired access token never refreshed",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "if token['expires_at'] <= time.time() + 60:",
+          "new": "if False:",
+          "func": "Service._token"
+        }
+      ]
+    },
+    {
+      "id": "G16",
+      "name": "account identity removed from cache keys",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "[token['sub'], kind, ident]",
+          "new": "['shared-account', kind, ident]",
+          "func": "Service._key"
+        }
+      ]
+    },
+    {
+      "id": "G17",
+      "name": "disconnect keeps usable credentials",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "self.credentials.path.unlink(missing_ok=True)",
+          "new": "pass",
+          "func": "Service.disconnect"
+        }
+      ]
+    },
+    {
+      "id": "G18",
+      "name": "remote error counts shown as zero",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "if local_ok and google_ok else None",
+          "new": "if local_ok else None",
+          "func": "query"
+        }
+      ]
+    },
+    {
+      "id": "G19",
+      "name": "remote events allow editing",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "'readonly':True",
+          "new": "'readonly':False",
+          "func": "Service._event"
+        }
+      ]
+    },
+    {
+      "id": "G20",
+      "name": "Google endpoints accept arbitrary host",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "old": "urlsplit(url).hostname not in {",
+          "new": "False and urlsplit(url).hostname not in {",
+          "func": "request"
+        }
+      ]
+    }
+  ]
+}

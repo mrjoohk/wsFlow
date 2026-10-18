@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "at": "2026-10-18T17:06:20.979289+09:00",
+  "ok": true,
+  "errors": [],
+  "report": "output_docs/261018_1702_i7_implementation_report.md",
+  "audit": "review_docs/261018_1702_i7_delta_audit.md",
+  "unit": {
+    "path": "logs/test_evidence/261018_P021/release/261018_165803_560680_evidence.json",
+    "tests_run": 415,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "new_i7": 51
+  },
+  "browser": [
+    {
+      "iteration": 1,
+      "cases": 11,
+      "path": "output/playwright/P021/i1-release/P015-evidence.json"
+    },
+    {
+      "iteration": 2,
+      "cases": 11,
+      "path": "output/playwright/P021/i2-release/P016-evidence.json"
+    },
+    {
+      "iteration": 3,
+      "cases": 7,
+      "path": "output/playwright/P021/i3-release/evidence.json"
+    },
+    {
+      "iteration": 4,
+      "cases": 11,
+      "path": "output/playwright/P021/i4-release/evidence.json"
+    },
+    {
+      "iteration": 5,
+      "cases": 11,
+      "path": "output/playwright/P021/i5-release/evidence.json"
+    },
+    {
+      "iteration": 6,
+      "cases": 14,
+      "path": "output/playwright/P021/i6-release/evidence.json"
+    },
+    {
+      "iteration": 7,
+      "cases": 17,
+      "path": "output/playwright/P021/i7-release/evidence.json"
+    }
+  ],
+  "browser_total": 82,
+  "mutation": {
+    "mutation": {
+      "killed": 45,
+      "total": 45,
+      "code_fingerprint": "109e7c3f5a08",
+      "strict": true,
+      "path": "logs/test_evidence/261018_P021/mutation_release.json"
+    },
+    "ui_mutation": {
+      "killed": 9,
+      "total": 9,
+      "code_fingerprint": "109e7c3f5a08",
+      "strict": true,
+      "path": "logs/test_evidence/261018_P021/ui_mutation_release.json"
+    }
+  },
+  "protected_existing_files": 1074,
+  "worklog_prefix_preserved": true,
+  "old_test_methods_preserved": 341,
+  "old_ledger_rows": 96,
+  "old_ledger_changes": [
+    "F-014",
+    "F-024",
+    "F-025",
+    "F-026",
+    "F-027"
+  ],
+  "new_ledger_ids": [
+    "F-028",
+    "F-029",
+    "F-030",
+    "F-031",
+    "D-065",
+    "D-066",
+    "D-067",
+    "D-068",
+    "D-069",
+    "D-070",
+    "D-071",
+    "M-012"
+  ],
+  "source_changes": {
+    "changed": [
+      "static/index.html",
+      "tests/test_i1.py",
+      "tests/test_server.py",
+      "wsflow/auth.py",
+      "wsflow/gitops.py",
+      "wsflow/jiraapi.py",
+      "wsflow/newtask.py",
+      "wsflow/selfcheck.py",
+      "wsflow/server.py",
+      "wsflow/wfhome.py",
+      "wsflow/wfinit.py",
+      "wsflow/writeplans.py"
+    ],
+    "new": [
+      "tests/i7_browser.cjs",
+      "tests/i7_fixture_server.py",
+      "tests/test_i7.py",
+      "tools/check_jira_vendor.py",
+      "tools/jira_vendor_manifest.json",
+      "wsflow/workflow.py"
+    ]
+  },
+  "source_manifest": "logs/test_evidence/261018_P021/release_source_manifest.json",
+  "code_fingerprint": "109e7c3f5a08",
+  "head": "30238b912c487c6fec1f00f91be6c7befe4261d0",
+  "git_commit": "미커밋",
+  "graph": "logs/test_evidence/261018_P021/graph_release.json",
+  "vendor": "logs/test_evidence/261018_P021/vendor_release.json",
+  "independent_review": {
+    "reviewers": 3,
+    "accepted_groups": 7,
+    "recurring": 3,
+    "new": 4,
+    "fix_confirmation": "비독립",
+    "confirmation_unit": 51,
+    "confirmation_browser": 17
+  },
+  "actual_providers": {
+    "jira": "synthetic",
+    "google": "synthetic regression",
+    "git": "real local bare + two checkouts",
+    "actual_tool_sessions": "unknown",
+    "ci": "not run",
+    "other_os": "not run"
+  },
+  "limits": [
+    "multi-file publication is not an atomic filesystem transaction",
+    "uncooperative external editor race and power loss not guaranteed",
+    "search indexing and permission-limited title visibility",
+    "no cross-PC/remote sequence CAS",
+    "001-999 sequence and conservative reservations; no reclamation",
+    "legacy active does not filter sprints"
+  ]
+}

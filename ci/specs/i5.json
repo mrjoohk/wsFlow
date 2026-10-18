@@ -1,0 +1,789 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_i5.py"
+  ],
+  "timeout": 180,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "I501",
+      "name": "support files omitted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_full_selected_package_user_files_and_replay_preserved"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "for rel in p['files']:",
+          "new": "for rel in ['SKILL.md']:"
+        }
+      ]
+    },
+    {
+      "id": "I502",
+      "name": "canonical case collision ignored",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_name_case_collision_blocks_without_merging"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_skills.py",
+          "func": "catalog",
+          "old": "if key in names:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I503",
+      "name": "external dependency accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_external_dependency_path_is_blocked"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_skills.py",
+          "func": "package",
+          "old": "if not target.is_relative_to(path.resolve()) or not target.exists():",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I504",
+      "name": "unmanaged entrypoint automatically adopted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_unmanaged_adoption_requires_explicit_choice"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "if raw and not body.get('adopt_existing'):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I505",
+      "name": "managed block edits overwritten",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_outside_user_block_edit_preserved_inside_edit_blocked"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "if entry.get('sha256') != sha(current):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I506",
+      "name": "managed file edits ignored",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_managed_copy_user_edit_and_extra_file_block"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "if entry and entry.get('sha256') != sha(raw):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I507",
+      "name": "extra package file ignored",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_managed_copy_user_edit_and_extra_file_block"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "if not current or current['tree_hash'] != expected['tree_hash']:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I508",
+      "name": "manifest can invent ownership",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_manifest_tamper_is_not_new_ownership"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service._manifest",
+          "old": "if expected != sha(path.read_bytes()):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I509",
+      "name": "expired plan accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_plan_expiry_wrong_operation_and_wrong_project_zero_effect"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.apply",
+          "old": "if not continuing and time.time()>saved['expires_at']:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I510",
+      "name": "wrong plan-operation accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_plan_expiry_wrong_operation_and_wrong_project_zero_effect"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.apply",
+          "old": "if not op or op.get('kind')!='context' or op.get('project_id')!=pid or op.get('plan_id')!=plan_id or saved.get('project_id')!=pid:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I511",
+      "name": "registry binding ignored",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_new_target_or_registry_change_stale_zero_effect"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.apply",
+          "old": "if operations.digest(registry)!=saved['registry_hash'] or str(checkout)!=saved['checkout_path'] or str(root)!=saved['root_path']:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I512",
+      "name": "later user edit overwritten on recovery",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_recovery_preserves_after_write_user_edit"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.apply",
+          "old": "if current!=a['before'] and not (continuing and self._matches(current,a['after'])):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I513",
+      "name": "uncertain automatically resumed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_partial_failure_recovers_and_post_edit_refused"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.apply",
+          "old": "if continuing and not recover:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I514",
+      "name": "replay loses confirmed result",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_full_selected_package_user_files_and_replay_preserved"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.apply",
+          "old": "if op['status']=='succeeded':return op['result']",
+          "new": "if False:return op['result']"
+        }
+      ]
+    },
+    {
+      "id": "I515",
+      "name": "general deployment bypasses context guard",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_managed_deploy_is_blocked_but_normal_documents_work"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/deploy.py",
+          "func": "_entries",
+          "old": "if conflict:",
+          "new": "if False:"
+        },
+        {
+          "file": "wsflow/deploy.py",
+          "func": "apply",
+          "old": "if conflict:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I516",
+      "name": "opened handle validation bypassed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_opened_handle_boundary_failure_writes_no_instruction_bytes"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.apply",
+          "old": "validate_handle=lambda fd:validate_staging_handle(fd,saved['owner'])",
+          "new": "validate_handle=None"
+        }
+      ]
+    },
+    {
+      "id": "I517",
+      "name": "empty package directories omitted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_empty_support_directories_binary_files_and_claude_space_import"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "for rel in p['directories']:",
+          "new": "for rel in []:"
+        }
+      ]
+    },
+    {
+      "id": "I518",
+      "name": "deselected files retained",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_deselect_removes_only_owned_bytes_not_canonical_or_legacy"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "if rel in new or rel==rules_rel:continue",
+          "new": "if True:continue"
+        }
+      ]
+    },
+    {
+      "id": "I519",
+      "name": "UID regenerated at reinitialization",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_full_selected_package_user_files_and_replay_preserved"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "project_uid=(pp or {}).get('project_uid') or str(uuid4())",
+          "new": "project_uid=str(uuid4())"
+        }
+      ]
+    },
+    {
+      "id": "I520",
+      "name": "user canonical rules replaced",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_full_selected_package_user_files_and_replay_preserved"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "if before['kind']=='absent':\n                write(rules_rel,",
+          "new": "if True:\n                write(rules_rel,"
+        }
+      ]
+    },
+    {
+      "id": "I521",
+      "name": "duplicate stable project UID ignored",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_duplicate_uid_checkout_move_and_root_rebind_block"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "if other and other.get('project_uid')==pp.get('project_uid'):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I522",
+      "name": "project route writes ROOT",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_http_guard_payload_scope_and_replay"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "if body.get('kind','project_init')!='project_init':",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I523",
+      "name": "API authentication removed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_http_guard_payload_scope_and_replay"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "self._guard(url)",
+          "new": "pass # mutation removed guard"
+        }
+      ]
+    },
+    {
+      "id": "I524",
+      "name": "mid-write source boundary changes ignored",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_source_changes_mid_apply_stop_and_preserve_user_edit"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.apply",
+          "old": "if not self._guard_matches(source,expected,saved['actions']):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I525",
+      "name": "all catalog skills exposed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_deselect_removes_only_owned_bytes_not_canonical_or_legacy"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "for ident in selected:",
+          "new": "for ident in by_id:"
+        }
+      ]
+    },
+    {
+      "id": "I526",
+      "name": "legacy duplicate originals silently accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_duplicate_original_diagnostics_and_legacy_collision_are_explicit"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "if any(p['skill_id'] in selected and p['name'].casefold()==child.name.casefold() for p in catalog):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I527",
+      "name": "root identity clones accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_override_common_shadow_and_root_uid_clone_block"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.preview",
+          "old": "if other and other.get('root_uid')==rp.get('root_uid'):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I528",
+      "name": "foreign open handle accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_handle_cannot_target_other_project"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "validate_staging_handle",
+          "old": "skills.plain_path(actual,Path(owner))",
+          "new": "pass"
+        }
+      ]
+    },
+    {
+      "id": "I529",
+      "name": "stale common rule source not reported",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i5.py",
+        "-k",
+        "test_common_edit_impact_is_reported_and_rules_never_overwritten"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/context_projection.py",
+          "func": "Service.setup",
+          "old": "if rp and common.is_file() and rp.get('rules_sha256')!=sha(common.read_bytes()):",
+          "new": "if False:"
+        }
+      ]
+    }
+  ]
+}

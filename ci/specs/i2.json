@@ -1,0 +1,261 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_i2.py"
+  ],
+  "timeout": 180,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "C01",
+      "name": "skip month-end clamp",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "d.setUTCDate(Math.min(number,last));",
+          "new": "d.setUTCDate(number);"
+        }
+      ],
+      "test": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_calendar_ui.py"
+      ]
+    },
+    {
+      "id": "C02",
+      "name": "accept stale view responses",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "return visible && ticket===C.requestRevision && key===C.queryKey;",
+          "new": "return visible;"
+        }
+      ],
+      "test": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_calendar_ui.py"
+      ]
+    },
+    {
+      "id": "C03",
+      "name": "leak task body in date cells",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "<span class=\"cal-counts\">업무 ${day?.task_count",
+          "new": "${esc(JSON.stringify(day?.tasks||[]))}<span class=\"cal-counts\">업무 ${day?.task_count"
+        }
+      ],
+      "test": [
+        "node",
+        "tests/i2_browser.cjs"
+      ]
+    },
+    {
+      "id": "C04",
+      "name": "count same task records separately",
+      "edits": [
+        {
+          "file": "wsflow/calendar_query.py",
+          "old": "task_id = fingerprint([site or str(home), key])",
+          "new": "task_id = fingerprint([site or str(home), key, len(item['tasks'])])"
+        }
+      ]
+    },
+    {
+      "id": "C05",
+      "name": "count note lines as separate memos",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "day['memo_count'] = len(day['memos']) if legacy_ok and local_ok else None",
+          "new": "day['memo_count'] = sum(len(m.get('body','').splitlines()) if m.get('kind')=='note' else 1 for m in day['memos']) if legacy_ok and local_ok else None"
+        }
+      ]
+    },
+    {
+      "id": "C10A",
+      "name": "include all-day exclusive end",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "<= day.isoformat() < event['end_date']",
+          "new": "<= day.isoformat() <= event['end_date']"
+        }
+      ]
+    },
+    {
+      "id": "C10B",
+      "name": "include next day at midnight end",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "return start < right and end > left",
+          "new": "return start < right and end >= left"
+        }
+      ]
+    },
+    {
+      "id": "C10C",
+      "name": "ignore display timezone",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "zone = ZoneInfo(display_timezone)",
+          "new": "zone = ZoneInfo('UTC')"
+        }
+      ]
+    },
+    {
+      "id": "REV",
+      "name": "accept stale record revision",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "current['revision'] != op['expected_revision']",
+          "new": "False"
+        }
+      ]
+    },
+    {
+      "id": "CACHE",
+      "name": "refuse known operation replay",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "return op['result']",
+          "new": "raise Conflict('lost cached success')"
+        }
+      ]
+    },
+    {
+      "id": "EXPIRY",
+      "name": "accept expired plan",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "if time.time() > plan['expires_at'] or op['status'] != 'planned':",
+          "new": "if op['status'] != 'planned':"
+        }
+      ]
+    },
+    {
+      "id": "LINK",
+      "name": "ignore changed project binding",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "if op['project_bindings'] != self._bindings(projects, op['payload']['project_ids']):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "READ",
+      "name": "create database on read",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "with self.connection() as db:",
+          "new": "with self.connection(True) as db:",
+          "func": "Store.records"
+        }
+      ]
+    },
+    {
+      "id": "UNKNOWN",
+      "name": "render failed local read as zero",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "day['event_count'] = len(day['events']) if local_ok and google_ok else None",
+          "new": "day['event_count'] = len(day['events'])"
+        }
+      ]
+    },
+    {
+      "id": "ATOMIC",
+      "name": "commit effect before audit result",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "self._event(db, operation_id, 'succeeded', {'before':current, 'after':record})",
+          "new": "db.commit()\n            self._event(db, operation_id, 'succeeded', {'before':current, 'after':record})"
+        }
+      ]
+    },
+    {
+      "id": "SNAP",
+      "name": "exclude local records from snapshot",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "fingerprint([scope,legacy['snapshot_id'],records,local_ok,days])",
+          "new": "fingerprint([scope,legacy['snapshot_id'],local_ok])"
+        }
+      ]
+    },
+    {
+      "id": "FILTER",
+      "name": "ignore project scope on local records",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "(selected is not None and not selected.intersection(active))",
+          "new": "False"
+        }
+      ]
+    },
+    {
+      "id": "DELETE",
+      "name": "show deleted records",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "if record['deleted'] or (selected is not None",
+          "new": "if False or (selected is not None"
+        }
+      ]
+    },
+    {
+      "id": "IDENTITY",
+      "name": "reuse legacy project ID for another checkout",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "old": "active = {i for i in record['project_ids'] if record['project_references'].get(i) == current_projects.get(i)\n                          and i in current_projects}",
+          "new": "active = set(record['project_ids'])"
+        }
+      ]
+    }
+  ]
+}

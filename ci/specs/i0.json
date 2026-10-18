@@ -1,0 +1,133 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_i0.py"
+  ],
+  "timeout": 180,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "I001",
+      "name": "read scope guard removed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i0.py",
+        "-k",
+        "test_outside_file_and_read_permission_error_are_explicit"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.read",
+          "old": "if not self.allowed(resolved) or (boundary is not None and not inside(resolved, boundary)):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I002",
+      "name": "same site key across homes counted twice",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i0.py",
+        "-k",
+        "test_site_and_key_identity_across_homes"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/calendar_query.py",
+          "func": "query",
+          "old": "task_id = fingerprint([site or str(home), key])",
+          "new": "task_id = fingerprint([str(home), key])"
+        }
+      ]
+    },
+    {
+      "id": "I003",
+      "name": "source omitted from snapshot",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i0.py",
+        "-k",
+        "test_snapshot_changes_only_with_query_or_source_changes"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/calendar_query.py",
+          "func": "query",
+          "old": "'snapshot_id': fingerprint([query_scope, reader.sources, days])",
+          "new": "'snapshot_id': fingerprint(query_scope)"
+        }
+      ]
+    },
+    {
+      "id": "I004",
+      "name": "range read creates missing daily",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i0.py",
+        "-k",
+        "test_missing_daily_does_not_create_file_and_is_known_zero"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/calendar_query.py",
+          "func": "query",
+          "old": "if raw is None:\n                continue",
+          "new": "if raw is None:\n                __import__('wsflow.wfhome', fromlist=['read_memo']).read_memo(home, f'{day:%y%m%d}')\n                continue"
+        }
+      ]
+    }
+  ]
+}

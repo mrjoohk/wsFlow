@@ -1,0 +1,32 @@
+{
+ "issues": [
+  {
+   "key": "XXX-260",
+   "fields": {
+    "summary": "[04] serial 통신 시험",
+    "status": {
+     "name": "To Do",
+     "statusCategory": {
+      "key": "new"
+     }
+    },
+    "issuetype": {
+     "name": "Task",
+     "subtask": false
+    },
+    "updated": "2026-08-14T11:00:00+0900",
+    "priority": {
+     "name": "Medium"
+    },
+    "labels": [],
+    "parent": {
+     "key": "XXX-180",
+     "fields": {
+      "summary": "센서 캘리브레이션"
+     }
+    },
+    "components": []
+   }
+  }
+ ]
+}

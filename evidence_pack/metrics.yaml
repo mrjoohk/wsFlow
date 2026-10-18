@@ -1,0 +1,35 @@
+[
+  {
+    "metric_id": "recorded_local_test_count",
+    "value": 415,
+    "threshold": 415,
+    "comparison": "gte",
+    "status": "PASS",
+    "unit": "tests",
+    "mode": "PLANNED",
+    "role": "existing baseline, not new V1 execution",
+    "source": "ci/baseline_evidence.json"
+  },
+  {
+    "metric_id": "recorded_browser_count",
+    "value": 82,
+    "threshold": 82,
+    "comparison": "gte",
+    "status": "PASS",
+    "unit": "scenarios",
+    "mode": "PLANNED",
+    "role": "existing baseline, not new V1 execution",
+    "source": "ci/baseline_evidence.json"
+  },
+  {
+    "metric_id": "v0_v1_evidence_accepted",
+    "value": 0,
+    "threshold": 9,
+    "comparison": "gte",
+    "status": "WARN",
+    "unit": "scenarios",
+    "mode": "PLANNED",
+    "role": "before execution",
+    "source": "rd/evaluation_plan.md"
+  }
+]

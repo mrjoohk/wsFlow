@@ -1,0 +1,659 @@
+{
+  "_comment": "wsFlow 귀속 검사 정의 (PROJECT_RULES.md §4). tools/graph_checks.py(범용)가 소비한다.",
+  "quote_exists": [
+    {
+      "_inv": "INV-W2",
+      "doc": "PROJECT_RULES.md",
+      "search_file": "wsflow/server.py",
+      "quote": "raise ApiError(403, \"토큰이 없거나 올바르지 않습니다 — 콘솔에 표시된 주소로 여십시오\")"
+    },
+    {
+      "_inv": "INV-W2",
+      "doc": "PROJECT_RULES.md",
+      "search_file": "wsflow/gitops.py",
+      "quote": "def clean_locks(repo: str | Path, min_age_sec: int = 5) -> dict:"
+    },
+    {
+      "_inv": "INV-W2",
+      "doc": "PROJECT_RULES.md",
+      "search_file": "wsflow/jiraapi.py",
+      "quote": "SEARCH_PATH = \"/rest/api/3/search/jql\"   # 구 /rest/api/3/search 는 제거됨"
+    },
+    {
+      "_inv": "INV-W2",
+      "doc": "PROJECT_RULES.md",
+      "search_file": "wsflow/jirawrite.py",
+      "quote": "    appr = find_approval(wf_home, kind, target, payload)"
+    },
+    {
+      "_inv": "INV-W2",
+      "doc": "PROJECT_RULES.md",
+      "search_file": "wsflow/wfhome.py",
+      "quote": "    if expected_sha != cur:"
+    },
+    {
+      "_inv": "INV-W2",
+      "doc": "PROJECT_RULES.md",
+      "search_file": "wsflow/wfinit.py",
+      "quote": "    keep = {k: old[k] for k in (\"watermark\", \"last_success\", \"roots\") if k in old}"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "if (!Object.prototype.hasOwnProperty.call(edits, key)) lines.push(line);"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "const key = JSON.stringify([id, home, ymd]);"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "if (J.editRevision === revision && J.draft === text) { J.dirty = false; J.draft = null; }"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/wfhome.py",
+      "quote": "if expected_sha != cur:"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/wfhome.py",
+      "quote": "if p.read_bytes() != original:"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/fileio.py",
+      "quote": "os.replace(staged, path)"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/operations.py",
+      "quote": "changed = db.execute(\"UPDATE operations SET status='executing' WHERE id=? AND status='approved'\", (ident,)).rowcount"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/jirawrite.py",
+      "quote": "status = 'failed' if known_rejection else 'uncertain'"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/jirawrite.py",
+      "quote": "if receipt.get('value') != remote_receipt(op):"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/operations.py",
+      "quote": "ident = ident or 'A-' + uuid4().hex"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/writeplans.py",
+      "quote": "if plan['state_hash'] != state_hash(home) or plan['policy_hash'] != policy_hash():"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/writeplans.py",
+      "quote": "if closeflow.LINT.lint(item['payload']['text'], item['target']) and ack_lint is not True:"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/server.py",
+      "quote": "if (m != 'GET' or rest == ['jira', 'memo']) and state.get('schema_version') != wfhome.SCHEMA_VERSION:"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/newtask.py",
+      "quote": "receipt = {'approved_at': approved_at, 'approval_id': operation_id,"
+    },
+    {
+      "doc": "output_docs/261017_1803_i1_implementation_report.md",
+      "search_file": "wsflow/jirawrite.py",
+      "quote": "def repair(wf_home, operation_id):"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_store.py",
+      "quote": "rows = db.execute('SELECT data FROM calendar_records ORDER BY id').fetchall() if db else []"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_store.py",
+      "quote": "(not current or current['deleted'] or current['revision'] != op['expected_revision'])):"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_store.py",
+      "quote": "return op['result']"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_store.py",
+      "quote": "db.execute('INSERT INTO calendar_records(id,data) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_store.py",
+      "quote": "self._event(db, operation_id, 'succeeded', {'before':current, 'after':record})"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_store.py",
+      "quote": "'project_references':op['project_references'],"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_view.py",
+      "quote": "return event['start_date'] <= day.isoformat() < event['end_date']"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_view.py",
+      "quote": "return start < right and end > left"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_view.py",
+      "quote": "if records != store.records():"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "wsflow/calendar_view.py",
+      "quote": "day['memo_count'] = len(day['memos']) if legacy_ok and local_ok else None"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "function calendarCurrent(C,ticket,key,visible) { return visible && ticket===C.requestRevision && key===C.queryKey; }"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "function calendarCell(day, limit=3) { return {events:day.events.slice(0,limit),overflow:Math.max(0,day.events.length-limit),task_count:day.task_count,memo_count:day.memo_count}; }"
+    },
+    {
+      "doc": "output_docs/261017_1837_i2_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "if(d.revision===pending.revision){CAL.drafts.delete(key);if(CAL.editor===key)dlg.close();}"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "fn = ctypes.windll.crypt32.CryptUnprotectData if decrypt else ctypes.windll.crypt32.CryptProtectData"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "with self.mutex, fileio.locked(self.home, timeout=5):"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "len(q.get('state',[])) == 1 and secrets.compare_digest(q['state'][0],pending['state']))"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "if service.store.get_value('oauth_epoch') != pending['epoch']:"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "'code_challenge_method':'S256','access_type':'offline','prompt':'consent select_account'}),"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "full = not previous.get('cursor') or previous.get('profile') != PROFILE"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "mirror = {} if full else copy.deepcopy(previous.get('items',{}))"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "self.store.put({key:value})"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "params = {'singleEvents':'true','showDeleted':'false','maxResults':'250','timeZone':zone,"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "while not self.refresh_stop.wait(CACHE_SECONDS):"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/calendar_view.py",
+      "quote": "day['event_count'] = len(day['events']) if local_ok and google_ok else None"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "wsflow/server.py",
+      "quote": "if not secrets.compare_digest(got, token):"
+    },
+    {
+      "doc": "output_docs/261018_0918_i3_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "e.origin==='google'?'<span class=\"muted\">Google 읽기 전용</span>'"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "WRITE_SCOPE = 'https://www.googleapis.com/auth/calendar.events'"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "token['scopes'] = result['scope'].split()"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if token['sub'] != account:"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if found is None or not found['can_read'] or (write and not found['can_write']):"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "'remote_id':uuid4().hex"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "CREATE TRIGGER IF NOT EXISTS calendar_intent_immutable BEFORE UPDATE OF intent"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_store.py",
+      "quote": "queued = calendar_sync.on_local_save(db,current,record,op)"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if op['state'] not in {'queued','error'}:"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "UPDATE calendar_outbox SET state='syncing',error=NULL WHERE id=? AND state IN ('queued','error')"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "headers['If-Match']=intent['base_etag']"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "private.get('wsflowOperation')==intent['operation_id']"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "and private.get('wsflowPayload')==intent['payload_hash'] and semantic(remote)==semantic(intent['payload']))"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if op['state'] not in {'syncing','uncertain'}:"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "link.update(state='conflict',conflict={'local':current,'remote':remote,'reason':reason,'at':operations.now()})"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if (remote or {}).get('etag')!=(op.get('remote') or {}).get('etag'):"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if semantic(body(record))==semantic(intent['payload']):"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if link.get('remote_deleted'):"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_view.py",
+      "quote": "e['id'] not in mapped_remote"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "if(e.status&&e.status<500)GCAL.pending=null;"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if op['state']=='queued':sent.append(self.run(op['id']))"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "current['revision']!=op['expected_revision']"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if remote.get('recurrence') or remote.get('recurringEventId') or remote.get('attendees') or remote.get('eventType','default') != 'default':"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if record['kind'] != 'event':"
+    },
+    {
+      "doc": "output_docs/261018_1228_i4_implementation_report.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if record['deleted']:"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_skills.py",
+      "quote": "'tree_hash': digest({'files': files, 'directories': sorted(directories)}), 'file_count': len(files)}"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_skills.py",
+      "quote": "if not target.is_relative_to(path.resolve()) or not target.exists():"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "blockers.append('backend_not_supported')"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "after = raw[:start]+data+raw[end:]"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "blockers.append('managed_block_changed:' + rel);return"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "blockers.append('legacy_skill_collision:'+prefix)"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "snapshot = {**result,'registry_hash':operations.digest(registry),'guards':guards,'manifest_sha256':manifest_hash}"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "with fileio.locked(self.lock_home):"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "if op['status']=='succeeded':return op['result']"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "if continuing and not recover:raise operations.StateConflict('중단된 작업은 명시 복구가 필요합니다')"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "if current!=a['before'] and not (continuing and self._matches(current,a['after'])):"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "validate_handle=lambda fd:validate_staging_handle(fd,saved['owner']))"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/fileio.py",
+      "quote": "validate_handle(fh.fileno())"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/deploy.py",
+      "quote": "conflict = protected_destination(dest, proj)"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "'before':before,'after':{'kind':'file','sha256':sha(after)},"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "wsflow/server.py",
+      "quote": "if set(body)!={'plan_id','project_id'}:raise operations.StateConflict('서버 plan ID와 project ID만 제출하십시오')"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "if(captured!==generation || !dlg.open)return;"
+    },
+    {
+      "doc": "output_docs/261018_1501_i5_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "$(\"#ctxRootPreview\").onclick=()=>preview('root_init');$(\"#ctxPreview\").onclick=()=>preview('project_init');$(\"#ctxApply\").onclick=apply;$(\"#ctxRetry\").onclick=apply;"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "'version_provenance':'user_declared'}"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "'recognition':'unknown','observation_kind':'static_only',"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if not actual or expected.get('sha256')!=actual:blockers.append('managed_profile_changed:'+ident)"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if owned.get('skill_id')!=ident or owned.get('tree_hash')!=p['tree_hash'] or current['tree_hash']!=p['tree_hash']:"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "saved=self.ops.save_plan(packet,[])"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if not isinstance(content,str) or not content or len(content.encode('utf-8'))>MAX_EVIDENCE:raise ValueError('증거는 256KiB 이하 UTF-8 텍스트입니다')"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if doc['origin']!=expected_origin:raise ValueError('관측 종류와 출력 origin이 다릅니다 — 자체 보고를 승격할 수 없습니다')"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if kind=='tool_observed' and body.get('attest_tool_output') is not True:raise ValueError('실제 도구 출력임을 사용자가 확인해야 합니다; 진위 독립검증은 아닙니다')"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if doc['snapshot_id']!=packet['snapshot_id'] or doc['profile_id']!=packet['profile']['profile_id'] or not same_cwd:"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "'selected_scope_complete':not missing_sources and not missing_skills,'global_scope_complete':False}"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "ident='R-'+operations.digest([body['packet_id'],body['evidence_id'],kind,body.get('attest_tool_output',False)])"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if raw is None or len(raw)>MAX_EVIDENCE or projection.sha(raw)!=meta['sha256'] or not reader.finish():raise ValueError('evidence_changed')"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if packet['snapshot_id']!=current['snapshot_id']:reasons.append('context_changed')"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if latest and latest['plan_id']!=packet['plan_id']:"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "if not reasons and kind in ('agent_reported','tool_observed'):"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "'attest_tool_output':body.get('attest_tool_output',False),'trust':'user_submitted_unattested','independently_verified':False}"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "'profile':packet['profile'],'cwd':packet['cwd'],'snapshot_id':packet['snapshot_id'],"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "if(state.view !== 'dashboard' || generation!==state.dashboardGeneration)return;"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "static/index.html",
+      "quote": "d.packet=p;packetView();$('#ssDistinction').textContent='파일 기준 새 세션 준비 · 실제 도구 인식 미확인';$('#ssHistory').textContent='새 패킷의 관측은 없습니다. 이전 이력을 다시 확인하는 중입니다.';"
+    },
+    {
+      "doc": "output_docs/261018_1542_i6_implementation_report.md",
+      "search_file": "wsflow/server.py",
+      "quote": "if not isinstance(body,dict) or set(body)!={'content'}:raise ApiError(400,'파일 경로 대신 evidence content만 제출하십시오')"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/gitops.py",
+      "quote": "'pull', '--ff-only', '--no-rebase', '--no-autostash']"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/gitops.py",
+      "quote": "'last_fetch_at': at if result['ok'] else previous.get('last_fetch_at')"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/workflow.py",
+      "quote": "if any(q['truncated'] for q in collected['queries']):"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/workflow.py",
+      "quote": "fileio.atomic_write(state_file, json.dumps(final, ensure_ascii=False, indent=2).encode('utf-8'), final_gate)"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/workflow.py",
+      "quote": "if memo is not None and _memo(staged_daily.read_bytes()) != memo:"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/jiraapi.py",
+      "quote": "if item['key'] in issue_keys:"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/writeplans.py",
+      "quote": "raw['payload']['fields']['assignee'] = {'accountId': creation['account_id']}"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/writeplans.py",
+      "quote": "if seq is None or remote_next > seq:"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/jiraapi.py",
+      "quote": "'state': 'visible' if visible else 'not_visible'"
+    },
+    {
+      "doc": "output_docs/261018_1702_i7_implementation_report.md",
+      "search_file": "wsflow/workflow.py",
+      "quote": "calendar = calendar_query.query(projects, day, (selected + timedelta(days=1)).isoformat())"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/server.py",
+      "quote": "return gitops.push(repo, body.get(\"remote\") or \"origin\", body.get(\"branch\"), bool(body.get(\"set_upstream\")))"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/server.py",
+      "quote": "return gitops.fetch(repo) if r0=='fetch' else gitops.pull_ff(repo)"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/calendar_store.py",
+      "quote": "self.path = self.path.parent.parent / 'calendar' / (operations.digest(self.registry) + '.sqlite3')"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/calendar_store.py",
+      "quote": "return {i: next((str(Path(p['path']).resolve()) for p in projects if p['id'] == i), None) for i in ids}"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/session_prep.py",
+      "quote": "'attest_tool_output':body.get('attest_tool_output',False),'trust':'user_submitted_unattested','independently_verified':False}"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/context_projection.py",
+      "quote": "'observation_kind':'static_only','tool_recognition':'unknown','scope_complete':False,"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/calendar_query.py",
+      "quote": "MAX_RANGE_DAYS = 62"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/google_calendar.py",
+      "quote": "CACHE_SECONDS = 300"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/workflow.py",
+      "quote": "fileio.atomic_write(state_file, json.dumps(final, ensure_ascii=False, indent=2).encode('utf-8'), final_gate)"
+    },
+    {
+      "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
+      "search_file": "wsflow/calendar_sync.py",
+      "quote": "if remote.get('recurrence') or remote.get('recurringEventId') or remote.get('attendees') or remote.get('eventType','default') != 'default':"
+    }
+  ],
+  "known_open": {
+    "_comment": "검사 위반 키 → 대장 F-ID 매핑."
+  }
+}

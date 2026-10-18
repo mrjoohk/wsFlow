@@ -1,0 +1,126 @@
+[
+  {
+    "stage": 1,
+    "cases": [
+      "hidden task original preserved by visible edit",
+      "project and date documents separated",
+      "typing during PUT remains dirty then saves against returned revision",
+      "late prior day GET cannot replace visible day",
+      "late new task preview invalidated by changed input",
+      "late failed preview does not replace newer form state",
+      "approval uses server IDs and uncertain response offers no resend",
+      "uncertain remote correlation recovery control submitted",
+      "known success offers local-only repair",
+      "legacy pending approvals have separate manual review guidance",
+      "unsupported schema disables business write controls"
+    ],
+    "source_evidence": "output/playwright/P021/i1-release/P015-evidence.json"
+  },
+  {
+    "stage": 2,
+    "cases": [
+      "month cells contain event preview and counts only; same-day detail retains all records",
+      "month/week preserve selection and date click opens matching right detail",
+      "project and source filters agree with detail and counts",
+      "late prior range response cannot replace current calendar",
+      "unsaved note survives close and date navigation with original date",
+      "lost local response retries same operation and creates one note",
+      "local event creation updates current day and count",
+      "typing during save remains draft and updates created identity without duplicate",
+      "stale edit preserves both draft and current record before explicit rebase",
+      "explicit local deletion removes note from summary and detail",
+      "keyboard date selection and narrow layout keep detail below grid without page overflow"
+    ],
+    "source_evidence": "output/playwright/P021/i2-release/P016-evidence.json"
+  },
+  {
+    "stage": 3,
+    "cases": [
+      "unconnected local calendar remains usable",
+      "browser approval uses S256 and actual one-time loopback callback; UI observes connection",
+      "selected readable calendar appears with origin and role; canceled occurrence hidden; body escaped; remote edit absent",
+      "source filter and same-day counts/detail agree",
+      "offline sync retains cached body, count becomes unknown and local draft survives",
+      "manual recovery restores complete snapshot and last-sync status",
+      "disconnect hides account events while local drafts remain"
+    ],
+    "source_evidence": "output/playwright/P021/i3-release/evidence.json"
+  },
+  {
+    "stage": 4,
+    "cases": [
+      "explicit write OAuth upgrade preserves read connection and selected calendar",
+      "new event target Google creates one remote identity and one display without private body in cell",
+      "linked local edit uses conditional PATCH and keeps one remote event",
+      "Google change pulls into linked local revision without duplicate",
+      "lost app approval reply retries the same plan and remote write occurs once",
+      "remote response loss stays uncertain and GET reconcile confirms without second insert",
+      "offline edit remains local with visible durable error and explicit retry sends the same operation",
+      "both changed preserves both bodies and explicit Google adoption resolves conflict",
+      "local hide suppresses mapped remote display while preserving Google original",
+      "explicit Google deletion uses separate approval and If-Match",
+      "note editor offers no Google destination and draft remains local"
+    ],
+    "source_evidence": "output/playwright/P021/i4-release/evidence.json"
+  },
+  {
+    "stage": 5,
+    "cases": [
+      "explicit backend required and tool recognition remains unknown",
+      "ROOT preview is read-only and lists both impacted projects",
+      "ROOT apply preserves common policy and does not prepare projects",
+      "user-content diff is reviewable and changing selection invalidates plan",
+      "late preview cannot re-enable approval after selection changed",
+      "lost approval response retries same plan once without duplicate managed block or UID",
+      "only selected full packages exposed while entrypoint/project/Jira/legacy bytes remain",
+      "source changed after preview causes zero new user-file effects",
+      "fresh reviewed plan updates tracked package from changed canonical",
+      "reinitialization preserves post-init user edits outside managed block",
+      "user edits inside managed package block overwrite and remain intact"
+    ],
+    "source_evidence": "output/playwright/P021/i5-release/evidence.json"
+  },
+  {
+    "stage": 6,
+    "cases": [
+      "dashboard separates per-project static readiness, unknown recognition and Calendar warning",
+      "Codex packet binds checkout/version/source hashes without running a tool",
+      "unsubmitted evidence draft survives closing and remains separated by tool",
+      "partial agent observation remains partial and injected HTML is text",
+      "complete self report stays agent_reported and is not promoted to tool observation",
+      "claiming tool output with agent-report origin is rejected and draft preserved",
+      "submitted tool-output schema requires explicit user attestation and displays unattested trust",
+      "new preparation with same version never reuses previous observation badge",
+      "version edit and late prepare reply cannot reuse a prior packet",
+      "new profile/preparation leaves old receipt visible as stale without a current positive badge",
+      "common policy change invalidates the prepared snapshot",
+      "evidence tampering removes current observation badge while preserving history",
+      "late dashboard generation cannot overwrite refreshed project state",
+      "Claude packet has its own entrypoint, profile and scoped observations"
+    ],
+    "source_evidence": "output/playwright/P021/i6-release/evidence.json"
+  },
+  {
+    "stage": 7,
+    "cases": [
+      "overview distinguishes unknown batch from zero and reads saved task records without writes",
+      "project and source text remain escaped in whole status",
+      "whole status opens the same date and project in Calendar detail",
+      "explicit fetch displays its successful time and refreshes tracking refs",
+      "ff-only pull receives another checkout commit",
+      "dirty pull stops with all user bytes and HEAD preserved",
+      "non-ff divergence is shown without merge or reset",
+      "late Git response cannot bind handlers in a different project tab",
+      "partial Jira read shows an explicit incomplete warning",
+      "unsaved memo cancels batch without losing the draft or sending a run",
+      "explicit batch shows all stages and preserves exact saved memo before watermark commit",
+      "invariant failure is visible and watermark remains unchanged",
+      "lost batch response is recovered by reading the committed marker",
+      "corrupt receipt shows a warning while retaining the committed watermark",
+      "late whole-status date reply cannot replace the selected day",
+      "successful create and unconfirmed personal-list visibility stay distinct",
+      "whole status works at a narrow viewport"
+    ],
+    "source_evidence": "output/playwright/P021/i7-release/evidence.json"
+  }
+]

@@ -1,0 +1,123 @@
+{
+  "mode": "PLANNED",
+  "request": "P-023",
+  "baseline": "rd/evaluation_plan.md V0-04/V1-03",
+  "specs": [
+    {
+      "stage": "i0",
+      "source": "logs/test_evidence/261016_P014_i0_validation.json negative_controls",
+      "spec": "ci/specs/i0.json",
+      "count": 4,
+      "changes": "same four historical failure boundaries expressed as reproducible source edits; preserve original results"
+    },
+    {
+      "stage": "i1",
+      "source": "logs/test_evidence/261017_P015_mutants.json",
+      "source_sha256": "48b1aced686a99da0dde1c694f393ab53616549896a1c17995b5f499e79d7e19",
+      "spec": "ci/specs/i1.json",
+      "count": 15,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "i2",
+      "source": "logs/test_evidence/261017_P016_mutants.json",
+      "source_sha256": "71ef446bcbcf74357464cf1f704e8cd3f68f0356c1b2a7b441eca09f4692072c",
+      "spec": "ci/specs/i2.json",
+      "count": 19,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially",
+      "adaptation": {
+        "id": "UNKNOWN",
+        "old_pattern": "day['event_count'] = len(day['events']) if local_ok else None",
+        "new_pattern": "day['event_count'] = len(day['events']) if local_ok and google_ok else None",
+        "reason": "I3/I4 widened the same completeness/scope condition; mutation still removes the original protection"
+      }
+    },
+    {
+      "stage": "i3",
+      "source": "logs/test_evidence/261018_P017/mutants.json",
+      "source_sha256": "2b293c5dcca677ea6eb69178c644eda5344bddfb9030843c65065dc94d4d74af",
+      "spec": "ci/specs/i3.json",
+      "count": 20,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially",
+      "adaptation": {
+        "id": "G05",
+        "old_pattern": "not set(SCOPES[2:]).issubset(scopes)",
+        "new_pattern": "not has_read_scopes(scopes)",
+        "reason": "I3/I4 widened the same completeness/scope condition; mutation still removes the original protection"
+      }
+    },
+    {
+      "stage": "i3_ui",
+      "source": "logs/test_evidence/261018_P017/ui_mutants.json",
+      "source_sha256": "42c7c2bfb9e1586ac2cb5df7608b65d707b171bafaed5ecf28b34900a394d42f",
+      "spec": "ci/specs/i3_ui.json",
+      "count": 2,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "i4",
+      "source": "logs/test_evidence/261018_P018/mutants_acceptance.json",
+      "source_sha256": "df6724c68ebd68f6da080868604a5743cc1991529c1e135a303cc736415f7c05",
+      "spec": "ci/specs/i4.json",
+      "count": 29,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "i4_ui",
+      "source": "logs/test_evidence/261018_P018/ui_mutants.json",
+      "source_sha256": "94369e7de0af1c1dbc10e3ac91e9033af68ec5a951954011a5e8cea9ccd89b65",
+      "spec": "ci/specs/i4_ui.json",
+      "count": 4,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "i5",
+      "source": "logs/test_evidence/261018_P019/mutations.json",
+      "source_sha256": "8ed92289daba61e27c5b3f6335e8f561485b2ebdee1a48292cce3016914e8355",
+      "spec": "ci/specs/i5.json",
+      "count": 29,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "i5_ui",
+      "source": "logs/test_evidence/261018_P019/ui_mutations.json",
+      "source_sha256": "c66553e40bbb523139d19e242e33213bd62fb04465a9adc55a18558df5a38f3a",
+      "spec": "ci/specs/i5_ui.json",
+      "count": 3,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "i6",
+      "source": "logs/test_evidence/261018_P020/mutations.json",
+      "source_sha256": "b758d6bc88fd3fee155f162a15b37714b280ce51148399c5b06e00a37038ba6e",
+      "spec": "ci/specs/i6.json",
+      "count": 24,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "i6_ui",
+      "source": "logs/test_evidence/261018_P020/ui_mutations.json",
+      "source_sha256": "705b92afc9d03af4f7e7f85952e5aabd2449df82b3f8c6f4ad6994d21273ead6",
+      "spec": "ci/specs/i6_ui.json",
+      "count": 5,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "i7",
+      "source": "logs/test_evidence/261018_P021/mutations.json",
+      "source_sha256": "f29d9584bfea504e7e82ebdbcd3c71ff48ebbe97559da0f8223855c6cc157daa",
+      "spec": "ci/specs/i7.json",
+      "count": 45,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    },
+    {
+      "stage": "i7_ui",
+      "source": "logs/test_evidence/261018_P021/ui_mutations.json",
+      "source_sha256": "c0561eef31e558b4a1b740582293d044f239f73e48a9fc02e3e1ae63aea0eb1c",
+      "spec": "ci/specs/i7_ui.json",
+      "count": 9,
+      "changes": "copy set/timeout/env made portable; original mutations and IDs preserved initially"
+    }
+  ],
+  "total": 208
+}

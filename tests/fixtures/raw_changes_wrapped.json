@@ -1,0 +1,59 @@
+{
+ "issues": {
+  "nodes": [
+   {
+    "key": "XXX-142",
+    "changelog": {
+     "histories": [
+      {
+       "created": "2026-08-14T09:12:00+0900",
+       "items": [
+        {
+         "field": "status",
+         "fromString": "To Do",
+         "toString": "In Progress"
+        }
+       ]
+      }
+     ]
+    },
+    "fields": {
+     "summary": "항법 필터 튜닝",
+     "status": {
+      "name": "In Progress",
+      "statusCategory": {
+       "key": "indeterminate"
+      }
+     },
+     "issuetype": {
+      "name": "Task",
+      "subtask": false
+     },
+     "parent": {
+      "key": "XXX-100",
+      "fields": {
+       "summary": "항법 알고리즘 개선"
+      }
+     },
+     "updated": "2026-08-14T09:12:00+0900",
+     "priority": {
+      "name": "High"
+     },
+     "comment": {
+      "comments": [
+       {
+        "body": "리뷰 반영"
+       },
+       {
+        "body": "측정값 첨부"
+       }
+      ]
+     }
+    }
+   }
+  ],
+  "pageInfo": {
+   "hasNextPage": false
+  }
+ }
+}

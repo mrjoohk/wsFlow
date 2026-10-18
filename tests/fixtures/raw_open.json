@@ -1,0 +1,6 @@
+{"issues":[
+ {"key":"XXX-142","fields":{"summary":"항법 필터 튜닝","status":{"name":"In Progress","statusCategory":{"key":"indeterminate"}},"issuetype":{"name":"Task","subtask":false},"parent":{"key":"XXX-100","fields":{"summary":"항법 알고리즘 개선"}},"updated":"2026-08-14T09:12:00+0900","duedate":"2026-08-20","priority":{"name":"High"},"labels":[]}},
+ {"key":"XXX-188","fields":{"summary":"캘리브레이션 절차 문서화","status":{"name":"To Do","statusCategory":{"key":"new"}},"issuetype":{"name":"Task","subtask":false},"parent":{"key":"XXX-180","fields":{"summary":"센서 캘리브레이션"}},"updated":"2026-08-01T10:00:00+0900","priority":{"name":"Medium"},"labels":[]}},
+ {"key":"XXX-201","fields":{"summary":"온도 보정 계수 재측정","status":{"name":"To Do","statusCategory":{"key":"new"}},"issuetype":{"name":"Task","subtask":false},"parent":{"key":"XXX-180","fields":{"summary":"센서 캘리브레이션"}},"updated":"2026-08-14T11:00:00+0900","priority":{"name":"Medium"},"labels":[]}},
+ {"key":"XXX-155","fields":{"summary":"좌표 변환 단위 오류","status":{"name":"To Do","statusCategory":{"key":"new"}},"issuetype":{"name":"Subtask","subtask":true},"parent":{"key":"XXX-142","fields":{"summary":"항법 필터 튜닝"}},"updated":"2026-08-14T11:30:00+0900","priority":{"name":"High"},"labels":["bug"]}}
+]}

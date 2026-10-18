@@ -1,0 +1,24 @@
+{
+ "tasks": [
+  {
+   "key": "XXX-301",
+   "summary": "--001-- 정상 태스크",
+   "parent": "XXX-180",
+   "csc_field": "customfield_10999",
+   "assignee": "acct-me",
+   "sprint_id": 3084
+  }
+ ],
+ "comments": [
+  {
+   "key": "XXX-310",
+   "body": "오늘 한 일을 적은 코멘트 본문."
+  }
+ ],
+ "transitions": [
+  {
+   "key": "XXX-310",
+   "status": "진행 중"
+  }
+ ]
+}

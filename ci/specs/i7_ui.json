@@ -1,0 +1,121 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "node",
+    "tests/i7_browser.cjs"
+  ],
+  "timeout": 180,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "WSFLOW_BROWSER_OUTPUT": "{tmp}/browser-output"
+  },
+  "mutants": [
+    {
+      "id": "UI701",
+      "name": "batch ignores unsaved draft",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if(!await guardUnsaved(p))return;",
+          "new": "if(false)return;"
+        }
+      ]
+    },
+    {
+      "id": "UI702",
+      "name": "partial query warning omitted",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if(v.complete===false || v.warnings?.length)",
+          "new": "if(false)"
+        }
+      ]
+    },
+    {
+      "id": "UI703",
+      "name": "late date reply overwrites selected day",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if(!box.isConnected||generation!==state.workflowGeneration)return;",
+          "new": "if(!box.isConnected)return;"
+        }
+      ]
+    },
+    {
+      "id": "UI704",
+      "name": "untrusted project alias rendered as HTML",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "${esc(p.alias)}</b> · ${p.enabled?",
+          "new": "${p.alias}</b> · ${p.enabled?"
+        }
+      ]
+    },
+    {
+      "id": "UI705",
+      "name": "late Git response binds wrong view",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if(!body.isConnected||state.current!==p.id||state.tab!=='status')return;",
+          "new": "if(false)return;"
+        }
+      ]
+    },
+    {
+      "id": "UI706",
+      "name": "successful create hides failed personal-list visibility",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if(jiraVisible(p,J)&&r.visibility&&r.visibility.state!=='visible')",
+          "new": "if(false)"
+        }
+      ]
+    },
+    {
+      "id": "UI707",
+      "name": "failed batch claims watermark commit",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "result.committed?result.watermark_out:'보존 · 전진하지 않음'",
+          "new": "result.watermark_out||'commit 완료'"
+        }
+      ]
+    },
+    {
+      "id": "UI708",
+      "name": "unknown signal becomes zero",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "p.signals?.new??'?'",
+          "new": "p.signals?.new??0"
+        }
+      ]
+    },
+    {
+      "id": "UI709",
+      "name": "corrupt receipt warning hidden",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "(r.warnings||[]).map(w=>",
+          "new": "[].map(w=>"
+        }
+      ]
+    }
+  ]
+}

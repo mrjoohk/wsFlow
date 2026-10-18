@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "upstream_repository": "jiraWorkFlow/jiraWF",
+  "upstream_commit": "1ea217afd7d8dbd2da08f18172f5f6a60b897802",
+  "upstream_scripts": "plugins/jira-worklog/scripts",
+  "files": {
+    "aggregate.py": "eac86fd095048fb9dd55ddb3f05caf8ce72ef08b6355bcf85972f289d6da5666",
+    "close_verify.py": "56316f1171c5c82d99c6d09c61808dd654b23c48717c16ebdfd04bb8087144c2",
+    "draft_lint.py": "21991448e14b1a5f4e5508351b9402e6c80708b884e6b026a1cfd6712c0a269f",
+    "jira_fields.py": "d3537b797a24b7bb9102ff415d3d91291e6276a394805a00a279f8a0ded86809",
+    "loop_checks.py": "d856b328bbb604a49923537f284853507d65fb4333258c3037ac7c15f0b5c523",
+    "memo_intake.py": "27936431767c83181208d6839114b6519cc96341b7cdca708a5273866ee5c9d6",
+    "merge_targets.py": "a6422936c6b7ecd5a92087c6a635a9cc27f22e2decbbaa1adca09f1f016ff7ca",
+    "new_title.py": "cf4ac7360f12c2c4468f4a1bf72ebca8cef8f63fb98794de482bcb4db9a59c0c",
+    "render_daily.py": "81d679a626c238b47b3f58a29b3b9234d915b3950543d25c108b5343fe7125bd"
+  }
+}

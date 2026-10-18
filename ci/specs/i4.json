@@ -1,0 +1,789 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_i4.py"
+  ],
+  "timeout": 180,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "W01",
+      "name": "no write scope capability guard",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine._authorize",
+          "old": "(write and not found['can_write'])",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_permissions_account_selection_and_no_scope_block_remote_write"
+      ]
+    },
+    {
+      "id": "W02",
+      "name": "account identity ignored",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine._authorize",
+          "old": "token['sub'] != account",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_account_switch_even_with_same_calendar_id_blocks"
+      ]
+    },
+    {
+      "id": "W03",
+      "name": "selected calendar guard omitted",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine._authorize",
+          "old": "calendar not in selected",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_plan_selection_change_and_expiry_have_no_remote_effect"
+      ]
+    },
+    {
+      "id": "W04",
+      "name": "stale local plan accepted",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.apply",
+          "old": "current['revision']!=op['expected_revision']",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_changed_local_after_publish_plan_is_rejected"
+      ]
+    },
+    {
+      "id": "W05",
+      "name": "expired plan accepted",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.apply",
+          "old": "time.time()>plan['expires_at']",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_plan_selection_change_and_expiry_have_no_remote_effect"
+      ]
+    },
+    {
+      "id": "W06",
+      "name": "syncing and uncertain blindly resent",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.run",
+          "old": "if op['state'] not in {'queued','error'}:",
+          "new": "if op['state'] not in {'queued','error','syncing','uncertain'}:"
+        },
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.run",
+          "old": "WHERE id=? AND state IN ('queued','error')",
+          "new": "WHERE id=? AND state IN ('queued','error','syncing','uncertain')"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_uncertain_absent_insert_can_retry_only_same_remote_id_after_lookup"
+      ]
+    },
+    {
+      "id": "W07",
+      "name": "claim durability lost",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.run",
+          "old": "SET state='syncing',error=NULL",
+          "new": "SET state='queued',error=NULL"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_remote_success_local_commit_failure_reconciles_without_resend"
+      ]
+    },
+    {
+      "id": "W08",
+      "name": "PATCH loses If-Match",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.run",
+          "old": "headers['If-Match']=intent['base_etag']",
+          "new": "headers['If-Match']='wrong-etag'"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_update_has_if_match_and_unknown_fields_survive"
+      ]
+    },
+    {
+      "id": "W09",
+      "name": "preflight remote revision guard off",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.run",
+          "old": "remote.get('etag')!=intent['base_etag']",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_both_changed_conflict_keeps_local_and_remote_no_patch"
+      ]
+    },
+    {
+      "id": "W10",
+      "name": "timeout treated as retryable error",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.run",
+          "old": "else 'uncertain',error=str(exc)",
+          "new": "else 'error',error=str(exc)"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_post_response_loss_reconcile_reads_without_second_post"
+      ]
+    },
+    {
+      "id": "W11",
+      "name": "operation marker ignored",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.matches",
+          "old": "private.get('wsflowOperation')==intent['operation_id']",
+          "new": "True"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_wrong_operation_marker_prevents_adoption"
+      ]
+    },
+    {
+      "id": "W12",
+      "name": "payload comparison ignored during reconcile",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.matches",
+          "old": "semantic(remote)==semantic(intent['payload'])",
+          "new": "True"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_uncertain_marker_with_changed_body_becomes_conflict"
+      ]
+    },
+    {
+      "id": "W13",
+      "name": "remote id changes at send",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.run",
+          "old": "payload['id']=intent['remote_id']",
+          "new": "payload['id']=uuid4().hex"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_publish_has_durable_id_before_send_and_replay_is_one_effect"
+      ]
+    },
+    {
+      "id": "W14",
+      "name": "local late input queues no followup",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine._complete",
+          "old": "record['revision']!=intent['local_revision']",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_late_write_success_preserves_new_local_revision_and_queues_followup"
+      ]
+    },
+    {
+      "id": "W15",
+      "name": "pull ignores local dirty input",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.pull",
+          "old": "if dirty and not link['hidden']:",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_conflict_resolution_remote_and_stale_revision_guard"
+      ]
+    },
+    {
+      "id": "W16",
+      "name": "hidden mapping no longer suppresses remote duplicate",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "func": "query",
+          "old": "e['id'] not in mapped_remote",
+          "new": "True"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_hide_deduplicates_cached_remote_and_show_restores_one_identity"
+      ]
+    },
+    {
+      "id": "W17",
+      "name": "recurring attendee special edits allowed",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "supported",
+          "old": "raise operations.StateConflict('반복·참석자·특수 일정은 Google에서 직접 확인하십시오')",
+          "new": "return None"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_unsupported_delete_plan_is_rejected"
+      ]
+    },
+    {
+      "id": "W18",
+      "name": "known-success cache failure becomes resend",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.run",
+          "old": "                return current",
+          "new": "                return self._state(ident,'error',error=str(exc))"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_known_commit_ack_error_never_downgrades_synced"
+      ]
+    },
+    {
+      "id": "W19",
+      "name": "stale remote conflict plan accepted",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.apply",
+          "old": "if (remote or {}).get('etag')!=(op.get('remote') or {}).get('etag'):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_conflict_resolution_remote_and_stale_revision_guard"
+      ]
+    },
+    {
+      "id": "W20",
+      "name": "Google delete recovery resends",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.reconcile",
+          "old": "if intent['action']=='delete' and (remote is None or remote.get('status')=='cancelled'):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_delete_response_loss_recovers_absence_without_second_delete"
+      ]
+    },
+    {
+      "id": "W21",
+      "name": "read refresh retains revoked write scope",
+      "edits": [
+        {
+          "file": "wsflow/google_calendar.py",
+          "func": "Service._token",
+          "old": "token['scopes'] = result['scope'].split()",
+          "new": "pass"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_refresh_reduced_scope_prevents_write"
+      ]
+    },
+    {
+      "id": "W22",
+      "name": "local record committed without Google queue",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "func": "Store.apply",
+          "old": "queued = calendar_sync.on_local_save(db,current,record,op)",
+          "new": "queued = None"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_atomic_destination_queue_failure_rolls_back_record_link_and_approval"
+      ]
+    },
+    {
+      "id": "W23",
+      "name": "linked project Google source disappears",
+      "edits": [
+        {
+          "file": "wsflow/calendar_view.py",
+          "func": "query",
+          "old": "('google' in sources and linked_google)",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_linked_project_google_filter_uses_local_mapping_without_external_records"
+      ]
+    },
+    {
+      "id": "W24",
+      "name": "duplicate succeeded operation sent again",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.run",
+          "old": "if op['state'] not in {'queued','error'}:",
+          "new": "if op['state'] not in {'queued','error','synced'}:"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_publish_has_durable_id_before_send_and_replay_is_one_effect"
+      ]
+    },
+    {
+      "id": "W25",
+      "name": "show discards uncertain recovery identity",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine.apply",
+          "old": "link.update(hidden=False,base_local_revision=current['revision'])",
+          "new": "link.update(hidden=False,base_local_revision=current['revision'],pending=None)"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_hide_show_preserves_uncertain_operation_for_later_recovery"
+      ]
+    },
+    {
+      "id": "W26",
+      "name": "visibility-only revision triggers unapproved followup",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "Engine._complete",
+          "old": "if semantic(body(record))==semantic(intent['payload']):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_hide_show_preserves_uncertain_operation_for_later_recovery"
+      ]
+    },
+    {
+      "id": "W27",
+      "name": "raw intent fields accepted by write apply",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "or set(body)!={'plan_id','operation_id'}",
+          "new": ""
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_http_google_approval_guards_and_raw_payload_rejection"
+      ]
+    },
+    {
+      "id": "W28",
+      "name": "outbox immutable intent trigger removed",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "ensure",
+          "old": "\"CREATE TRIGGER IF NOT EXISTS calendar_intent_immutable BEFORE UPDATE OF intent ON calendar_outbox BEGIN SELECT RAISE(ABORT,'immutable calendar intent'); END;\"",
+          "new": "'SELECT 1'"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_outbox_intent_is_immutable_and_old_operation_does_not_send_new_body"
+      ]
+    },
+    {
+      "id": "W29",
+      "name": "remote deleted archive silently recreated",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "func": "queue",
+          "old": "if link.get('remote_deleted'):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i4.py",
+        "-k",
+        "test_showing_remote_deleted_archive_never_recreates_on_edit"
+      ]
+    }
+  ]
+}

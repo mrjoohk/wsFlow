@@ -1,0 +1,95 @@
+name: Frozen V0 V1 verification
+
+on:
+  push:
+    branches: ['codex/v0-v1-*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10.11', '3.14.3']
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.14.0'
+      - name: Prepare isolated pinned dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m venv "$env:RUNNER_TEMP/venv"
+          & "$env:RUNNER_TEMP/venv/Scripts/python.exe" -m pip install --require-hashes -r ci/python-requirements.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP/node" | Out-Null
+          Copy-Item ci/package.json,ci/package-lock.json "$env:RUNNER_TEMP/node"
+          npm ci --ignore-scripts --prefix "$env:RUNNER_TEMP/node"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:PLAYWRIGHT_BROWSERS_PATH = "$env:RUNNER_TEMP/browsers"
+          node "$env:RUNNER_TEMP/node/node_modules/playwright/cli.js" install chromium
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          "PLAYWRIGHT_MODULE=$env:RUNNER_TEMP/node/node_modules/playwright" >> $env:GITHUB_ENV
+          "PLAYWRIGHT_BROWSERS_PATH=$env:RUNNER_TEMP/browsers" >> $env:GITHUB_ENV
+          "PYTHONNOUSERSITE=1" >> $env:GITHUB_ENV
+      - name: Full regression and strict negative controls
+        shell: pwsh
+        run: |
+          & "$env:RUNNER_TEMP/venv/Scripts/python.exe" -X utf8 tools/ci/runner.py run --root "$env:GITHUB_WORKSPACE" --out "$env:RUNNER_TEMP/evidence" --expected-python '${{ matrix.python }}' --jobs 4
+          exit $LASTEXITCODE
+      - name: Upload exact source and execution evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: v01-windows-${{ matrix.python }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/evidence
+            ci/source-manifest.json
+            ci/selection.json
+          if-no-files-found: error
+          retention-days: 30
+
+  expected-failure-gate:
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [source_mismatch, test_failure, mutant_survived]
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.14.3'
+      - name: Deliberately reject the controlled fixture
+        shell: pwsh
+        env:
+          GATE_PROBE: ${{ matrix.mode }}
+        run: |
+          python -X utf8 tools/ci/runner.py gate --root "$env:GITHUB_WORKSPACE" --out "$env:RUNNER_TEMP/gate" --mode "$env:GATE_PROBE"
+          exit $LASTEXITCODE
+      - name: Preserve rejected input and gate evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rejected-${{ matrix.mode }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/gate
+            ci/source-manifest.json
+          if-no-files-found: error
+          retention-days: 30

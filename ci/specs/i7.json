@@ -1,0 +1,1241 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_i7.py"
+  ],
+  "timeout": 180,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "I701",
+      "name": "watermark written before invariant checks",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_invariant_rejection_keeps_watermark_and_user_original"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "elif phase == 'checks':",
+          "new": "elif phase == 'checks':\n                    fileio.atomic_write(state_file, json.dumps({**state, 'watermark':captured.isoformat()}).encode('utf-8'))"
+        }
+      ]
+    },
+    {
+      "id": "I702",
+      "name": "truncated collection is committed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_truncated_or_failed_second_query_preserves_state_and_daily"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "if any(q['truncated'] for q in collected['queries']):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I703",
+      "name": "all invariant failure gates bypassed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_invariant_rejection_keeps_watermark_and_user_original"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "_command",
+          "old": "if cp.returncode:",
+          "new": "if False:"
+        },
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "if checks.get('exit_code') != 0 or checks.get('violations'):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I704",
+      "name": "memo exact CRLF restore and comparison removed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_real_pipeline_preserves_memo_and_commits_capture_time_last"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "if memo is not None:\n                        # Vendor",
+          "new": "if False:\n                        # Vendor"
+        },
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "if memo is not None and _memo(staged_daily.read_bytes()) != memo:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I705",
+      "name": "final state CAS ignores an external edit",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_external_memo_or_state_edit_is_preserved"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "def final_gate():\n                        _same(state_file, original_state)",
+          "new": "def final_gate():\n                        pass # mutant skips state CAS"
+        }
+      ]
+    },
+    {
+      "id": "I706",
+      "name": "publish overwrites concurrent memo",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_external_memo_or_state_edit_is_preserved"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "_same(daily, original_daily)\n                    _same(publish_agg",
+          "new": "pass # mutant\n                    _same(publish_agg"
+        },
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "lambda: (_same(state_file, original_state), _same(daily, original_daily))",
+          "new": "lambda: _same(state_file, original_state)"
+        }
+      ]
+    },
+    {
+      "id": "I707",
+      "name": "post-commit lost acknowledgement becomes failed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_lost_commit_receipt_is_resolved_from_state_marker"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "try:committed = _json(state_file).get('last_batch', {}).get('run_id') == run_id",
+          "new": "try:committed = False"
+        }
+      ]
+    },
+    {
+      "id": "I708",
+      "name": "unsupported sprint semantics silently accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_invalid_schema_mode_timezone_and_backwards_clock_stop_before_commit"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "support",
+          "old": "'supported': mode in (None, '', 'active', 'all')",
+          "new": "'supported': True"
+        }
+      ]
+    },
+    {
+      "id": "I709",
+      "name": "backwards watermark clock accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_invalid_schema_mode_timezone_and_backwards_clock_stop_before_commit"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "if previous.tzinfo is None or captured < previous:",
+          "new": "if previous.tzinfo is None:"
+        }
+      ]
+    },
+    {
+      "id": "I710",
+      "name": "vendor provenance ignored",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_vendor_mismatch_missing_fields_duplicate_markers_and_invalid_external_json_fail_closed"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "if not provenance['identical']:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I711",
+      "name": "changed configuration and aggregate reused as fresh",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_config_or_aggregate_change_invalidates_previous_success_and_keeps_unknown"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "overview",
+          "old": "if hashlib.sha256(raw).hexdigest() == marker['aggregate_sha256'] and operations.digest(config(state)) == marker['config_hash']:",
+          "new": "if True:"
+        }
+      ]
+    },
+    {
+      "id": "I712",
+      "name": "transient sharing failure has no bounded retry",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_transient_windows_receipt_sharing_failure_has_a_bounded_retry"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "_write",
+          "old": "if attempt == 4:",
+          "new": "if True:"
+        }
+      ]
+    },
+    {
+      "id": "I713",
+      "name": "missing scope fields marked complete",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_missing_scope_fields_and_unsupported_mode_are_never_complete_live_reads"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "fields_complete",
+          "old": "required = {'summary','status','issuetype','updated','assignee'}",
+          "new": "return True\n    required = {'summary','status','issuetype','updated','assignee'}"
+        }
+      ]
+    },
+    {
+      "id": "I714",
+      "name": "partial live read marked complete",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_live_read_exposes_truncation_and_does_not_disguise_zero"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/wfhome.py",
+          "func": "live_tasks",
+          "old": "complete=not any(q['truncated'] or not q['fields_complete'] for q in queries)",
+          "new": "complete=True"
+        }
+      ]
+    },
+    {
+      "id": "I715",
+      "name": "CLI selfcheck reports truncated search healthy",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_selfcheck_cannot_mark_a_truncated_search_healthy"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/selfcheck.py",
+          "func": "run",
+          "old": "if res.get('_truncated'):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I716",
+      "name": "epic title lookup narrowed to current open personal tasks",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_epic_title_context_is_complete_all_assignees_and_statuses"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "creation_context",
+          "old": "AND parent = {issue_key(epic_key)} ORDER BY key",
+          "new": "AND parent = {issue_key(epic_key)} AND assignee=currentUser() AND statusCategory!=Done ORDER BY key"
+        }
+      ]
+    },
+    {
+      "id": "I717",
+      "name": "current account not fixed on create",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_new_plan_assigns_self_and_rechecks_epic_sequence_before_write"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/writeplans.py",
+          "func": "preview_new",
+          "old": "raw['payload']['fields']['assignee'] = {'accountId': creation['account_id']}",
+          "new": "pass # mutant"
+        }
+      ]
+    },
+    {
+      "id": "I718",
+      "name": "execution does not recheck remote sequence",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_new_plan_assigns_self_and_rechecks_epic_sequence_before_write"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/writeplans.py",
+          "func": "apply_new",
+          "old": "if seq is None or remote_next > seq:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I719",
+      "name": "pending local plans share sequence",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_pending_local_plans_reserve_unique_sequence_and_uncertain_keeps_reservation"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/writeplans.py",
+          "func": "_reserved",
+          "old": "return [_unprefix(op.get('title', ''), state) for op in operations.Store(home).list()",
+          "new": "return [_unprefix(op.get('title', ''), state) for op in []"
+        }
+      ]
+    },
+    {
+      "id": "I720",
+      "name": "account change not revalidated",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_current_account_change_or_incomplete_scope_blocks_creation"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/writeplans.py",
+          "func": "apply_new",
+          "old": "if fresh['account_id'] != creation['account_id'] or fresh.get('epic_name') != creation.get('epic_name'):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I721",
+      "name": "create response alone implies visibility",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_created_visibility_is_explicit_and_requery_failure_never_recreates"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "visibility",
+          "old": "'state': 'visible' if visible else 'not_visible'",
+          "new": "'state': 'visible'"
+        }
+      ]
+    },
+    {
+      "id": "I722",
+      "name": "different named site receives another credential",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_credentials_never_fall_back_to_a_different_named_site"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/auth.py",
+          "func": "_from_file",
+          "old": "if entry is None and not site_url and len(sites) == 1:",
+          "new": "if entry is None and len(sites) == 1:"
+        }
+      ]
+    },
+    {
+      "id": "I723",
+      "name": "Git pull ff-only flag removed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_real_fetch_ff_only_and_timestamp_survive_restart"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/gitops.py",
+          "func": "pull_ff",
+          "old": "'pull', '--ff-only', '--no-rebase'",
+          "new": "'pull', '--no-rebase'"
+        }
+      ]
+    },
+    {
+      "id": "I724",
+      "name": "dirty checkout allowed into pull",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_dirty_diverged_detached_and_missing_upstream_never_destroy_files"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/gitops.py",
+          "func": "pull_ff",
+          "old": "'no_upstream' if not st['upstream'] else 'dirty' if not st['clean'] else None",
+          "new": "'no_upstream' if not st['upstream'] else None"
+        },
+        {
+          "file": "wsflow/gitops.py",
+          "func": "pull_ff",
+          "old": "if not st['clean']:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I725",
+      "name": "failed fetch replaces last success time",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_failed_fetch_does_not_replace_last_successful_timestamp"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/gitops.py",
+          "func": "_fetch",
+          "old": "at if result['ok'] else previous.get('last_fetch_at')",
+          "new": "at"
+        }
+      ]
+    },
+    {
+      "id": "I726",
+      "name": "input inherited by server child commands",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_status_and_pipeline_subprocesses_do_not_inherit_server_input"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/gitops.py",
+          "func": "run_git",
+          "old": "stdin=subprocess.DEVNULL, ",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "id": "I727",
+      "name": "offline title-only plan reaches write",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_offline_preview_remains_available_but_cannot_create"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "if pending and not saved.get('creation'):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I728",
+      "name": "partial read keeps stale trusted scope cache",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_partial_read_invalidates_previous_trusted_scope"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler",
+          "old": "with scope_mutex:scope_cache.pop((project['id'],str(Path(home).resolve())),None)",
+          "new": "pass # mutant cached complete scope retained"
+        }
+      ]
+    },
+    {
+      "id": "I729",
+      "name": "reinitialization drops batch proof marker and user fields",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_reinit_preserves_batch_marker_user_metadata_and_watermark"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/wfinit.py",
+          "func": "build_state",
+          "old": "**old,",
+          "new": "# mutant drops unknown metadata"
+        },
+        {
+          "file": "wsflow/wfinit.py",
+          "func": "write_state",
+          "old": "value = {**current, **value}",
+          "new": "value = dict(value)"
+        },
+        {
+          "file": "wsflow/wfinit.py",
+          "func": "write_state",
+          "old": "('roots', 'watermark', 'last_success', 'last_batch')",
+          "new": "('roots', 'watermark', 'last_success')"
+        }
+      ]
+    },
+    {
+      "id": "I730",
+      "name": "no remote fetch claimed successful",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_fetch_without_remote_is_not_a_successful_network_observation"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/gitops.py",
+          "func": "_fetch",
+          "old": "{'ok': False, 'reason': 'no_remote'",
+          "new": "{'ok': True, 'reason': 'no_remote'"
+        }
+      ]
+    },
+    {
+      "id": "I731",
+      "name": "unreadable later receipt reuses current success badge",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_unreadable_later_receipt_never_reuses_current_success_badge"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "overview",
+          "old": "and records['complete'] and not batch['warnings']",
+          "new": "and records['complete']"
+        }
+      ]
+    },
+    {
+      "id": "I732",
+      "name": "malformed legacy state hides whole context dashboard",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_malformed_legacy_state_never_hides_other_dashboard_projects"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "overview",
+          "old": "except (OSError, ValueError, KeyError, TypeError, AttributeError):",
+          "new": "except (OSError, ValueError, KeyError, TypeError):"
+        }
+      ]
+    },
+    {
+      "id": "I733",
+      "name": "duplicate search rows are silently committed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_duplicate_search_rows_are_incomplete_unique_and_never_commit"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "search",
+          "old": "if item['key'] in issue_keys:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I734",
+      "name": "invalid terminal marker types accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_terminal_marker_types_and_contradictions_are_rejected_but_token_absence_is_supported"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "search",
+          "old": "if 'isLast' in data and type(data['isLast']) is not bool:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I735",
+      "name": "missing parent is silently classified as unlisted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_malformed_classification_fields_preserve_watermark_and_null_parent_is_explicit"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "fields_complete",
+          "old": "if 'parent' not in f or (f['parent'] is not None and (not isinstance(f['parent'], dict) or not f['parent'].get('key'))):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I736",
+      "name": "other CSC prefixes lose epic sequence",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_foreign_csc_prefixes_share_the_epic_sequence"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/writeplans.py",
+          "func": "_unprefix",
+          "old": "text = re.sub(r'^(?:\\[[^\\]\\r\\n]+\\]\\s*)+', '', text)",
+          "new": "text = text"
+        }
+      ]
+    },
+    {
+      "id": "I737",
+      "name": "unrecognized existing numbers silently ignored",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_unrecognized_existing_sequence_format_is_an_explicit_support_error"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/writeplans.py",
+          "func": "_unprefix",
+          "old": "if re.search(r'--\\d+--', text) and wfhome.JF.task_seq(text) is None:",
+          "new": "if False:"
+        },
+        {
+          "file": "wsflow/writeplans.py",
+          "func": "_unprefix",
+          "old": "if re.match(r'^--\\d{4,}--', text):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I738",
+      "name": "malformed receipt schema not checked",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_corrupt_receipt_shapes_warn_without_hiding_committed_watermark"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "status",
+          "old": "if (not isinstance(item, dict) or not isinstance(item.get('run_id'), str)\n                    or not isinstance(item.get('created_at'), str)\n                    or item.get('status') not in ('executing', 'failed', 'succeeded')):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I739",
+      "name": "requested assignee field removed",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_visibility_requires_assignee_in_the_requested_response_fields"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": null,
+          "old": "\"comment\", \"assignee\", \"project\"",
+          "new": "\"comment\", \"project\""
+        }
+      ]
+    },
+    {
+      "id": "I740",
+      "name": "non Epic parent accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_non_epic_missing_type_and_wrong_parent_key_never_issue_a_creation_context"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "creation_context",
+          "old": "if epic.get('key') != epic_key or type(epic.get('fields', {}).get('issuetype', {}).get('hierarchyLevel')) is not int or (epic.get('fields', {}).get('issuetype', {}).get('hierarchyLevel') != 1):",
+          "new": "if epic.get('key') != epic_key:"
+        }
+      ]
+    },
+    {
+      "id": "I741",
+      "name": "no CSC loses epic outer query boundary",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_no_csc_uses_explicit_epic_outer_scope_and_no_title_jql"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "build_queries",
+          "old": "elif state.get('epic_keys'):",
+          "new": "elif False:"
+        }
+      ]
+    },
+    {
+      "id": "I742",
+      "name": "unsupported business year accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_unsupported_business_year_and_vendor_timeout_keep_watermark"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "run",
+          "old": "if not 2000 <= captured.year <= 2099:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "I743",
+      "name": "vendor CLI loses timeout",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_status_and_pipeline_subprocesses_do_not_inherit_server_input"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/workflow.py",
+          "func": "_command",
+          "old": ", timeout=60)",
+          "new": ")"
+        }
+      ]
+    },
+    {
+      "id": "I744",
+      "name": "another assignee is considered personally visible",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_visibility_requires_assignee_in_the_requested_response_fields"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "visibility",
+          "old": "visible = assigned and any",
+          "new": "visible = any"
+        }
+      ]
+    },
+    {
+      "id": "I745",
+      "name": "contradictory last page token accepted",
+      "test": [
+        "python",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_terminal_marker_types_and_contradictions_are_rejected_but_token_absence_is_supported"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/jiraapi.py",
+          "func": "search",
+          "old": "if data.get('isLast') is True and data.get('nextPageToken'):",
+          "new": "if False:"
+        }
+      ]
+    }
+  ]
+}

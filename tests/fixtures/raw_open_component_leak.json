@@ -1,0 +1,103 @@
+{
+ "issues": [
+  {
+   "key": "XXX-188",
+   "fields": {
+    "summary": "[01] 캘리브레이션 절차 문서화",
+    "status": {
+     "name": "To Do",
+     "statusCategory": {
+      "key": "new"
+     }
+    },
+    "issuetype": {
+     "name": "Task",
+     "subtask": false
+    },
+    "updated": "2026-08-14T11:00:00+0900",
+    "priority": {
+     "name": "Medium"
+    },
+    "labels": [],
+    "parent": {
+     "key": "XXX-180",
+     "fields": {
+      "summary": "센서 캘리브레이션"
+     }
+    },
+    "components": [
+     {
+      "id": "1",
+      "name": "CSC-2 통신처리"
+     }
+    ]
+   }
+  },
+  {
+   "key": "XXX-201",
+   "fields": {
+    "summary": "[01] 링크 프레임 파서",
+    "status": {
+     "name": "To Do",
+     "statusCategory": {
+      "key": "new"
+     }
+    },
+    "issuetype": {
+     "name": "Task",
+     "subtask": false
+    },
+    "updated": "2026-08-14T11:00:00+0900",
+    "priority": {
+     "name": "Medium"
+    },
+    "labels": [],
+    "parent": {
+     "key": "XXX-181",
+     "fields": {
+      "summary": "데이터 링크"
+     }
+    },
+    "components": [
+     {
+      "id": "1",
+      "name": "CSC-2 통신처리"
+     }
+    ]
+   }
+  },
+  {
+   "key": "XXX-250",
+   "fields": {
+    "summary": "[03] 자세 추정 보정",
+    "status": {
+     "name": "To Do",
+     "statusCategory": {
+      "key": "new"
+     }
+    },
+    "issuetype": {
+     "name": "Task",
+     "subtask": false
+    },
+    "updated": "2026-08-14T11:00:00+0900",
+    "priority": {
+     "name": "Medium"
+    },
+    "labels": [],
+    "parent": {
+     "key": "XXX-190",
+     "fields": {
+      "summary": "항법 필터"
+     }
+    },
+    "components": [
+     {
+      "id": "1",
+      "name": "CSC-3 항법"
+     }
+    ]
+   }
+  }
+ ]
+}

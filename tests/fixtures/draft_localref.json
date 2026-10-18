@@ -1,0 +1,16 @@
+{
+ "new_roots": [
+  {
+   "ref": "N-1",
+   "summary": "로컬참조형",
+   "description": "랙 배치도를 갱신했다.\n근거: logs/x.json\naggregate.py의 in_scope도 함께 고쳤다."
+  }
+ ],
+ "comments": [
+  {
+   "jira_key": "XXX-142",
+   "body": "위 문서 3절에 정리해 두었다."
+  }
+ ],
+ "children": []
+}

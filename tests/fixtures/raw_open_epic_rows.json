@@ -1,0 +1,91 @@
+{
+ "issues": [
+  {
+   "key": "XXX-180",
+   "fields": {
+    "summary": "[AAA] 센서 캘리브레이션",
+    "status": {
+     "name": "To Do",
+     "statusCategory": {
+      "key": "new"
+     }
+    },
+    "issuetype": {
+     "name": "에픽",
+     "subtask": false,
+     "hierarchyLevel": 1
+    },
+    "updated": "2026-09-03T11:00:00+0900",
+    "priority": {
+     "name": "Medium"
+    },
+    "labels": [],
+    "customfield_10999": {
+     "self": "https://x/customFieldOption/10055",
+     "value": "[AAA] CSC-2 통신처리",
+     "id": "10055"
+    }
+   }
+  },
+  {
+   "key": "XXX-188",
+   "fields": {
+    "summary": "--001-- 캘리브레이션 절차 문서화",
+    "status": {
+     "name": "To Do",
+     "statusCategory": {
+      "key": "new"
+     }
+    },
+    "issuetype": {
+     "name": "작업",
+     "subtask": false,
+     "hierarchyLevel": 0
+    },
+    "updated": "2026-09-03T11:00:00+0900",
+    "priority": {
+     "name": "Medium"
+    },
+    "labels": [],
+    "parent": {
+     "key": "XXX-180",
+     "fields": {
+      "summary": "[AAA] 센서 캘리브레이션"
+     }
+    },
+    "customfield_10999": {
+     "self": "https://x/customFieldOption/10055",
+     "value": "[AAA] CSC-2 통신처리",
+     "id": "10055"
+    }
+   }
+  },
+  {
+   "key": "XXX-181",
+   "fields": {
+    "summary": "[AAA] 데이터 링크",
+    "status": {
+     "name": "To Do",
+     "statusCategory": {
+      "key": "new"
+     }
+    },
+    "issuetype": {
+     "name": "에픽",
+     "subtask": false,
+     "hierarchyLevel": 1
+    },
+    "updated": "2026-09-03T11:00:00+0900",
+    "priority": {
+     "name": "Medium"
+    },
+    "labels": [],
+    "customfield_10999": {
+     "self": "https://x/customFieldOption/10055",
+     "value": "[AAA] CSC-2 통신처리",
+     "id": "10055"
+    }
+   }
+  }
+ ]
+}

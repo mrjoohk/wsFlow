@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+projects.json
+projects.json.tmp
+logs/test_evidence/
+logs/graph_checks_last.json
+
+# 업무 데이터는 소스가 아니다 (PROJECT_RULES §7). jiraWF/.gitignore 승계.
+.workflow/
+daily/
+weekly/
+state.json
+jira_project_key_id.txt
+credentials.json

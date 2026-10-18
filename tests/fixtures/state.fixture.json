@@ -1,0 +1,50 @@
+{
+ "schema_version": 4,
+ "watermark": "2026-08-13T13:00:00+09:00",
+ "project_key": "XXX",
+ "issue_type_map": {
+  "project_style": "team-managed",
+  "subtask_type": "Subtask",
+  "bug_marker": "label:bug"
+ },
+ "roots": {
+  "R-001": {
+   "jira_key": "XXX-142",
+   "epic": "XXX-100",
+   "epic_name": "항법 알고리즘 개선",
+   "first_seen": "2026-08-10",
+   "last_seen": "2026-08-13",
+   "children": [
+    {
+     "local_id": "R-001.1",
+     "jira_key": "XXX-155",
+     "kind": "bug",
+     "summary": "좌표 변환 단위 오류",
+     "approved_at": "2026-08-13T18:00:00+09:00"
+    },
+    {
+     "local_id": "R-001.2",
+     "jira_key": null,
+     "kind": "task",
+     "summary": "회귀 시험 추가"
+    }
+   ],
+   "origin": "jira"
+  },
+  "R-002": {
+   "jira_key": "XXX-188",
+   "epic": "XXX-180",
+   "epic_name": "센서 캘리브레이션",
+   "first_seen": "2026-08-04",
+   "last_seen": "2026-08-13",
+   "children": [],
+   "origin": "jira"
+  }
+ },
+ "csc_field": null,
+ "csc_value": null,
+ "epic_keys": [],
+ "title_include": [],
+ "title_exclude": [],
+ "title_prefix": null
+}

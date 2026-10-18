@@ -1,0 +1,55 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "node",
+    "tests/i5_browser.cjs"
+  ],
+  "timeout": 180,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "WSFLOW_BROWSER_OUTPUT": "{tmp}/browser-output"
+  },
+  "mutants": [
+    {
+      "id": "UI51",
+      "name": "selection invalidation disabled",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "const invalidate = () => { generation++; plan=null; $(\"#ctxApply\").disabled=true;",
+          "new": "const invalidate = () => {"
+        }
+      ]
+    },
+    {
+      "id": "UI52",
+      "name": "late plan re-enables stale selection",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if(captured!==generation || !dlg.open)return;",
+          "new": "if(!dlg.open)return;"
+        }
+      ]
+    },
+    {
+      "id": "UI53",
+      "name": "same approval recovery removed",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "$(\"#ctxRetry\").onclick=apply;",
+          "new": "$(\"#ctxRetry\").onclick=()=>{};"
+        }
+      ]
+    }
+  ]
+}

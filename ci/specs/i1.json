@@ -1,0 +1,222 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_i1.py"
+  ],
+  "timeout": 180,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "F015",
+      "name": "drop hidden task original",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if (!Object.prototype.hasOwnProperty.call(edits, key)) lines.push(line);",
+          "new": "if (!Object.prototype.hasOwnProperty.call(edits, key)) lines.push('');"
+        }
+      ],
+      "test": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_ui.py"
+      ]
+    },
+    {
+      "id": "F016A",
+      "name": "omit document day and home",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "const key = JSON.stringify([id, home, ymd]);",
+          "new": "const key = JSON.stringify([id]);"
+        }
+      ],
+      "test": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_ui.py"
+      ]
+    },
+    {
+      "id": "F016B",
+      "name": "accept late and foreign day responses",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if (ticket !== J.requestRevision || memo.ymd !== J.ymd ||",
+          "new": "if (false ||"
+        }
+      ],
+      "test": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_ui.py"
+      ]
+    },
+    {
+      "id": "F017A",
+      "name": "disable memo optimistic concurrency",
+      "edits": [
+        {
+          "file": "wsflow/wfhome.py",
+          "old": "if expected_sha != cur:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "F017B",
+      "name": "ignore external file edits",
+      "edits": [
+        {
+          "file": "wsflow/wfhome.py",
+          "old": "if p.read_bytes() != original:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "F018",
+      "name": "allow second process claim",
+      "edits": [
+        {
+          "file": "wsflow/operations.py",
+          "old": "WHERE id=? AND status='approved'\", (ident,)).rowcount",
+          "new": "WHERE id=? AND status IN ('approved','executing')\", (ident,)).rowcount"
+        }
+      ]
+    },
+    {
+      "id": "F019A",
+      "name": "classify lost reply as safely failed",
+      "edits": [
+        {
+          "file": "wsflow/jirawrite.py",
+          "old": "status = 'failed' if known_rejection else 'uncertain'",
+          "new": "status = 'failed'"
+        }
+      ]
+    },
+    {
+      "id": "F019B",
+      "name": "confirm identical content from unrelated operation",
+      "edits": [
+        {
+          "file": "wsflow/jirawrite.py",
+          "old": "if receipt.get('value') != remote_receipt(op):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "F020",
+      "name": "use payload hash as new approval ID",
+      "edits": [
+        {
+          "file": "wsflow/operations.py",
+          "old": "ident = ident or 'A-' + uuid4().hex",
+          "new": "ident = ident or 'A-' + digest(intent)"
+        }
+      ]
+    },
+    {
+      "id": "F021A",
+      "name": "ignore source and policy version",
+      "edits": [
+        {
+          "file": "wsflow/writeplans.py",
+          "old": "if plan['state_hash'] != state_hash(home) or plan['policy_hash'] != policy_hash():",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "F021B",
+      "name": "ignore expired plans",
+      "edits": [
+        {
+          "file": "wsflow/writeplans.py",
+          "old": "if time.time() > plan['expires_at']:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "F022",
+      "name": "allow unsupported business schema",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "old": "if (m != 'GET' or rest == ['jira', 'memo']) and state.get('schema_version') != wfhome.SCHEMA_VERSION:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "F023",
+      "name": "omit approval timestamp in created local receipt",
+      "edits": [
+        {
+          "file": "wsflow/newtask.py",
+          "old": "receipt = {'approved_at': approved_at, 'approval_id': operation_id,",
+          "new": "receipt = {'approved_at': None, 'approval_id': operation_id,"
+        }
+      ]
+    },
+    {
+      "id": "DB_SCHEMA",
+      "name": "accept unknown operation DB schema",
+      "edits": [
+        {
+          "file": "wsflow/operations.py",
+          "old": "if version not in (0, 1) or (version == 0 and db.execute(\"SELECT count(*) FROM sqlite_master WHERE type='table'\").fetchone()[0]):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "F021C",
+      "name": "reuse recovery site read before lock",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "old": "with fileio.locked(home):\n                    state = wfhome.read_state(home)\n                    if state.get('schema_version') != wfhome.SCHEMA_VERSION:",
+          "new": "with fileio.locked(home):\n                    if state.get('schema_version') != wfhome.SCHEMA_VERSION:"
+        }
+      ]
+    }
+  ]
+}
