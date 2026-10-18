@@ -24,8 +24,8 @@
       "edits": [
         {
           "file": "static/index.html",
-          "old": "if(!await guardUnsaved(p))return;",
-          "new": "if(false)return;"
+          "old": "if(!await guardUnsaved(p))return;\n    if(!box.isConnected)return;",
+          "new": "if(false)return;\n    if(!box.isConnected)return;"
         }
       ]
     },
