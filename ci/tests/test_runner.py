@@ -143,7 +143,8 @@ class EvidenceTests(unittest.TestCase):
 
     def test_credentials_are_removed_from_child_environment(self):
         with mock.patch.dict(os.environ, {'JIRA_API_TOKEN': 'synthetic-only', 'GOOGLE_SECRET': 'synthetic-only',
-                                         'GITHUB_TOKEN': 'synthetic-only', 'PYTHONPATH': 'synthetic-only'}), \
+                                         'GITHUB_TOKEN': 'synthetic-only', 'PYTHONPATH': 'synthetic-only',
+                                         'TMPDIR': str(self.root / '..' / self.root.name)}), \
              mock.patch.object(runner.tempfile, 'gettempdir', return_value=str(self.root / '..' / self.root.name)):
             output = self.base / 'environment';output.mkdir()
             env = runner.clean_env(output, self.base / 'logs')

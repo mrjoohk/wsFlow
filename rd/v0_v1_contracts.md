@@ -36,4 +36,4 @@ CI 검증 브랜치의 push는 정상 회귀2개와 의도한 실패 게이트3�
 
 명령 제한·중단은 taskkill의 해당 PID tree와 직접 Popen handle fallback을 사용한다. Windows 제한 호스트가 tree 정리를 거부한 관측과 프로세스 관리가 허용된 로컬/hosted 실행을 구분한다. 임의 외부 프로세스·Windows 모든 보안 경계의 손자 프로세스 정리를 보장하지 않는다. 실패·artifact 복사 오류는 result.json에 남긴다.
 
-V1의 Windows 시험 임시 디렉터리는 실제 NTFS의 canonical full path를 사용한다. hosted 기본 TEMP의 RUNNER~1 별칭에서 기존415시험 중 경로 문자열/Reader 경계5건이 실패한 결과는 보존한다. child TEMP/TMP를 `Path(tempfile.gettempdir()).resolve()`로 명시하고 원본 시험을 전부 다시 실행한다. 제품 Reader가 별칭 경계를 직접 입력받을 때 정상 파일을 차단하는 범위는 별도 미해결 한계이며 이를 고쳤다고 주장하지 않는다. 등록 경로를 실경로로 처리하는 표준 경로와 alias 입력 전체 수용을 구분한다.
+V1의 Windows 시험 임시 디렉터리는 실제 NTFS의 canonical full path를 사용한다. hosted 기본 TEMP의 RUNNER~1 별칭에서 기존415시험 중 경로 문자열/Reader 경계5건이 실패한 결과는 보존한다. child TEMP/TMP/TMPDIR를 `Path(tempfile.gettempdir()).resolve()`로 명시하고 원본 시험을 전부 다시 실행한다. 제품 Reader가 별칭 경계를 직접 입력받을 때 정상 파일을 차단하는 범위는 별도 미해결 한계이며 이를 고쳤다고 주장하지 않는다. 등록 경로를 실경로로 처리하는 표준 경로와 alias 입력 전체 수용을 구분한다.

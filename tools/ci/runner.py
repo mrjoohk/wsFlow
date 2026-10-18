@@ -188,7 +188,7 @@ def clean_env(out, logdir):
                GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=str(config), GIT_TERMINAL_PROMPT='0',
                APPDATA=str(profile / 'AppData'), LOCALAPPDATA=str(profile / 'Local'),
                XDG_CONFIG_HOME=str(profile / 'config'), WSFLOW_DATA_DIR=str(profile / 'userdata'),
-               TEMP=temporary, TMP=temporary,
+               TEMP=temporary, TMP=temporary, TMPDIR=temporary,
                WSFLOW_RUN_EVIDENCE_DIR=str(logdir / 'unit'), WSFLOW_TEST_EVIDENCE_DIR=str(logdir / 'details'))
     env['PATH'] = str(Path(sys.executable).parent) + os.pathsep + env.get('PATH', '')
     return env

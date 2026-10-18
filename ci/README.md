@@ -14,4 +14,4 @@ The verification branch push produces two expected **successful** regression job
 
 These are synthetic Jira/Google tests and real local Git fixtures. Actual external accounts and tool recognition require V2 onward. Git preserves the explicit legacy command paths and ff-only safety; common immutable plan/operation UUID/reconciliation for Git remains F-032.
 
-Windows acceptance uses canonical full-path NTFS temporary directories. The runner expands TEMP/TMP for child processes and records the result. The original application tests remain unchanged. Direct short-alias input to the read model has a known fail-closed limitation; passing this profile does not qualify all Windows path aliases.
+Windows acceptance uses canonical full-path NTFS temporary directories. The runner expands TEMP/TMP/TMPDIR for child processes and records the result. The original application tests remain unchanged. Direct short-alias input to the read model has a known fail-closed limitation; passing this profile does not qualify all Windows path aliases.
