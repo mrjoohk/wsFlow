@@ -12,6 +12,7 @@ import platform
 import shutil
 import signal
 import site
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -275,7 +276,10 @@ def run(root, out, expected_python, step, jobs):
         if platform.python_version() != expected_python or sys.prefix == sys.base_prefix or site.ENABLE_USER_SITE:
             raise ValueError('expected isolated Python runtime not active')
         result['environment'] = {'executable': sys.executable, 'prefix': sys.prefix, 'base_prefix': sys.base_prefix,
-                                 'user_site': site.ENABLE_USER_SITE}
+                                 'user_site': site.ENABLE_USER_SITE, 'sqlite': sqlite3.sqlite_version,
+                                 'host_timezone': list(time.tzname), 'image_os': os.environ.get('ImageOS'),
+                                 'image_version': os.environ.get('ImageVersion'),
+                                 'ci_run_id': os.environ.get('GITHUB_RUN_ID'), 'ci_sha': os.environ.get('GITHUB_SHA')}
         env = clean_env(out, logs)
         node = command(['node', '--version'], root, out / 'node_version.log', env, 30)
         result['steps'].append(node); accepted(node)

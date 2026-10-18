@@ -2,11 +2,13 @@
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 import zipfile
@@ -148,8 +150,12 @@ class EvidenceTests(unittest.TestCase):
 
     def test_owned_child_timeout_and_interrupt_are_cleaned(self):
         # Child is finite even if the watchdog regresses; the outer test process also has a CI deadline.
-        r = runner.command([sys.executable, '-c', 'import time;time.sleep(1.5)'], self.root, self.base / 'timeout.log', timeout=.05)
+        # Use the real base interpreter to test the owned Popen handle, independently of a venv redirector.
+        executable = getattr(sys, '_base_executable', sys.executable)
+        with mock.patch.object(runner.subprocess, 'run', side_effect=OSError('controlled taskkill denial')):
+            r = runner.command([executable, '-c', 'import time;time.sleep(4)'], self.root, self.base / 'timeout.log', timeout=.05)
         self.assertEqual(r['exit_code'], 124)
+        self.assertLess(r['seconds'], 3)
         real = subprocess.Popen
         children = []
         def launch(*args, **kwargs):
@@ -162,10 +168,19 @@ class EvidenceTests(unittest.TestCase):
                 raise KeyboardInterrupt()
             child.wait = interrupted
             return child
-        with mock.patch.object(runner.subprocess, 'Popen', side_effect=launch):
+        start = time.monotonic()
+        with mock.patch.object(runner.subprocess, 'Popen', side_effect=launch), \
+             mock.patch.object(runner.subprocess, 'run', side_effect=OSError('controlled taskkill denial')):
             with self.assertRaises(KeyboardInterrupt):
-                runner.command([sys.executable, '-c', 'import time;time.sleep(10)'], self.root, self.base / 'interrupt.log')
+                runner.command([executable, '-c', 'import time;time.sleep(4)'], self.root, self.base / 'interrupt.log')
+        self.assertLess(time.monotonic() - start, 3)
         self.assertIsNotNone(children[0].poll())
+
+    def test_pinned_python_dependency_hash_is_complete(self):
+        line = (SOURCE / 'ci/python-requirements.txt').read_text(encoding='utf-8').strip()
+        package, digest = line.split(' --hash=sha256:')
+        self.assertEqual(package, 'tzdata==2025.3')
+        self.assertIsNotNone(re.fullmatch('[0-9a-f]{64}', digest))
 
     def test_run_evidence_contracts_reject_bad_results(self):
         baseline = runner.read(self.root / 'ci/browser-baseline.json')
