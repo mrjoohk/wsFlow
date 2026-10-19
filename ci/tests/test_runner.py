@@ -260,6 +260,7 @@ class EvidenceTests(unittest.TestCase):
         runner.save(specfile,{'copy':['subject.py','test_subject.py'],
             'test':[sys.executable,'-m','unittest','discover'],
             'mutants':[{'id':'one','name':'one','edits':[{'file':'subject.py','old':'VALUE = False','new':'VALUE = True'}]}]})
+        runner.save(self.root/'ci/selection.json',{'specs':[{'stage':'v2_fixes','spec':'ci/spec.json','count':1}]})
         (self.root/runner.MANIFEST).unlink();runner.seal(self.root);out=self.base/('isolation-'+fault)
         original=runner.command;normal_folders=[];original_read=runner.read
         def read_with_race(path):
@@ -294,8 +295,11 @@ class EvidenceTests(unittest.TestCase):
              mock.patch.object(runner,'gates',return_value={}), \
              mock.patch.object(runner.sys,'prefix','controlled-venv'), \
              mock.patch.object(runner.site,'ENABLE_USER_SITE',False):
-            result=runner.run(self.root,out,runner.platform.python_version(),'all',1)
+            result=runner.run(self.root,out,runner.platform.python_version(),'all',4)
         self.assertEqual(result['status'],'PASS' if fault=='normal' else 'FAIL',result)
+        mutation=runner.read(out/'v2_fixes.json')
+        self.assertEqual(mutation['meta']['runs'][0]['jobs'],2)
+        self.assertEqual(mutation['results']['one']['timeout'],120)
         self.assertEqual(runner.read(out/'artifacts/unit/unit_evidence.json')['ok'],True)
         self.assertEqual(runner.read(out/'artifacts/details/owner.json'),{'owner':'unit'})
         if fault!='normal':self.assertIn('changed after stage',result['error'])

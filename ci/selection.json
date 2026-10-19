@@ -134,7 +134,7 @@
     },
     {
       "changes": "F065 acknowledged transport and F074 output/snapshot guards; previous242 retained",
-      "count": 19,
+      "count": 21,
       "source": "rd/ci_fixture_reliability_contracts.md",
       "spec": "ci/specs/fixture_reliability.json",
       "stage": "fixture_reliability"

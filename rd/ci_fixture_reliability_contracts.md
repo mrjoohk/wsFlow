@@ -17,3 +17,11 @@ F-065의 Windows 공유 파일 rename EPERM 메커니즘은 기존 탐침과 구
 F-074는 실제 mutation_runner 자식이 상속 경로로 쓰는 통제 입력으로 재현한다. 출력 변수 제거·단계 사본·복사 시점/후행 변경 탐지를 되돌리는 음성 대조를 추가한다. 정규 82개 화면 사례와 추가 5개 migration UI, 기존 242개 변이를 유지하며 신규 하네스 변이는 별도 집계한다. source fingerprint/commit/job/artifact SHA와 원 I7 17사례·화면/5 backend hash를 직접 대조한다. 실계정·실제 CLI 수용과 V2 미확보 표본은 이번 통과 범위 밖이다.
 
 실행 결과 정본: `logs/test_evidence/261019_P027/validation.json`(완료 시 생성). 보존 기준은 같은 폴더 `baseline.json`이다. 원 P-026의 실패 기록과 로그 복구 자료는 수정하지 않는다.
+
+## 후속 실제 CI 자원 예산 보강 — F-081
+
+source3의 실제 CI Python3.10에서 기존 V2 변이32개 중 M03/M04가 60초에서 종료되어 전체 job이 실패했다. 정상 baseline은13.1초였고 검출된 다른 전체-suite 변이 중 가장 긴 관측은53.8초였다. 이것을 killed나 제품 실패로 바꾸지 않는다. 원 source·결과·ZIP은 `ci_failed_final3_reference.json`에 연결하여 보존한다.
+
+기존 변이 명세/시험/제품 bytes와32개 ID를 유지한다. 이미 제공되는 CLI --jobs/--timeout을 재사용하는 최소 후보로 V2 묶음만 최대2개 동시 실행과 변이당120초의 유한 예산을 적용한다. 관측된 성공 tail의1.5배보다 여유를 두고 같은 IO-heavy suite의 경쟁을 줄인다. 성능 SLA나 임의 hang 허용이 아니다. timeout은 여전히 엄격 실패이며 killed만 수용한다. 다른 묶음의 정책은 유지한다.
+
+실제 nested mutation_runner의 runs.jobs와 결과.timeout을 시험하여 설정 전달을 확인하고, 각각의 정책을 제거하는 CF20/CF21을 별도로 검출한다. 최종 source4에서 전체 CI를 다시 실행한다. 이전 source3 Python3.14 성공과 Python3.10 실패를 보존하고 최종 수용에 섞지 않는다.

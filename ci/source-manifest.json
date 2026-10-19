@@ -1,6 +1,6 @@
 {
   "basis": "P-025 F044/F045; previous source manifest retained in P025 baseline and P023/P024 freezes",
-  "created_at": "2026-10-19T04:14:11.147139+00:00",
+  "created_at": "2026-10-19T05:02:18.535402+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "7288e61340b534be3b88331a77897007b0572d5b77621d2c07d44dd9a54376c1",
@@ -39,12 +39,12 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "cee56b43b8b5b27ebdcfa22008a9c48a124a362459bacf736504e197ec5ff2a1",
-      "sha256": "cee56b43b8b5b27ebdcfa22008a9c48a124a362459bacf736504e197ec5ff2a1"
+      "raw_sha256": "1712689a4478b7e5315ab73d886af492b7f32bf898a38166cc96a6f230528201",
+      "sha256": "7425ab1c013b129b9996e1394cf3faf744a3f8d42f97dcc51876ced06fd5626a"
     },
     "ci/specs/fixture_reliability.json": {
-      "raw_sha256": "a5f6df4d30ad51fd97891a7c7e9a65a57e42af66265d25a0051e85c624abf080",
-      "sha256": "a5f6df4d30ad51fd97891a7c7e9a65a57e42af66265d25a0051e85c624abf080"
+      "raw_sha256": "f10174d3fb657b0374b88369e1d0e6617a5a759afa7b3b1939f586880e341d20",
+      "sha256": "eca20293aa4a34cde4bead1db3dcb6af2b6f35e88b6fe175bf5d52037e58dd40"
     },
     "ci/specs/i0.json": {
       "raw_sha256": "450bdd54f4fe74a1a5f061f9d171ffef2b9ea0b94456afdb5358cf9a7e5a9706",
@@ -111,8 +111,8 @@
       "sha256": "35f514e2ab3662a77b784aef399b713fad84d1189cb3ed22c6af75599e08c291"
     },
     "ci/tests/test_runner.py": {
-      "raw_sha256": "51925181e0d82d21f8a01fec87a496566219474fe0ca94616457e571f5790680",
-      "sha256": "51925181e0d82d21f8a01fec87a496566219474fe0ca94616457e571f5790680"
+      "raw_sha256": "156019c63746322b8db168159dc4bd100c09fc9adc33d9e8e70e093e68b01621",
+      "sha256": "156019c63746322b8db168159dc4bd100c09fc9adc33d9e8e70e093e68b01621"
     },
     "run.cmd": {
       "raw_sha256": "7da31dfd7dcfb8df3c0c70fb7381337bff4f0d4d081ec1ee4b5366f38e0534a1",
@@ -383,8 +383,8 @@
       "sha256": "b616676e32222cca2232bf7609245b3736bf99e9c9cbe6e338783ce2f6ee5a90"
     },
     "tools/ci/runner.py": {
-      "raw_sha256": "4f04de72f691baac2cd27ccb8a34b0c900d8056c46b137b273d47830cc4b58b6",
-      "sha256": "4f04de72f691baac2cd27ccb8a34b0c900d8056c46b137b273d47830cc4b58b6"
+      "raw_sha256": "3041710ffa7aeedd3ba73df7b1b45956dc4b3345fc615dbf2e755d83013b58d2",
+      "sha256": "3041710ffa7aeedd3ba73df7b1b45956dc4b3345fc615dbf2e755d83013b58d2"
     },
     "tools/graph_checks.py": {
       "raw_sha256": "e5bc369c4542bbe999fd0a00f7b9ecb93b70546303b418db3d82ecdf36414cb7",
@@ -563,7 +563,7 @@
       "sha256": "89ed42ca6e653571eb02ba3e9e93e51a6993442bd43b010a0b3d753d4a310164"
     }
   },
-  "fingerprint": "769ac808917063b772cec3953993bc7ebc6787c2ce7c4f559ade0efe85777327",
+  "fingerprint": "e5d6503fb90bc4b93ada312d3655068f34d65d31ddd3cc039fa5bbf07006535b",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }

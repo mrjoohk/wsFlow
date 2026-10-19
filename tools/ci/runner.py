@@ -365,7 +365,9 @@ def run(root, out, expected_python, step, jobs):
             for item in selection['specs']:
                 name = item['stage'];target = out / (name + '.json')
                 args = [sys.executable, '-X', 'utf8', 'tools/ci/mutation_runner.py', item['spec'],
-                        '--jobs', str(min(jobs, 2) if name.endswith('_ui') else jobs), '--out', str(target), '--strict']
+                        '--jobs', str(min(jobs, 2) if name.endswith('_ui') or name == 'v2_fixes' else jobs), '--out', str(target), '--strict']
+                if name == 'v2_fixes':
+                    args += ['--timeout', '120']
                 r = command(args, root, out / (name + '.log'), mutation_env, 3600)
                 result['steps'].append(r);accepted(r)
                 d = read(target)

@@ -232,6 +232,28 @@
         "node",
         "tests/i4_browser.cjs"
       ]
+    },
+    {
+      "id": "CF20_v2_concurrency",
+      "name": "CF20_v2_concurrency",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "name.endswith('_ui') or name == 'v2_fixes'",
+          "new": "name.endswith('_ui')"
+        }
+      ]
+    },
+    {
+      "id": "CF21_v2_budget",
+      "name": "CF21_v2_budget",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "args += ['--timeout', '120']",
+          "new": "pass  # budget override lost"
+        }
+      ]
     }
   ],
   "test": [
