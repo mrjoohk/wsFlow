@@ -1,6 +1,6 @@
 {
   "basis": "P-025 F044/F045; previous source manifest retained in P025 baseline and P023/P024 freezes",
-  "created_at": "2026-10-19T04:12:19.156911+00:00",
+  "created_at": "2026-10-19T04:14:11.147139+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "7288e61340b534be3b88331a77897007b0572d5b77621d2c07d44dd9a54376c1",
@@ -247,8 +247,8 @@
       "sha256": "3c5cb2ed82eac08cbab3224153094507d34df0396267ba5b0165f7ebe07a0ce0"
     },
     "tests/i4_fixture_checks.cjs": {
-      "raw_sha256": "e3727eb276e4307201e18af1dba79f8d61c5d32abb117f46bdeb6f2e8f1669df",
-      "sha256": "e3727eb276e4307201e18af1dba79f8d61c5d32abb117f46bdeb6f2e8f1669df"
+      "raw_sha256": "ab7ea418c9912c5ba2e8c26c1d5aead05896889947591de496817ec5264ca817",
+      "sha256": "ab7ea418c9912c5ba2e8c26c1d5aead05896889947591de496817ec5264ca817"
     },
     "tests/i4_fixture_client.cjs": {
       "raw_sha256": "ea820f6ebd03cfa42a96ff1f1ed0a083ba9ce93730341e6a9ba4e3546f55a1a6",
@@ -563,7 +563,7 @@
       "sha256": "89ed42ca6e653571eb02ba3e9e93e51a6993442bd43b010a0b3d753d4a310164"
     }
   },
-  "fingerprint": "1271a72824ab8fdf4d63d5d065feedbc61559be0d06cd76486349d5b522c5457",
+  "fingerprint": "769ac808917063b772cec3953993bc7ebc6787c2ce7c4f559ade0efe85777327",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }
