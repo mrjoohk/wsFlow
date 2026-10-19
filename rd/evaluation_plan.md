@@ -1,5 +1,7 @@
 # I0~I7 이후 검증·실사용 수용 계획 v3 — P-022
 
+> 최신 결과 P-026 (2026-10-19): V0/V1 9 PASS, V2 2 PASS/4 PARTIAL, 전체46개 11 PASS/4 PARTIAL/31 NOT_RUN. [output_docs/261019_0040_v2_ci_requalification_report.md](../output_docs/261019_0040_v2_ci_requalification_report.md)와 문서 말미 P-026 overlay를 따른다. 아래 이전 날짜의 현재성·수치는 해당 실행 시점의 보존 이력이다.
+
 ## Metadata
 
 - Source: `rd/wsflow_integrated_design.md`, `rd/wsflow_verification_plan.md`, I0~I7 계약, `logs/test_evidence/261018_P022/analysis_facts.json`.
@@ -219,3 +221,28 @@ F044: unknown/None/roots/watermark/last_batch값과 byte backup, client조작/TT
 전체Python432(F0/E0/skip1), browser82+5, CI자체15, 최종선택변이79(기존I7 45/신규32/UI2)와baseline/source/spec/runner hash를대조한다. 초기실패·생존·패턴오류는모두보존하며잘못된setup을killed로집계하지않는다. 최종R03패턴한정은제품/시험무변경bridge와새동결변이실행으로검증한다. 기존CI선택208전체나실제CI를이번에실행했다는주장은하지않는다.
 
 남은수용: 새 epoch JQL의공급자해석·실계정동일키/페이지/UTC경계·DST계정표본, 독립변경시각이있는색인지연, 실제원본전환, 새source CI. V2다사이트/CSC양성/완료Epic/parent:null 및F046/047조건은유지한다. 미관측은UNKNOWN/NOT_RUN으로남기고P024의11/46을새소스수용률로재사용하지않는다.
+
+## P-026 최신 재수용 overlay·다음 실행 게이트
+
+현재 결과는 `output_docs/261019_0040_v2_ci_requalification_report.md`, `logs/test_evidence/261018_P026/validation.json`·`acceptance_scenarios.json`·`requirements_status.json`이다. 원46시나리오/31요구와이전계획·결과는보존한다. 최종source `72e89728d181307a3d2a17e26425c4dfb4ee10c89ca8454f440be7bd3536093d` / commit `a91854fa9a6c06ed4830f6e6ec8ad8dd334d74c7`. V0/V1 9PASS, V2-04/05 PASS, V2-01/02/03/06 PARTIAL, V3~V7 31NOT_RUN: **11PASS/4PARTIAL/31NOT_RUN**이다.
+
+실제CI는Windows2022 Python3.10.11/3.14.3 각각432시험·브라우저82+5·변이242·자체15·vendor9. 정상2job성공/통제3job의지정단계실패와7개artifact SHA를모두대조했다. 로컬일반사용자unit432는CJS시계한줄전source와raw bridge로연결하고현재browser87/변이242를새로검증한PASS_COMPONENT_LINKED다. 단일전체local PASS로기재하지않는다. symlink권한skip1과canonical NTFS지원한계를유지한다.
+
+실제Jira최종63읽기(초기포함126),15직접표본/PAGE2 23페이지46키/epoch동일집합·3분경계/명시schema3사본전환·실제7단계2회/401를확인했다. 실제원본13파일은schema3으로유지하고원격업무쓰기0. 통제14장애의watermark/memo보존과하네스27시험/49변이는실제공급자오류관측과구분한다. F046/047은새하네스로재사용조건을충족하여superseded이며기존P024파일은보존한다.
+
+| 다음 게이트 | 필요한 입력·환경 | 실행·종료 기준 |
+|---|---|---|
+| V2-01잔여 | 두번째named site/기대account 및exact자격 | 동일사이트성공을다사이트로확대0,미일치fallback0. 현재추가사이트없음→UNKNOWN |
+| V2-02/03잔여 | 본인CSC양성·완료Epic·다른prefix/필터밖·실제parent:null/hierarchy/customfield표본 | 사전key5이상/형식별1개,fields_complete,독립scope집합100%일치. 원격시험자료생성없이준비된자료로읽기 |
+| V2-06잔여 | 독립변경시각이확인된새변경·사전기한 | 최소10회검색관측/분포/미반영상한기록. 기존이슈의반복가시성으로대체0,2분내보장주장0 |
+| F045추가실계정 | 실제DST계정/경계시각 | UTCepoch독립기대·실제JQL집합대조. 현재Etc/GMT성공과합성DST수용은분리 |
+| F044운영적용 | 별도명시운영작업/원본preview | byte backup/CAS/schema-only/13파일보존·응답유실대조. 이번원본전환0 |
+| V3/V6 | 전용Google client·A/R/B와실제CLI A/B | 원V3 7개/V6 6개기준유지,최소12CLI세션·파일/로딩/준수구분 |
+| V4/V5 | 선행읽기통과·exact event/issue·효과목록 | 원V4 8개/V5 5개·정해진쓰기상한/복구/원격응답유실대조 |
+| V7·결함 | 실제규모/백업사본/독립환경 | 원5개·성능분포/복원2회/5영업일pilot. F065UI·F039잠금/F042alias·F032/F041Git GAP을함께추적 |
+
+하네스 호출상한180·supervisor900초·단계별부분결과를유지한다. 개인4,001건합성은pagination179회뒤다음단계에서INCOMPLETE이며현재실제46키범위수용을무제한규모로확장하지않는다. 미관측조건은PARTIAL/UNKNOWN으로남기고실패후분모를줄이지않는다. 원래외부효과대상/승인경계와V0→V1→V2/V3/V6→V4/V5→V7의의존을유지한다.
+
+### P-026 artifact 투영·실행 증거 분리와 CI 후속 게이트
+
+F074의 두CI I7 JSON 투영은 추가UI5로 바뀌었으나 동일한 provider ZIP의 browser_i7.log 단일17사례/정확명령exit0/progress17/화면SHA·필수backend5 SHA를 모두 대조해 원 실행을 수용했다. 임의 손상·명령/진행/로그 불일치는 거부한다. 원래82사례/46시나리오 기준을 줄이지 않았고 원 artifact를 수정하지 않았다. 출력 격리·writer 추적은 deferred이므로 후속 최우선은 단계별 불변 snapshot/자식 환경 분리 보강 뒤 같은 Windows matrix에서 원 JSON17사례 보존과242음성 대조를 새 source로 확인하는 것이다. 현재 수용기의 정상3/오류25/보호제거15는 checker 분기 시험이며 제품242와 별개다. F075의 gate 로그는 locale 비ASCII를 임의 변환하지 않고 ASCII 원인표식 raw byte와 구조화exit을 대조한다.

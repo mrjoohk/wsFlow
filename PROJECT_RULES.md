@@ -243,3 +243,11 @@ V2-04/05는 현재 UTC 계정·schema4 shadow 프로파일에서 PASS, V2-01/02/
 F051~058은 두 독립3관점 회차와 비독립 고침 확인으로 보강했다. 성공 작업 cache는 과거 실행, status.committed는 현재 hash 대조이며 외부 변경을 덮지 않는다. 정밀 값 보존 불가 JSON은 미리보기에서 거부한다. Git 제외는 실제 WF_HOME의 근접 경계를 기준으로 모든 관련 동선에서 일치시킨다.
 
 최종 회귀432(F0/E0/skip1), browser82+5, CI자체15, 선택변이79개. 최종 source와 회귀 source의 차이는 R03 패턴 한정1파일뿐이며 bridge로 제품/시험 bytes 동등성을 확인하고 최종 source의 변이는 재실행했다. 신규spec을 실제 CI가 이미 실행했다는 뜻이 아니다. 이전46개 수용 수치는 이전 source의 이력이며 새소스에 자동 승계하지 않는다. 후속 실계정 epoch·CI·V2표본 수용 및 F032/039/041/042·F046/047은 유지한다.
+
+## P-026 최신 재수용 경계
+
+정본은 `output_docs/261019_0040_v2_ci_requalification_report.md`·`logs/test_evidence/261018_P026/validation.json`이다. 기존 보고서/증거/사용자 자료를 보존한다. 제품/Python 시험/vendor bytes는 P025와 동일하다. CI선택은 기존208+신규34=242, UI701 앵커와 I1 고정 날짜 시계는 검증용 보강이다. 최종 source `72e89728d181307a3d2a17e26425c4dfb4ee10c89ca8454f440be7bd3536093d`의 CI정상2·통제실패3과7개 artifact를 정확한 commit으로 대조한다. 전체workflow failure만으로 거부/수용하지 않는다.
+
+로컬432 unit은 마지막 CJS 변경 전 source의 exit0와 byte bridge를 명시한 PASS_COMPONENT_LINKED이고 실패한 전체 로컬 실행을 PASS로 바꾸지 않는다. 실제 Jira 재수용은 한 UTC계정/시험WF_HOME사본/업무쓰기0의2PASS·4PARTIAL이며 다사이트/실제CSC양성/완료Epic/parent:null/새색인지연·DST실계정은 미확정이다. 원본schema3 운영 전환은 이번 범위 밖이다. F065간헐UI/F039잠금/F042alias와 F032/F041 Git GAP은 유지한다. 파일 연결·실제도구인식·실제공급자수용은 구분한다.
+
+P026의I7 artifact 투영혼입(F074)은별도미해결이다. 실제실행17사례는동일sealed ZIP의단일stage로그/정확성공명령/progress/화면·필수backend5 SHA로대조해수용했다. 원JSON투영과최초실패artifact는수정하지않는다. 단계별출력namespace·불변snapshot/자식환경격리뒤새CI가후속최우선이다. 수용기최종분기대조는정상3/오류25/보호제거15이며제품변이242와구분한다.

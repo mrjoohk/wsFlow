@@ -191,10 +191,124 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(package, 'tzdata==2025.3')
         self.assertIsNotNone(re.fullmatch('[0-9a-f]{64}', digest))
 
+    def test_ambient_output_paths_and_workflow_home_are_not_inherited(self):
+        values = {key:'outside-sentinel' for key in (*runner.OUTPUT_ENV, 'WF_HOME')}
+        (self.base/'ambient').mkdir()
+        with mock.patch.dict(os.environ, values):
+            env = runner.clean_env(self.base/'ambient', self.base/'logs')
+        self.assertNotIn('WSFLOW_BROWSER_OUTPUT', env)
+        self.assertNotIn('WSFLOW_GRAPH_EVIDENCE', env)
+        self.assertNotIn('WF_HOME', env)
+        for key in ('WSFLOW_RUN_EVIDENCE_DIR','WSFLOW_TEST_EVIDENCE_DIR'):
+            self.assertNotEqual(env[key], 'outside-sentinel')
+
+    def test_browser_snapshot_is_fresh_and_does_not_follow_later_writer(self):
+        source=self.base/'browser';source.mkdir()
+        runner.save(source/'evidence.json',{'cases':['original']})
+        target=self.base/'sealed'
+        hashes=runner.preserve_browser(source,target)
+        runner.save(source/'evidence.json',{'cases':['foreign']})
+        self.assertEqual(runner.tree_hashes(target),hashes)
+        self.assertNotEqual(runner.tree_hashes(source),hashes)
+        with self.assertRaises(FileExistsError):runner.preserve_browser(source,target)
+
+    def test_browser_copy_race_is_rejected(self):
+        source=self.base/'copy-race';source.mkdir();(source/'evidence.json').write_text('original')
+        copy=runner.shutil.copytree
+        def raced(src,dst):
+            copy(src,dst);(src/'evidence.json').write_text('late change')
+        with mock.patch.object(runner.shutil,'copytree',side_effect=raced):
+            with self.assertRaisesRegex(ValueError,'changed during copy'):
+                runner.preserve_browser(source,self.base/'copy-target')
+
+    def test_browser_target_copy_race_is_rejected(self):
+        source=self.base/'target-race';source.mkdir();(source/'evidence.json').write_text('original')
+        copy=runner.shutil.copytree
+        def raced(src,dst):
+            copy(src,dst);(dst/'evidence.json').write_text('changed target')
+        with mock.patch.object(runner.shutil,'copytree',side_effect=raced):
+            with self.assertRaisesRegex(ValueError,'changed during copy'):
+                runner.preserve_browser(source,self.base/'target-changed')
+
+    def test_real_nested_mutation_writer_cannot_replace_normal_browser_evidence(self):
+        self.run_output_isolation('normal')
+
+    def test_late_raw_writer_is_rejected_and_original_snapshot_survives(self):
+        self.run_output_isolation('raw')
+
+    def test_late_snapshot_writer_is_rejected(self):
+        self.run_output_isolation('sealed')
+
+    def test_validation_to_snapshot_gap_cannot_seal_foreign_bytes(self):
+        self.run_output_isolation('validation_gap')
+
+    def run_output_isolation(self, fault):
+        baseline=runner.read(self.root/'ci/browser-baseline.json')
+        # Actual mutation_runner descendants write through inherited environment,
+        # exactly as mixed Python/browser specs do. All files/data are synthetic.
+        (self.root/'subject.py').write_text('VALUE = False\n')
+        (self.root/'test_subject.py').write_text(
+            'import os,unittest\nfrom pathlib import Path\nimport subject\n'
+            'class Check(unittest.TestCase):\n def test_value(self):\n'
+            '  p=Path(os.environ.get("WSFLOW_BROWSER_OUTPUT","private-output"));p.mkdir(exist_ok=True,parents=True)\n'
+            '  (p/"evidence.json").write_text("foreign writer")\n'
+            '  for k,n in [("WSFLOW_RUN_EVIDENCE_DIR","unit_evidence.json"),("WSFLOW_TEST_EVIDENCE_DIR","owner.json")]:\n'
+            '   if os.environ.get(k):\n'
+            '    d=Path(os.environ[k]);d.mkdir(parents=True,exist_ok=True);(d/n).write_text("foreign writer")\n'
+            '  self.assertFalse(subject.VALUE)\n')
+        specfile=self.root/'ci/spec.json'
+        runner.save(specfile,{'copy':['subject.py','test_subject.py'],
+            'test':[sys.executable,'-m','unittest','discover'],
+            'mutants':[{'id':'one','name':'one','edits':[{'file':'subject.py','old':'VALUE = False','new':'VALUE = True'}]}]})
+        (self.root/runner.MANIFEST).unlink();runner.seal(self.root);out=self.base/('isolation-'+fault)
+        original=runner.command;normal_folders=[];original_read=runner.read
+        def read_with_race(path):
+            result=original_read(path)
+            if fault=='validation_gap' and Path(path).name=='evidence.json' and Path(path).parent.name=='i7':
+                (normal_folders[-1]/'evidence.json').write_text('foreign writer')
+            return result
+        def dispatch(args,cwd,log,env=None,timeout=900):
+            log.parent.mkdir(parents=True,exist_ok=True);log.write_text('synthetic stage\n')
+            if args[:2]==['node','--version']:log.write_text('v24.14.0')
+            elif args[:2]==['node','-e']:runner.save(log,{'browser':'synthetic','playwright':'synthetic'})
+            elif 'tests/run_tests.py' in args:
+                runner.save(Path(env['WSFLOW_RUN_EVIDENCE_DIR'])/'unit_evidence.json',
+                            dict(ok=True,tests_run=415,failures=0,errors=0,skipped=0))
+                runner.save(Path(env['WSFLOW_TEST_EVIDENCE_DIR'])/'owner.json',{'owner':'unit'})
+            elif len(args)>1 and args[1].endswith('_browser.cjs'):
+                n=int(args[1][7]);folder=Path(env['WSFLOW_BROWSER_OUTPUT']);normal_folders.append(folder)
+                data={'cases':baseline[n-1]['cases'],'errors':[],
+                      'source_sha256':runner.digest((self.root/'static/index.html').read_bytes())}
+                program='import os,json;from pathlib import Path;p=Path(os.environ["WSFLOW_BROWSER_OUTPUT"]);p.mkdir(parents=True);(p/"evidence.json").write_text('+repr(json.dumps(data))+')'
+                return original([sys.executable,'-c',program],cwd,log,env,10)
+            elif 'tools/ci/mutation_runner.py' in args:
+                actual=list(args);actual[3]=str(SOURCE/'tools/ci/mutation_runner.py')
+                result=original(actual,cwd,log,env,30)
+                if fault in ('raw','sealed'):
+                    folder=normal_folders[-1] if fault=='raw' else out/'artifacts/browser/i7'
+                    (folder/'evidence.json').write_text('foreign writer')
+                return result
+            return dict(exit_code=0,log=str(log))
+        with mock.patch.object(runner,'command',side_effect=dispatch), \
+             mock.patch.object(runner,'read',side_effect=read_with_race), \
+             mock.patch.object(runner,'gates',return_value={}), \
+             mock.patch.object(runner.sys,'prefix','controlled-venv'), \
+             mock.patch.object(runner.site,'ENABLE_USER_SITE',False):
+            result=runner.run(self.root,out,runner.platform.python_version(),'all',1)
+        self.assertEqual(result['status'],'PASS' if fault=='normal' else 'FAIL',result)
+        self.assertEqual(runner.read(out/'artifacts/unit/unit_evidence.json')['ok'],True)
+        self.assertEqual(runner.read(out/'artifacts/details/owner.json'),{'owner':'unit'})
+        if fault!='normal':self.assertIn('changed after stage',result['error'])
+        if fault!='sealed':
+            for stage in result['browser']:
+                self.assertEqual(runner.tree_hashes(out/'artifacts/browser'/('i'+str(stage['stage']))),stage['files'])
+        self.assertEqual(runner.read(out/'artifacts/browser/i7/evidence.json')['cases'],baseline[6]['cases']) if fault!='sealed' else None
+
     def test_run_evidence_contracts_reject_bad_results(self):
         baseline = runner.read(self.root / 'ci/browser-baseline.json')
         for problem, step in [('runtime', 'unit'), ('command', 'unit'), ('unit', 'unit'), ('browser', 'browser'),
-                              ('cases', 'browser'), ('backend', 'browser'), ('mutation', 'mutations'), ('source', 'unit'),
+                              ('cases', 'browser'), ('duplicate', 'browser'), ('ambiguous', 'browser'),
+                              ('backend', 'browser'), ('mutation', 'mutations'), ('source', 'unit'),
                               ('artifacts', 'unit'), ('valid', 'unit')]:
             with self.subTest(problem=problem):
                 out = self.base / ('run-' + problem)
@@ -219,10 +333,14 @@ class EvidenceTests(unittest.TestCase):
                         n = int(args[1][7]);cases = list(baseline[n-1]['cases'])
                         if problem == 'cases':
                             cases[0] = 'replacement with same count'
+                        if problem == 'duplicate': cases.append(cases[0])
                         runner.save(Path(env['WSFLOW_BROWSER_OUTPUT']) / 'evidence.json',
                                     {'cases': cases, 'errors': ['controlled error'] if problem == 'browser' else [],
                                      'source_sha256': runner.digest((self.root / 'static/index.html').read_bytes()),
                                      'backend_hashes': {'missing.py': '0' * 64} if problem == 'backend' else {}})
+                        if problem == 'ambiguous':
+                            shutil.copyfile(Path(env['WSFLOW_BROWSER_OUTPUT'])/'evidence.json',
+                                            Path(env['WSFLOW_BROWSER_OUTPUT'])/'second_evidence.json')
                     elif 'tools/ci/mutation_runner.py' in args:
                         runner.save(Path(args[args.index('--out')+1]), {'results': {'only': {'status': 'killed', 'verified': False}}})
                     return {'exit_code': 0, 'log': str(log)}

@@ -1,6 +1,6 @@
 {
   "mode": "PLANNED",
-  "request": "P-026",
+  "request": "P-027",
   "baseline": "rd/evaluation_plan.md V0-04/V1-03",
   "specs": [
     {
@@ -131,6 +131,13 @@
       "spec": "ci/specs/v2_fixes_ui.json",
       "count": 2,
       "changes": "explicitly qualify schema3 migration visibility and apply handler in CI"
+    },
+    {
+      "stage": "fixture_reliability",
+      "spec": "ci/specs/fixture_reliability.json",
+      "count": 18,
+      "source": "rd/ci_fixture_reliability_contracts.md",
+      "changes": "F065 acknowledged transport and F074 output/snapshot guards; previous242 retained"
     }
   ],
   "total": 242

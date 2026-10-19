@@ -1,0 +1,234 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "run.py",
+    "run.cmd",
+    "evidence_pack"
+  ],
+  "test": [
+    "python",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "ci/tests",
+    "-v"
+  ],
+  "timeout": 120,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "CF01_reply_identity",
+      "name": "CF01_reply_identity",
+      "edits": [
+        {
+          "file": "tests/i4_fixture_client.cjs",
+          "old": "const p=pending.get(reply.id);if(!p)throw Error('fixture unexpected reply');",
+          "new": "const p=pending.values().next().value;if(!p)throw Error('fixture unexpected reply');"
+        }
+      ]
+    },
+    {
+      "id": "CF02_rejection",
+      "name": "CF02_rejection",
+      "edits": [
+        {
+          "file": "tests/i4_fixture_client.cjs",
+          "old": "if(reply.ok!==true)p.reject",
+          "new": "if(false)p.reject"
+        }
+      ]
+    },
+    {
+      "id": "CF03_deadline",
+      "name": "CF03_deadline",
+      "edits": [
+        {
+          "file": "tests/i4_fixture_client.cjs",
+          "old": "new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(label+' timeout')),ms);})",
+          "new": "new Promise((resolve,reject)=>{timer=setTimeout(()=>resolve('timeout accepted'),ms);})"
+        }
+      ]
+    },
+    {
+      "id": "CF04_poisoned_channel",
+      "name": "CF04_poisoned_channel",
+      "edits": [
+        {
+          "file": "tests/i4_fixture_client.cjs",
+          "old": "if(failure)throw failure;",
+          "new": "if(false)throw failure;"
+        }
+      ]
+    },
+    {
+      "id": "CF05_provider_edit",
+      "name": "CF05_provider_edit",
+      "edits": [
+        {
+          "file": "tests/i4_fixture_server.py",
+          "old": "if new.get('edit_id'): provider.edit(new['edit_id'], summary=new['summary'])",
+          "new": "if False: provider.edit(new['edit_id'], summary=new['summary'])"
+        }
+      ]
+    },
+    {
+      "id": "CF06_ambient_env",
+      "name": "CF06_ambient_env",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "key in (*OUTPUT_ENV, 'PYTHONPATH', 'WF_HOME')",
+          "new": "key in ('PYTHONPATH',)"
+        }
+      ]
+    },
+    {
+      "id": "CF07_descendant_env",
+      "name": "CF07_descendant_env",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if k not in OUTPUT_ENV}",
+          "new": "if True}"
+        }
+      ]
+    },
+    {
+      "id": "CF08_snapshot_copy",
+      "name": "CF08_snapshot_copy",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "    shutil.copytree(folder, target)\n",
+          "new": "    pass  # lost snapshot\n"
+        }
+      ]
+    },
+    {
+      "id": "CF09_copy_race",
+      "name": "CF09_copy_race",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if before != tree_hashes(target) or before != tree_hashes(folder):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "CF10_late_raw",
+      "name": "CF10_late_raw",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if (tree_hashes(logs / 'browser' / name) != stage['files'] or",
+          "new": "if (False or"
+        }
+      ]
+    },
+    {
+      "id": "CF11_late_sealed",
+      "name": "CF11_late_sealed",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "tree_hashes(out / 'artifacts/browser' / name) != stage['files']):",
+          "new": "False):"
+        }
+      ]
+    },
+    {
+      "id": "CF12_no_merge",
+      "name": "CF12_no_merge",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if source.name == 'browser': continue",
+          "new": "if False: continue"
+        }
+      ]
+    },
+    {
+      "id": "CF13_validation_gap",
+      "name": "capture foreign bytes after validation",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "hashes = preserve_browser(folder, snapshot)\n                evidence_files = list(snapshot.glob('*evidence.json'))",
+          "new": "evidence_files = list(folder.glob('*evidence.json'))"
+        },
+        {
+          "file": "tools/ci/runner.py",
+          "old": "                browser.append({'stage': n, 'cases': len(evidence['cases']), 'files': hashes})",
+          "new": "                hashes = preserve_browser(folder, snapshot)\n                browser.append({'stage': n, 'cases': len(evidence['cases']), 'files': hashes})"
+        }
+      ]
+    },
+    {
+      "id": "CF14_startup_deadline",
+      "name": "CF14_startup_deadline",
+      "edits": [
+        {
+          "file": "tests/i4_fixture_client.cjs",
+          "old": "await bounded(ready,'fixture startup',startupTimeout)",
+          "new": "await ready"
+        }
+      ]
+    },
+    {
+      "id": "CF15_shutdown_deadline",
+      "name": "CF15_shutdown_deadline",
+      "edits": [
+        {
+          "file": "tests/i4_fixture_client.cjs",
+          "old": "await bounded(exited,'fixture shutdown',shutdownTimeout)",
+          "new": "await exited"
+        }
+      ]
+    },
+    {
+      "id": "CF16_copy_target_integrity",
+      "name": "CF16_copy_target_integrity",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if before != tree_hashes(target) or before != tree_hashes(folder):",
+          "new": "if before != tree_hashes(folder):"
+        }
+      ]
+    },
+    {
+      "id": "CF17_exact_cases",
+      "name": "CF17_exact_cases",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if sorted(baseline[n-1]['cases']) != sorted(evidence['cases']):",
+          "new": "if not set(baseline[n-1]['cases']) <= set(evidence['cases']):"
+        }
+      ]
+    },
+    {
+      "id": "CF18_single_result",
+      "name": "CF18_single_result",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if len(evidence_files) != 1:",
+          "new": "if not evidence_files:"
+        }
+      ]
+    }
+  ]
+}

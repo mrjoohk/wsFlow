@@ -276,3 +276,15 @@ V2는2 PASS/4 PARTIAL이다. 기존9개를 포함한 필수46개는11 PASS/4 PAR
 격리 회귀432개 실패0/오류0/skip1, 기존browser82+신규5, CI도구15, 선택 음성대조45+32+UI2=79개 검출을 확인했다. 실제 schema3 설정과 기존 수집 자료의 사본 replay도7단계 성공·메모 bytes 유지였다. 실사용 원본13개와 기존 보호파일5,038개/자격/로그 prefix를 대조했다. 실제 원본 migration·실제 Jira 재호출·공개게시/CI실행·원격 업무쓰기는 하지 않았다.
 
 최종 fingerprint `73ea43d0f27320b33a8e9d2a33acac65e045b7a8f577bac68be825681717b759`. 회귀 실행 fingerprint와 차이는 변이패턴1파일뿐이며 raw bytes bridge와 최종 변이 재실행을 보존했다. 이전 P024/V0/V1의 계정·CI 수용은 당시 소스의 결과다. 새 소스의 epoch 공급자 해석·실계정/CI 수용과 미확보 V2 표본은 별도 재검증한다. 새spec32/UI2는 이번 로컬 명시실행이며 기존 CI선택208은 보존했다.
+
+## P-026 최신 V2·CI 재검증
+
+현재 최종 분석은 [output_docs/261019_0040_v2_ci_requalification_report.md](output_docs/261019_0040_v2_ci_requalification_report.md), 증거는 `logs/test_evidence/261018_P026/validation.json`이다. 최신 제품으로 실제 Jira63회 재검증(초기 포함126회), schema3 사본의 보존형 전환·일일7단계2회·메모/watermark·정수 epoch 경계를 확인했다. 실제 원본13파일·기존 보호11,948파일/자격은 유지하며 원격 업무 쓰기는0이다.
+
+최종 commit `a91854fa9a6c06ed4830f6e6ec8ad8dd334d74c7` / fingerprint `72e89728d181307a3d2a17e26425c4dfb4ee10c89ca8454f440be7bd3536093d`에서 실제 CI 두 프로파일은 각각432시험·브라우저87·선정242변이를 통과했다. 의도한 실패게이트3개 때문에 workflow 전체는 failure이며 정확한 실패 단계와7개 artifact hash를 대조해 수용했다. 로컬 unit은 CJS 시계1행 차이를 hash로 연결한 PASS_COMPONENT_LINKED다. 제품/Python 시험/vendor는 P025와 동일하고 UI701 앵커·I1 시험 시계만 보강했다.
+
+V2는2 PASS/4 PARTIAL, 전체46개는11 PASS/4 PARTIAL/31 NOT_RUN이다. 실제 CSC 양성/완료 Epic/parent:null·다사이트·새 변경 색인 지연·DST 실계정은 미확정이다. 실제 Google/도구/운영 수용과 Git 공통 쓰기 계약 GAP은 남아 있다. 기존 보고서·실패 증거를 보존한다.
+
+### P-026 CI 증거 경계
+
+I7 JSON 투영 혼입(F074)은 동일 ZIP의 정확한17사례 stdout·progress·성공명령·화면/필수backend해시 대조로 실행 근거를 수용했다. 원 artifact는 유지하고 격리 문제는 deferred다. 최초314 fixture EPERM·실패2artifact와 재실행 수용7artifact를 구분한다. 수용기 최종 대조는 정상3/음성입력25/보호제거15이며 제품변이242와 합치지 않는다.

@@ -25,8 +25,10 @@ IGNORED = {'.git', '__pycache__', '.pytest_cache', 'node_modules'}
 MANIFEST = 'ci/source-manifest.json'
 CONTEXT = ('.gitignore', 'GLOBAL_RULES.md', 'PROJECT_RULES.md', 'README.md',
            'graph/edges.csv', 'graph/checks_config.json', 'rd/evaluation_plan.md',
-           'rd/v0_v1_contracts.md', 'evidence_pack/metrics.yaml')
+           'rd/v0_v1_contracts.md', 'rd/ci_fixture_reliability_contracts.md', 'evidence_pack/metrics.yaml')
 BROWSER_COUNTS = (11, 11, 7, 11, 11, 14, 17)
+OUTPUT_ENV = ('WSFLOW_BROWSER_OUTPUT', 'WSFLOW_RUN_EVIDENCE_DIR', 'WSFLOW_TEST_EVIDENCE_DIR',
+              'WSFLOW_GRAPH_EVIDENCE')
 
 
 def plain(path):
@@ -177,7 +179,7 @@ def g4(root):
 def clean_env(out, logdir):
     env = dict(os.environ)
     for key in list(env):
-        if key.startswith(('JIRA_', 'WSFLOW_GOOGLE_', 'GOOGLE_', 'GITHUB_TOKEN', 'GH_TOKEN')) or key == 'PYTHONPATH':
+        if key.startswith(('JIRA_', 'WSFLOW_GOOGLE_', 'GOOGLE_', 'GITHUB_TOKEN', 'GH_TOKEN')) or key in (*OUTPUT_ENV, 'PYTHONPATH', 'WF_HOME'):
             env.pop(key)
     profile = out / 'profile'
     profile.mkdir()
@@ -222,6 +224,27 @@ def command(args, cwd, log, env=None, timeout=900):
 def accepted(step):
     if step['exit_code']:
         raise ValueError('command failed: ' + step['log'])
+
+
+def tree_hashes(folder):
+    plain(folder)
+    result = {}
+    for directory, dirs, names in os.walk(folder, followlinks=False):
+        for name in dirs + names:
+            plain(Path(directory) / name)
+        for name in names:
+            path = Path(directory) / name
+            result[path.relative_to(folder).as_posix()] = digest(path.read_bytes())
+    return result
+
+
+def preserve_browser(folder, target):
+    """Seal each finished browser stage before later commands can write anywhere."""
+    before = tree_hashes(folder)
+    shutil.copytree(folder, target)
+    if before != tree_hashes(target) or before != tree_hashes(folder):
+        raise ValueError('browser snapshot changed during copy')
+    return before
 
 
 def gates(root, out, mode):
@@ -313,30 +336,37 @@ def run(root, out, expected_python, step, jobs):
             result['unit'] = unit
         if step in ('all', 'browser'):
             browser = []
+            result['browser'] = browser
             baseline = read(root / 'ci/browser-baseline.json')
             for n, expected in enumerate(BROWSER_COUNTS, 1):
                 folder = logs / 'browser' / ('i' + str(n))
-                env['WSFLOW_BROWSER_OUTPUT'] = str(folder)
-                r = command(['node', f'tests/i{n}_browser.cjs'], root, out / f'browser_i{n}.log', env, 180)
+                stage_env = dict(env, WSFLOW_BROWSER_OUTPUT=str(folder))
+                r = command(['node', f'tests/i{n}_browser.cjs'], root, out / f'browser_i{n}.log', stage_env, 180)
                 result['steps'].append(r); accepted(r)
-                evidence = read(next(folder.glob('*evidence.json')))
+                snapshot = out / 'artifacts/browser' / ('i' + str(n))
+                hashes = preserve_browser(folder, snapshot)
+                evidence_files = list(snapshot.glob('*evidence.json'))
+                if len(evidence_files) != 1:
+                    raise ValueError('exactly one browser evidence file required')
+                evidence = read(evidence_files[0])
                 if len(evidence['cases']) < expected or evidence['errors'] or evidence['source_sha256'] != digest((root / 'static/index.html').read_bytes()):
                     raise ValueError('browser evidence gate failed')
-                if not set(baseline[n-1]['cases']) <= set(evidence['cases']):
+                if sorted(baseline[n-1]['cases']) != sorted(evidence['cases']):
                     raise ValueError('historical browser case missing')
                 for name, value in evidence.get('backend_hashes', {}).items():
                     path = root / (name if name.startswith('wsflow/') else 'wsflow/' + name)
                     if not path.is_file() or digest(path.read_bytes()) != value:
                         raise ValueError('browser backend freshness mismatch')
-                browser.append({'stage': n, 'cases': len(evidence['cases'])})
+                browser.append({'stage': n, 'cases': len(evidence['cases']), 'files': hashes})
             result['browser'] = browser
         if step in ('all', 'mutations'):
             mutations = []
+            mutation_env = {k: v for k, v in env.items() if k not in OUTPUT_ENV}
             for item in selection['specs']:
                 name = item['stage'];target = out / (name + '.json')
                 args = [sys.executable, '-X', 'utf8', 'tools/ci/mutation_runner.py', item['spec'],
                         '--jobs', str(min(jobs, 2) if name.endswith('_ui') else jobs), '--out', str(target), '--strict']
-                r = command(args, root, out / (name + '.log'), env, 3600)
+                r = command(args, root, out / (name + '.log'), mutation_env, 3600)
                 result['steps'].append(r);accepted(r)
                 d = read(target)
                 if len(d['results']) != item['count'] or any(x['status'] != 'killed' or not x['verified'] for x in d['results'].values()):
@@ -346,13 +376,30 @@ def run(root, out, expected_python, step, jobs):
         if step in ('all', 'gates'):
             result['gates'] = [gates(root, out / mode, mode) for mode in ('source_mismatch', 'test_failure', 'mutant_survived')]
         verify(root)
+        for stage in result.get('browser', []):
+            name = 'i' + str(stage['stage'])
+            if (tree_hashes(logs / 'browser' / name) != stage['files'] or
+                    tree_hashes(out / 'artifacts/browser' / name) != stage['files']):
+                raise ValueError('browser evidence changed after stage: ' + name)
         result['status'] = 'PASS'
     except Exception as exc:
         result.update(status='FAIL', error=str(exc))
     finally:
         try:
             if logs.exists():
-                shutil.copytree(logs, out / 'artifacts')
+                # Browser snapshots were copied immediately; never merge over them.
+                destination = out / 'artifacts'
+                if not (destination / 'browser').exists():
+                    shutil.copytree(logs, destination)
+                else:
+                    for source in (logs / 'browser').iterdir():
+                        target = destination / 'browser' / source.name
+                        if not target.exists(): shutil.copytree(source, target)
+                    for source in logs.iterdir():
+                        if source.name == 'browser': continue
+                        target = destination / source.name
+                        if source.is_dir(): shutil.copytree(source, target)
+                        else: shutil.copyfile(source, target)
         except OSError as exc:
             result.update(status='FAIL', artifact_error=str(exc))
         finally:
