@@ -1,6 +1,6 @@
 {
   "basis": "P-025 F044/F045; previous source manifest retained in P025 baseline and P023/P024 freezes",
-  "created_at": "2026-10-19T04:10:26.918251+00:00",
+  "created_at": "2026-10-19T04:12:19.156911+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "7288e61340b534be3b88331a77897007b0572d5b77621d2c07d44dd9a54376c1",
@@ -39,12 +39,12 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "861fb41e5aaa8f3b18c2cfbfb14ef325cdbfe4e6df1cba69144c33a111998dc1",
-      "sha256": "4d6c3d2d80dc21a6a3048ce11bad838a74ef4bd07796d806f5d560bfcf344aac"
+      "raw_sha256": "cee56b43b8b5b27ebdcfa22008a9c48a124a362459bacf736504e197ec5ff2a1",
+      "sha256": "cee56b43b8b5b27ebdcfa22008a9c48a124a362459bacf736504e197ec5ff2a1"
     },
     "ci/specs/fixture_reliability.json": {
-      "raw_sha256": "cc16894c5ffbf4f974b7ad8bde8db4cac31f4bb207d8a1b4c3d7d7ca1481697f",
-      "sha256": "11d85d08ef9be1ef34d808559709d19a56bdef4e5f19fa2ad640798a60be1f96"
+      "raw_sha256": "a5f6df4d30ad51fd97891a7c7e9a65a57e42af66265d25a0051e85c624abf080",
+      "sha256": "a5f6df4d30ad51fd97891a7c7e9a65a57e42af66265d25a0051e85c624abf080"
     },
     "ci/specs/i0.json": {
       "raw_sha256": "450bdd54f4fe74a1a5f061f9d171ffef2b9ea0b94456afdb5358cf9a7e5a9706",
@@ -563,7 +563,7 @@
       "sha256": "89ed42ca6e653571eb02ba3e9e93e51a6993442bd43b010a0b3d753d4a310164"
     }
   },
-  "fingerprint": "cc6d1aba1f985f3eb9c3f3289daf809406b594d9eec4013cc3a45e3226d5f1f5",
+  "fingerprint": "1271a72824ab8fdf4d63d5d065feedbc61559be0d06cd76486349d5b522c5457",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }
