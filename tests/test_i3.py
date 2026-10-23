@@ -34,15 +34,16 @@ def event(ident='one', **extra):
 class Provider:
     def __init__(self):
         self.calls=[]; self.pages={}; self.fail=None; self.scope=google.SCOPES
+        self.access_token='access-SENSITIVE'
     def __call__(self, method, url, data=None, headers=None):
         q=urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
         path=urllib.parse.urlsplit(url).path
         self.calls.append((method,path,q,data,headers))
         if path.endswith('/token'):
-            return {'access_token':'access-SENSITIVE','refresh_token':'refresh-SENSITIVE',
+            return {'access_token':self.access_token,'refresh_token':'refresh-SENSITIVE',
                     'expires_in':3600,'scope':' '.join(self.scope)}
         if path.endswith('/revoke'):return {}
-        if (headers or {}).get('Authorization') != 'Bearer access-SENSITIVE':raise google.GoogleError(401)
+        if (headers or {}).get('Authorization') != 'Bearer '+self.access_token:raise google.GoogleError(401)
         if path.endswith('/userinfo'):return {'sub':'account-A','email':'tester@example.test'}
         if self.fail:raise google.GoogleError(self.fail)
         if path.endswith('/calendarList'):
@@ -110,8 +111,10 @@ class GoogleTests(unittest.TestCase):
 
     def test_refresh_restart_disconnect_and_late_callback(self):
         self.ready();token=self.service.credentials.load();token['expires_at']=0;self.service.credentials.save(token)
+        self.provider.access_token='rotated-access-SENSITIVE'
         self.service.calendars()
         self.assertTrue(any(c[3] and c[3].get('grant_type')=='refresh_token' for c in self.provider.calls))
+        self.assertEqual(self.service.credentials.load()['access_token'],self.provider.access_token)
         other=google.Service(self.registry,transport=self.provider);self.addCleanup(other.close)
         self.assertTrue(other.status()['connected'])
         start=self.service.connect();self.service.disconnect()
@@ -316,15 +319,20 @@ class GoogleTests(unittest.TestCase):
         self.ready();self.service.sync()
         before=copy.deepcopy(self.service.mirror('cal-A'))
         token=self.service.credentials.load();token['expires_at']=0;self.service.credentials.save(token)
+        before_b={**copy.deepcopy(before),'items':{'other':event('other')},'cursor':'cal-B-cursor',
+                  'generation':'cal-B-generation','range_epoch':'cal-B-range'}
+        self.service.store.put({self.service._key(token,'selected'):['cal-A','cal-B'],
+                                self.service._key(token,'mirror','cal-B'):before_b})
         credential_bytes=self.service.credentials.path.read_bytes()
         other_key=google.operations.encoded(['other-account','mirror','cal-A'])
         other={'complete':True,'sentinel':'unchanged'}
-        self.service.store.put({other_key:other})
+        unselected_key=self.service._key(token,'mirror','cal-C')
+        self.service.store.put({other_key:other,unselected_key:other})
         with mock.patch.object(self.service,'after_sync') as after_sync:
             for status in (400,401,403,502):
                 with self.subTest(status=status):
                     key=self.service._key(token,'mirror','cal-A')
-                    self.service.store.put({key:before})
+                    self.service.store.put({key:before,self.service._key(token,'mirror','cal-B'):before_b})
                     calls=[]
                     def denied(method,url,data=None,headers=None):
                         calls.append((method,url))
@@ -339,9 +347,14 @@ class GoogleTests(unittest.TestCase):
                     self.assertEqual(calls,[('POST',google.TOKEN_URL)])
                     self.assertEqual(self.service.credentials.path.read_bytes(),credential_bytes)
                     self.assertEqual(self.service.store.get_value(other_key),other)
+                    self.assertEqual(self.service.store.get_value(unselected_key),other)
                     state=self.service.status()
                     self.assertFalse(state['complete']);self.assertEqual(state['state'],'needs_sync')
                     self.assertEqual(state['last_sync'],before['last_sync'])
+                    other_mirror=self.service.mirror('cal-B')
+                    self.assertFalse(other_mirror['complete']);self.assertTrue(other_mirror['error'])
+                    self.assertEqual({k:v for k,v in other_mirror.items() if k not in ('complete','error')},
+                                     {k:v for k,v in before_b.items() if k not in ('complete','error')})
                     after_sync.assert_not_called()
 
     def test_expired_token_refresh_failure_uses_cache_as_incomplete(self):
