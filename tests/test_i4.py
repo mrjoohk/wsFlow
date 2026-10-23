@@ -23,8 +23,9 @@ class WriteProvider:
         path=urllib.parse.urlsplit(url).path;q=urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
         self.calls.append((method,path,copy.deepcopy(data),dict(headers or {})))
         if path.endswith('/token'):return {'access_token':'synthetic','refresh_token':'synthetic-refresh','expires_in':3600,'scope':' '.join(self.scopes)}
-        if path.endswith('/userinfo'):return {'sub':self.account,'email':'tester@example.test'}
         if path.endswith('/revoke'):return {}
+        if (headers or {}).get('Authorization') != 'Bearer synthetic':raise google.GoogleError(401)
+        if path.endswith('/userinfo'):return {'sub':self.account,'email':'tester@example.test'}
         if self.fail:raise google.GoogleError(self.fail)
         if path.endswith('/calendarList'):return {'items':[{'id':'cal','summary':'Team','accessRole':self.role}]}
         ident=urllib.parse.unquote(path.rsplit('/',1)[-1])

@@ -18,6 +18,7 @@ from wsflow.server import serve
 
 
 def open_url(*args,**kwargs):
+    kwargs.setdefault('timeout',5)
     try:
         return urllib.request.urlopen(*args,**kwargs)
     except urllib.error.HTTPError as exc:
@@ -40,8 +41,9 @@ class Provider:
         if path.endswith('/token'):
             return {'access_token':'access-SENSITIVE','refresh_token':'refresh-SENSITIVE',
                     'expires_in':3600,'scope':' '.join(self.scope)}
-        if path.endswith('/userinfo'):return {'sub':'account-A','email':'tester@example.test'}
         if path.endswith('/revoke'):return {}
+        if (headers or {}).get('Authorization') != 'Bearer access-SENSITIVE':raise google.GoogleError(401)
+        if path.endswith('/userinfo'):return {'sub':'account-A','email':'tester@example.test'}
         if self.fail:raise google.GoogleError(self.fail)
         if path.endswith('/calendarList'):
             return {'items':[{'id':'cal-A','summary':'Team','accessRole':'reader'},
@@ -309,6 +311,38 @@ class GoogleTests(unittest.TestCase):
             opener.return_value.open.side_effect=urllib.error.HTTPError(google.TOKEN_URL,400,'SENSITIVE-BODY',{},None)
             with self.assertRaises(google.GoogleError) as ctx:google.request('POST',google.TOKEN_URL,{'refresh_token':'SENSITIVE'})
         self.assertNotIn('SENSITIVE',str(ctx.exception))
+
+    def test_sync_refresh_failure_marks_mirror_incomplete_without_losing_state(self):
+        self.ready();self.service.sync()
+        before=copy.deepcopy(self.service.mirror('cal-A'))
+        token=self.service.credentials.load();token['expires_at']=0;self.service.credentials.save(token)
+        credential_bytes=self.service.credentials.path.read_bytes()
+        other_key=google.operations.encoded(['other-account','mirror','cal-A'])
+        other={'complete':True,'sentinel':'unchanged'}
+        self.service.store.put({other_key:other})
+        with mock.patch.object(self.service,'after_sync') as after_sync:
+            for status in (400,401,403,502):
+                with self.subTest(status=status):
+                    key=self.service._key(token,'mirror','cal-A')
+                    self.service.store.put({key:before})
+                    calls=[]
+                    def denied(method,url,data=None,headers=None):
+                        calls.append((method,url))
+                        raise google.GoogleError(status)
+                    self.service.transport=denied
+                    with self.assertRaises(google.GoogleError) as ctx:self.service.sync()
+                    self.assertEqual(ctx.exception.status,status)
+                    after=self.service.mirror('cal-A')
+                    self.assertFalse(after['complete']);self.assertTrue(after['error'])
+                    self.assertEqual({k:v for k,v in after.items() if k not in ('complete','error')},
+                                     {k:v for k,v in before.items() if k not in ('complete','error')})
+                    self.assertEqual(calls,[('POST',google.TOKEN_URL)])
+                    self.assertEqual(self.service.credentials.path.read_bytes(),credential_bytes)
+                    self.assertEqual(self.service.store.get_value(other_key),other)
+                    state=self.service.status()
+                    self.assertFalse(state['complete']);self.assertEqual(state['state'],'needs_sync')
+                    self.assertEqual(state['last_sync'],before['last_sync'])
+                    after_sync.assert_not_called()
 
     def test_expired_token_refresh_failure_uses_cache_as_incomplete(self):
         self.ready();self.service.sync();self.service.range('2026-10-18','2026-10-20')

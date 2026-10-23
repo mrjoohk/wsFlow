@@ -1,6 +1,5 @@
 {
-  "basis": "P-025 F044/F045; previous source manifest retained in P025 baseline and P023/P024 freezes",
-  "created_at": "2026-10-19T05:02:18.535402+00:00",
+  "created_at": "2026-10-21T14:33:46.728356+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "7288e61340b534be3b88331a77897007b0572d5b77621d2c07d44dd9a54376c1",
@@ -311,12 +310,12 @@
       "sha256": "a0baab2c9684681d8a2e33da80d2dcb145409695faf9306569aa3a1533258287"
     },
     "tests/test_i3.py": {
-      "raw_sha256": "3ba90321c901798a821b95b70bcee9fdc8833f6acd598b0d4b19cd92acff46c9",
-      "sha256": "eac6634bd4e36d066e59aabafccff263c61d66507cf4c4344eba3f66ee41a8ae"
+      "raw_sha256": "dd9445629bcbfdf3c23cc3888bc02addef7e73c1be4601f67b632c65fde82fbc",
+      "sha256": "66b1e8bc0250b6943d9df3356385bf4cf83569a3de13021216a595dbc4d5bc95"
     },
     "tests/test_i4.py": {
-      "raw_sha256": "e0044299160560227f13b87d14f76dfb146ab0643cb7e6b0ec57c7accb5a6c75",
-      "sha256": "e0044299160560227f13b87d14f76dfb146ab0643cb7e6b0ec57c7accb5a6c75"
+      "raw_sha256": "631b25073060f1dbb36de155d6420edf4526608ff82759223f11a3f0dd7ad59a",
+      "sha256": "631b25073060f1dbb36de155d6420edf4526608ff82759223f11a3f0dd7ad59a"
     },
     "tests/test_i5.py": {
       "raw_sha256": "88734e1434db6ae604a022db08010f18e01904f14c01958e6d4c9b2e6de27172",
@@ -495,8 +494,8 @@
       "sha256": "dc98473efa129ca65fe97cd41442db5da1c38c381de84137b83d9ef07dfe9d30"
     },
     "wsflow/google_calendar.py": {
-      "raw_sha256": "3754341dde4cf476dbcc1afd0777e76a6ffe8dd28bfe6f1c19e9d9d8ca927871",
-      "sha256": "3754341dde4cf476dbcc1afd0777e76a6ffe8dd28bfe6f1c19e9d9d8ca927871"
+      "raw_sha256": "8b914b4123632c3d2118a880759abf9456ffaedb3082edb5ca7370af424fcd08",
+      "sha256": "8b914b4123632c3d2118a880759abf9456ffaedb3082edb5ca7370af424fcd08"
     },
     "wsflow/jiraapi.py": {
       "raw_sha256": "6a416e86dd6b8b96cb4a6af6c8f6c359a8e8562374e9eb41426b1238aa8d7ca4",
@@ -563,7 +562,7 @@
       "sha256": "89ed42ca6e653571eb02ba3e9e93e51a6993442bd43b010a0b3d753d4a310164"
     }
   },
-  "fingerprint": "e5d6503fb90bc4b93ada312d3655068f34d65d31ddd3cc039fa5bbf07006535b",
+  "fingerprint": "dc2015bdc77b4704dbbd636e23f7cd6a474a05a772c953109bb61bbd9d20ca19",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }

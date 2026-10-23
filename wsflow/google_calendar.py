@@ -280,7 +280,18 @@ class Service:
 
     def sync(self):
         with self.locked():
-            token = self._token()
+            try:
+                token = self._token()
+            except GoogleError as exc:
+                saved = self.credentials.load()
+                selected = self.store.get_value(self._key(saved,'selected'), []) if saved else []
+                failed = {}
+                for cid in selected:
+                    key = self._key(saved,'mirror',cid)
+                    failed[key] = {**self.store.get_value(key,{}),'complete':False,'error':str(exc)}
+                if failed:
+                    self.store.put(failed)
+                raise
             selected = self.store.get_value(self._key(token,'selected'), [])
             results = []
             try:
