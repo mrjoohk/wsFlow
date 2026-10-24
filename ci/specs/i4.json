@@ -713,7 +713,7 @@
       "edits": [
         {
           "file": "wsflow/server.py",
-          "func": "make_handler",
+          "func": "_calendar_v2",
           "old": "or set(body)!={'plan_id','operation_id'}",
           "new": ""
         }

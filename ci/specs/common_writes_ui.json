@@ -1,0 +1,59 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "node",
+    "tests/i1_browser.cjs"
+  ],
+  "timeout": 300,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "WSFLOW_BROWSER_OUTPUT": "{tmp}/browser-output"
+  },
+  "mutants": [
+    {
+      "id": "CWUI01",
+      "name": "repeat memo effect instead of same id check",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if (J.pendingMemo) {\n      submitted = J.pendingMemo;",
+          "new": "if (false) {\n      submitted = J.pendingMemo;"
+        }
+      ]
+    },
+    {
+      "id": "CWUI02",
+      "name": "lose Git id before first send",
+      "test": [
+        "node",
+        "tests/i7_browser.cjs"
+      ],
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "gitPending.set(key,pending);",
+          "new": "/* no pending operation stored */"
+        }
+      ]
+    },
+    {
+      "id": "CWUI03",
+      "name": "lose memo operation on browser reload",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if (!J.pendingMemo && memo.common_writes?.length) J.pendingMemo = memo.common_writes[0];",
+          "new": "/* reload operation identity lost */"
+        }
+      ]
+    }
+  ]
+}

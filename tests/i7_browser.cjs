@@ -15,7 +15,7 @@ async function stopFixture(child){
 }
 async function main(){
   const child=spawn('python',['-X','utf8','tests/i7_fixture_server.py'],{stdio:['pipe','pipe','pipe']});let stderr='';child.stderr.on('data',d=>stderr+=d);
-  const cases=[],errors=[],requests=[];let browser,page,held=null,loseBatch=false,releaseDate=null,holdDate=false,holdStatus=null;
+  const cases=[],errors=[],requests=[];let browser,page,held=null,loseBatch=false,releaseDate=null,holdDate=false,holdStatus=null,loseGitReply=true,gitApplyCount=0;
   try{
   const config=await bounded(new Promise((resolve,reject)=>{let text='';child.stdout.on('data',d=>{text+=d;try{resolve(JSON.parse(text.split('\n')[0]));}catch{}});child.on('error',reject);child.on('exit',code=>reject(Error('fixture '+code+' '+stderr)));}),'fixture startup',20000);
   browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM});page=await browser.newPage({viewport:{width:1480,height:1100}});
@@ -26,6 +26,9 @@ async function main(){
   page.on('request',r=>requests.push({url:r.url(),method:r.method(),body:r.postDataJSON()}));
   await page.route('**/*',async route=>{
     const request=route.request(),url=new URL(request.url());assert.equal(url.origin,config.url,'external traffic forbidden');
+    if(url.pathname===`/api/v1/projects/${config.pid}/writes/git/apply`){
+      gitApplyCount++;const response=await route.fetch({timeout:90000});if(loseGitReply){loseGitReply=false;return route.abort('failed');}return route.fulfill({response});
+    }
     if(url.pathname===`/api/projects/${config.pid}/status`&&holdStatus){const pending=holdStatus;holdStatus=null;const response=await route.fetch();pending.seen();await bounded(pending.gate,'status route gate');return route.fulfill({response});}
     if(url.pathname.endsWith('/batch/run')){
       const response=await route.fetch();if(held){const gate=held;held=null;await bounded(gate,'batch route gate');}
@@ -43,12 +46,12 @@ async function main(){
     assert.ok((await page.locator('#wfRows').innerText()).includes('최신 완전 배치 미확인'));assert.ok((await page.locator('#wfRows').innerText()).includes('신규 ?'));assert.deepEqual(stateBytes(),originalState);cases.push('overview distinguishes unknown batch from zero and reads saved task records without writes');
     assert.equal(await page.locator('#workflowDashboard img').count(),0);cases.push('project and source text remain escaped in whole status');
     await page.locator(`[data-workflow-calendar="${config.pid}"]`).click();await page.locator('#cDetail').filter({hasText:'ACTUAL PRIVATE WORK'}).waitFor();cases.push('whole status opens the same date and project in Calendar detail');
-    await page.locator(`#list [data-id="${config.pid}"]`).click();await page.locator('.tabs [data-tab="status"]').click();await page.locator('#btnFetch').click();await page.locator('#out').filter({hasText:'성공'}).waitFor();
+    await page.locator(`#list [data-id="${config.pid}"]`).click();await page.locator('.tabs [data-tab="status"]').click();await page.locator('#btnFetch').click();await page.locator('#out').filter({hasText:'결과 확인 필요'}).waitFor({timeout:60000});await page.locator('#btnFetch').click();await page.locator('#out').filter({hasText:'성공'}).waitFor({timeout:60000});assert.equal(gitApplyCount,1);
     assert.ok(!(await page.locator('#gitFetchTime').innerText()).includes('fetch: 미확인'));assert.notEqual(git(config.home,'rev-parse','HEAD'),git(config.home,'rev-parse','origin/main'));cases.push('explicit fetch displays its successful time and refreshes tracking refs');
-    await page.locator('#btnPull').click();await page.locator('#out').filter({hasText:'--ff-only'}).waitFor();assert.equal(fs.readFileSync(path.join(config.home,'remote.txt'),'utf8'),'from other');cases.push('ff-only pull receives another checkout commit');
-    fs.writeFileSync(path.join(config.home,'untracked-user.txt'),'DO NOT TOUCH');const beforeDirty=git(config.home,'rev-parse','HEAD');await page.locator('#btnPull').click();await page.locator('#out').filter({hasText:'미저장/미추적'}).waitFor();assert.equal(git(config.home,'rev-parse','HEAD'),beforeDirty);assert.equal(fs.readFileSync(path.join(config.home,'untracked-user.txt'),'utf8'),'DO NOT TOUCH');cases.push('dirty pull stops with all user bytes and HEAD preserved');
+    await page.locator('#btnPull').click();await page.locator('#out').filter({hasText:'--ff-only'}).waitFor({timeout:60000});assert.equal(fs.readFileSync(path.join(config.home,'remote.txt'),'utf8'),'from other');cases.push('ff-only pull receives another checkout commit');
+    fs.writeFileSync(path.join(config.home,'untracked-user.txt'),'DO NOT TOUCH');const beforeDirty=git(config.home,'rev-parse','HEAD');await page.locator('#btnPull').click();await page.locator('#out').filter({hasText:'미저장/미추적'}).waitFor({timeout:60000});assert.equal(git(config.home,'rev-parse','HEAD'),beforeDirty);assert.equal(fs.readFileSync(path.join(config.home,'untracked-user.txt'),'utf8'),'DO NOT TOUCH');cases.push('dirty pull stops with all user bytes and HEAD preserved');
     git(config.home,'add','untracked-user.txt');git(config.home,'commit','-m','local divergence');fs.writeFileSync(path.join(config.other,'remote.txt'),'second remote');git(config.other,'add','-A');git(config.other,'commit','-m','remote divergence');git(config.other,'push');
-    const diverged=git(config.home,'rev-parse','HEAD');await page.locator('#btnPull').click();await page.locator('#out').filter({hasText:'분기됨'}).waitFor();assert.equal(git(config.home,'rev-parse','HEAD'),diverged);cases.push('non-ff divergence is shown without merge or reset');
+    const diverged=git(config.home,'rev-parse','HEAD');await page.locator('#btnPull').click();await page.locator('#out').filter({hasText:'분기됨'}).waitFor({timeout:60000});assert.equal(git(config.home,'rev-parse','HEAD'),diverged);cases.push('non-ff divergence is shown without merge or reset');
     let releaseStatus,seenStatus;const statusSeen=new Promise(r=>seenStatus=r);holdStatus={gate:new Promise(r=>releaseStatus=r),seen:seenStatus};await page.locator('.tabs [data-tab="status"]').click();await bounded(statusSeen,'status request observed');await selectJira();releaseStatus();await page.waitForTimeout(150);assert.deepEqual(errors,[]);cases.push('late Git response cannot bind handlers in a different project tab');
     control('truncated');await page.locator('#jLoad').click();await page.locator('#jIncomplete').waitFor();assert.deepEqual(stateBytes(),originalState);cases.push('partial Jira read shows an explicit incomplete warning');
     control('normal');await page.locator('#jLoad').click();await page.locator('#jRest').waitFor();await page.locator('#jRest').fill('UNSAVED BATCH DRAFT');const runsBefore=requests.filter(r=>r.url.endsWith('/batch/run')).length;

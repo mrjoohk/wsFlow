@@ -151,6 +151,15 @@ PRAGMA user_version=1;
                 raise StateConflict('중복 실행 또는 결과 확인이 필요한 작업입니다')
             self._event(db, ident, 'executing')
 
+    def reject_unexecuted(self, ident, error):
+        """Cancel only a never-claimed intent; a delayed apply cannot revive it."""
+        with self.connection(True) as db:
+            changed = db.execute("UPDATE operations SET status='failed',error=? WHERE id=? AND status IN ('planned','approved')",
+                                 (error, ident)).rowcount
+            if changed != 1:
+                raise StateConflict('실행되지 않은 작업만 종료할 수 있습니다')
+            self._event(db, ident, 'failed', {'error': error, 'effect_started': False})
+
     def finish(self, ident, status, result=None, error=None):
         if status not in ('succeeded', 'failed', 'uncertain'):
             raise ValueError('invalid operation state')

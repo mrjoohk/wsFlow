@@ -176,12 +176,18 @@
     },
     {
       "id": "F022",
-      "name": "allow unsupported business schema",
+      "name": "allow unsupported business schema through legacy and common adapters",
       "edits": [
         {
           "file": "wsflow/server.py",
           "old": "if (m != 'GET' or rest == ['jira', 'memo']) and state.get('schema_version') != wfhome.SCHEMA_VERSION:",
           "new": "if False:"
+        },
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if wfhome.read_state(self.home).get('schema_version')!=wfhome.SCHEMA_VERSION:",
+          "new": "if False:",
+          "func": "Service._memo_source"
         }
       ]
     },

@@ -138,7 +138,19 @@
       "source": "rd/ci_fixture_reliability_contracts.md",
       "spec": "ci/specs/fixture_reliability.json",
       "stage": "fixture_reliability"
+    },
+    {
+      "stage": "common_writes",
+      "spec": "ci/specs/common_writes.json",
+      "count": 23,
+      "source": "rd/common_write_contracts.md"
+    },
+    {
+      "stage": "common_writes_ui",
+      "spec": "ci/specs/common_writes_ui.json",
+      "count": 3,
+      "source": "rd/common_write_contracts.md"
     }
   ],
-  "total": 242
+  "total": 289
 }

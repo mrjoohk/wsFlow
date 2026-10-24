@@ -5,6 +5,10 @@
 웹페이지의 fetch 를 막지 못한다. 원격 접근·다중 사용자 인증은 여전히 범위 밖.
 
 API
+  POST   /api/v1/projects/<id>/writes/<git|memo>/plan {action,payload}  공통 불변 계획·작업 ID
+  POST   /api/v1/projects/<id>/writes/<git|memo>/apply {plan_id,operation_id}  단일 실행
+  GET    /api/v1/projects/<id>/writes/<git|memo>/operations[/<id>]  읽기 전용 목록·상태
+  POST   /api/v1/projects/<id>/writes/<git|memo>/operations/<id> {}  명시 결과 대조·미실행 종료
   GET    /api/config                         루트 목록
   GET    /api/v1/projects/<id>/context        I0 읽기 전용 정책·스킬 출처 진단
   GET    /api/v1/projects/<id>/context/setup  I5 카탈로그·보존 진단·작업 상태
@@ -79,7 +83,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import (__version__, auth, calendar_query, calendar_store, calendar_view, closeflow, context_inventory, context_projection, session_prep,
                deploy, fileio, gitops, google_calendar, calendar_sync, jiraapi, jirawrite, newtask, operations,
-               pickdir, scanner, wfhome, wfinit, writeplans, workflow, wf_migrate)
+               pickdir, scanner, wfhome, wfinit, writeplans, workflow, wf_migrate, common_writes)
 from .store import Store
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -190,8 +194,10 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                 self._json(result)
             except ApiError as e:
                 self._json({"error": str(e), **e.extra}, e.status)
+            except wfhome.MemoConflict as e:
+                self._json({'error':str(e),'current_text':e.current_text,'current_sha':e.current_sha},409)
             except gitops.GitError as e:
-                self._json(e.to_dict(), 500)
+                self._json({**e.to_dict(),**({k:getattr(e,k) for k in ('plan_id','operation_id')} if hasattr(e,'operation_id') else {})}, 500)
             except jirawrite.JiraError as e:
                 self._json(e.to_dict(), e.status if e.status and 400 <= e.status <= 599 else 502)
             except (operations.StateConflict, fileio.LockBusy) as e:
@@ -201,7 +207,7 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
             except (ValueError, KeyError) as e:
                 self._json({"error": str(e)}, 400)
             except Exception as e:  # noqa: BLE001 — 로컬 도구, 원인을 그대로 보여준다
-                self._json({"error": f"{type(e).__name__}: {e}"}, 500)
+                self._json({"error": f"{type(e).__name__}: {e}",**({k:getattr(e,k) for k in ('plan_id','operation_id')} if hasattr(e,'operation_id') else {})}, 500)
 
         def _static(self, path: str):
             if path in ("/", "/index.html"):
@@ -224,6 +230,8 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
             if seg[:2] == ['v2', 'calendar']:
                 return self._calendar_v2(m, seg[2:], q, body)
             if seg[:1] == ["v1"]:
+                if len(seg)>=5 and seg[1]=='projects' and seg[3]=='writes':
+                    return self._common_v1(m,seg[1:],body)
                 if seg==['v1','workflow','status'] and m=='GET':
                     from datetime import datetime
                     return workflow.overview(store.snapshot()['projects'], (q.get('date') or [datetime.now().astimezone().date().isoformat()])[0])
@@ -301,7 +309,7 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                         continue
                     if not Path(p["path"], ".git").exists():
                         continue
-                    out.append({"id": p["id"], **gitops.clean_locks(p["path"])})
+                    out.append({"id": p["id"], **common_writes.Service(p,'git').legacy('clean_locks',{})})
                 return {"results": out}
 
             if len(seg) >= 2 and seg[0] == "projects":
@@ -476,6 +484,28 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                     return service.apply(body['project_id'],body['plan_id'],seg[2],recover=seg[3]=='recover')
             raise ApiError(404,'지원하지 않는 context API입니다')
 
+        def _common_v1(self,method,seg,body):
+            project=self._project(seg[1]);kind=seg[3]
+            if kind not in ('git','memo'):raise ApiError(400,'지원하지 않는 쓰기 종류입니다')
+            home=None
+            if kind=='memo':
+                info=wfhome.detect(project)
+                if not info['enabled']:raise ApiError(409,info['reason'])
+                home=info['wf_home']
+            service=common_writes.Service(project,kind,home)
+            rest=seg[4:]
+            if rest==['plan'] and method=='POST':
+                if not isinstance(body,dict) or set(body)!={'action','payload'}:raise ApiError(400,'action/payload만 제출하십시오')
+                return service.preview(body['action'],body['payload'])
+            if rest==['apply'] and method=='POST':
+                if not isinstance(body,dict) or set(body)!={'plan_id','operation_id'}:raise ApiError(400,'서버 계획·작업 ID만 제출하십시오')
+                return service.apply(body['plan_id'],body['operation_id'])
+            if rest==['operations'] and method=='GET':return {'operations':service.list()}
+            if len(rest)==2 and rest[0]=='operations':
+                if method=='GET':return service.status(rest[1])
+                if method=='POST' and body=={}:return service.check(rest[1])
+            raise ApiError(404,'지원하지 않는 공통 쓰기 API입니다')
+
         def _read_v1(self, method: str, seg: list[str], q: dict):
             if method != "GET":
                 raise ApiError(404, "읽기 전용 API입니다")
@@ -546,7 +576,7 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                 if len(rest) == 1 and m == "GET":
                     return {"locks": gitops.find_locks(pr["path"])}
                 if rest == ["locks", "clean"] and m == "POST":
-                    return gitops.clean_locks(pr["path"])
+                    return common_writes.Service(pr,'git').legacy('clean_locks',{})
 
             if r0 == "jira":
                 return self._jira_route(m, self._project(pid), rest, q, body)
@@ -554,7 +584,7 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
             repo = self._repo(pid)
             if r0 in ('fetch','pull') and len(rest)==1 and m=='POST':
                 if body != {}:raise ApiError(400,'Git 동기화는 옵션 없이 고정 명령으로 실행합니다')
-                return gitops.fetch(repo) if r0=='fetch' else gitops.pull_ff(repo)
+                return common_writes.Service(self._project(pid),'git').legacy(r0,{})
             if r0 == "status" and m == "GET":
                 return gitops.status(repo)
             if r0 == "log" and m == "GET":
@@ -570,22 +600,19 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                     if m == "GET":
                         return {"remotes": gitops.remotes(repo)}
                     if m == "POST":
-                        gitops.remote_add(repo, body.get("name", ""), body.get("url", ""))
-                        return {"remotes": gitops.remotes(repo)}
+                        return common_writes.Service(self._project(pid),'git').legacy('remote_add',body)
                 elif len(rest) == 2:
                     if m == "PUT":
-                        gitops.remote_set_url(repo, rest[1], body.get("url", ""))
-                        return {"remotes": gitops.remotes(repo)}
+                        return common_writes.Service(self._project(pid),'git').legacy('remote_set',{**body,'name':rest[1]})
                     if m == "DELETE":
-                        gitops.remote_remove(repo, rest[1])
-                        return {"remotes": gitops.remotes(repo)}
+                        return common_writes.Service(self._project(pid),'git').legacy('remote_remove',{'name':rest[1]})
             if r0 == "push" and m == "POST":
-                return gitops.push(repo, body.get("remote") or "origin", body.get("branch"), bool(body.get("set_upstream")))
+                return common_writes.Service(self._project(pid),'git').legacy('push',body)
             if r0 == "add" and m == "POST":
-                gitops.add(repo, body.get("paths"), bool(body.get("all")))
-                return gitops.status(repo)
+                return common_writes.Service(self._project(pid),'git').legacy('add',body)
             if r0 == "commit" and len(rest) == 1 and m == "POST":
-                return gitops.commit(repo, body.get("message", ""), bool(body.get("add_all")))
+                if not body.get('message','').strip():raise gitops.GitError('커밋 메시지가 비어 있습니다')
+                return common_writes.Service(self._project(pid),'git').legacy('commit',body)
             raise ApiError(404, f"no route: {m} /api/projects/{pid}/{'/'.join(rest)}")
 
         # ---- Jira (D-002 · D-004 · D-006)
@@ -635,7 +662,8 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                 return workflow.run(home,self._creds(info))
 
             if rest == ['jira', 'operations'] and m == 'GET':
-                return {'operations': jirawrite.operation_status(home), 'legacy_pending': jirawrite.unpushed(home)}
+                return {'operations': jirawrite.operation_status(home), 'legacy_pending': jirawrite.unpushed(home),
+                        'common_writes':common_writes.Service(pr,'memo',home).list()[-10:]}
             if len(rest) == 4 and rest[:2] == ['jira', 'operations'] and rest[3] in ('reconcile', 'repair') and m == 'POST':
                 with fileio.locked(home):
                     state = wfhome.read_state(home)
@@ -657,13 +685,12 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                 if not ymd:
                     raise ApiError(400, "ymd 가 필요합니다")
                 if m == "GET":
-                    return wfhome.read_memo(home, ymd)
+                    return {**wfhome.read_memo(home, ymd),'common_writes':[op for op in common_writes.Service(pr,'memo',home).list() if op.get('ymd')==ymd and op['status'] in ('executing','uncertain')]}
                 if m == "PUT":
                     if body.get('document_id') != wfhome.memo_document_id(home, ymd):
                         raise ApiError(409, '메모의 업무 폴더·날짜 식별이 다릅니다 — 다시 여십시오')
                     try:
-                        return wfhome.write_memo(home, ymd, body.get("text", ""), body.get("sha", ""),
-                                                 document_id=body['document_id'])
+                        return common_writes.Service(pr,'memo',home).legacy('save',{'ymd':ymd,'text':body.get('text',''),'sha':body.get('sha',''),'document_id':body['document_id']})
                     except wfhome.MemoConflict as e:
                         # 덮지 않는다. 양쪽을 돌려주고 사람이 고르게 한다(INV-1).
                         raise ApiError(409, str(e), {"current_text": e.current_text,

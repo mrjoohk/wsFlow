@@ -1,0 +1,312 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_common_writes.py",
+    "-v"
+  ],
+  "timeout": 300,
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "CW01",
+      "name": "accept stale source",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if current!=plan['source']:",
+          "new": "if False:",
+          "func": "Service.apply"
+        }
+      ]
+    },
+    {
+      "id": "CW02",
+      "name": "ignore expiry",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if time.time()>plan['expires_at']:",
+          "new": "if False:",
+          "func": "Service.apply"
+        }
+      ]
+    },
+    {
+      "id": "CW03",
+      "name": "ignore project binding",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "plan.get('binding')!=self.binding",
+          "new": "False",
+          "func": "Service._selected"
+        }
+      ]
+    },
+    {
+      "id": "CW04",
+      "name": "ignore plan operation membership",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "plan['items'][0]['operation_id']!=ident",
+          "new": "False",
+          "func": "Service._selected"
+        },
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "op.get('plan_id')!=plan_id",
+          "new": "False",
+          "func": "Service._selected"
+        }
+      ]
+    },
+    {
+      "id": "CW05",
+      "name": "remove result reuse",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if op['status']=='succeeded':return self._result(plan,op,True)",
+          "new": "if False:pass",
+          "func": "Service.apply"
+        }
+      ]
+    },
+    {
+      "id": "CW06",
+      "name": "allow new plan around uncertain effect",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "and op['status'] in ('executing','uncertain')",
+          "new": "and False",
+          "func": "Service._pending"
+        }
+      ]
+    },
+    {
+      "id": "CW07",
+      "name": "omit durable receipt",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "fileio.atomic_write(receipt,operations.encoded(saved).encode('utf-8'))",
+          "new": "pass # no receipt",
+          "func": "Service.apply"
+        }
+      ]
+    },
+    {
+      "id": "CW08",
+      "name": "omit original backup",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "else:fileio.atomic_write(backup,raw)",
+          "new": "else:pass # no backup",
+          "func": "Service.apply"
+        }
+      ]
+    },
+    {
+      "id": "CW09",
+      "name": "ignore memo expected hash",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "payload['sha']!=wfhome.sha(memo)",
+          "new": "False",
+          "func": "Service._memo_source"
+        }
+      ]
+    },
+    {
+      "id": "CW10",
+      "name": "ignore memo identity",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "payload['document_id']!=wfhome.memo_document_id(self.home,payload['ymd'])",
+          "new": "False",
+          "func": "Service._memo_source"
+        }
+      ]
+    },
+    {
+      "id": "CW11",
+      "name": "ignore receipt corruption",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if checksum!=operations.digest(saved):",
+          "new": "if False:",
+          "func": "Service.check"
+        }
+      ]
+    },
+    {
+      "id": "CW12",
+      "name": "ignore receipt operation id",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "saved.get('operation_id')!=ident",
+          "new": "False",
+          "func": "Service.check"
+        }
+      ]
+    },
+    {
+      "id": "CW13",
+      "name": "recover memo despite full-file edit",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": " and sha(path.read_bytes())==plan['source']['target_sha256']",
+          "new": "",
+          "func": "Service.check"
+        }
+      ]
+    },
+    {
+      "id": "CW14",
+      "name": "confirm push via a changed remote",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if urls==target['urls']:",
+          "new": "if True:",
+          "func": "Service.check"
+        }
+      ]
+    },
+    {
+      "id": "CW15",
+      "name": "ignore push oid",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if cp.returncode or cp.stdout.split()!=[target['oid'],target['ref']]:break",
+          "new": "if cp.returncode:break",
+          "func": "Service.check"
+        }
+      ]
+    },
+    {
+      "id": "CW16",
+      "name": "ignore missing upstream",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "(not p.get('set_upstream') or upstream==p['remote']+'/'+p['branch'])",
+          "new": "True",
+          "func": "Service.check"
+        }
+      ]
+    },
+    {
+      "id": "CW17",
+      "name": "allow unsupported memo schema",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if wfhome.read_state(self.home).get('schema_version')!=wfhome.SCHEMA_VERSION:",
+          "new": "if False:",
+          "func": "Service._memo_source"
+        }
+      ]
+    },
+    {
+      "id": "CW18",
+      "name": "downgrade unknown effect to retryable failure",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if op['status'] in ('executing','uncertain'):raise operations.StateConflict('작업을 재전송하지 않습니다 — 같은 ID의 결과를 확인하십시오')",
+          "new": "if op['status'] in ('executing','uncertain'):self.store.finish(ident,'failed')",
+          "func": "Service.apply"
+        }
+      ]
+    },
+    {
+      "id": "CW19",
+      "name": "accept only one of multiple push targets",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "len(remotes)==len(target['urls'])",
+          "new": "bool(remotes)",
+          "func": "Service.check"
+        }
+      ]
+    },
+    {
+      "id": "CW20",
+      "name": "allow tag-only branch payload",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "ref+'^{commit}'",
+          "new": "payload['branch']",
+          "func": "Service.preview"
+        }
+      ]
+    },
+    {
+      "id": "CW21",
+      "name": "leave preflight rejection planned",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "self.store.reject_unexecuted(ident,str(exc))",
+          "new": "pass  # rejection not recorded",
+          "func": "Service.apply"
+        }
+      ]
+    },
+    {
+      "id": "CW22",
+      "name": "do not release unexecuted check",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "self.store.reject_unexecuted(ident,'실행되지 않은 계획을 종료했습니다 — 입력을 유지하고 새 계획을 요청하십시오')",
+          "new": "pass  # never release unexecuted operation",
+          "func": "Service.check"
+        }
+      ]
+    },
+    {
+      "id": "CW23",
+      "name": "planning latency ages fresh Git lock into deletion",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "min_age_sec=5+max(0,time.time()-plan['observed_at'])",
+          "new": "min_age_sec=5",
+          "func": "Service._execute"
+        }
+      ]
+    }
+  ]
+}

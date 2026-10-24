@@ -5,9 +5,10 @@ const fs = require('fs'), path = require('path'), assert = require('assert/stric
 const out = path.resolve(process.env.WSFLOW_BROWSER_OUTPUT || 'output/playwright/i1-' + Date.now()); fs.mkdirSync(out, {recursive:true});
 const html = fs.readFileSync('static/index.html', 'utf8');
 const requests = [], cases = [], errors = [], snapshots = [];
-const memos = new Map(); let holdPut = null, releasePut, putSeen, holdRead = null, releaseRead, readSeen;
-let badSchema = false, pending = [], legacy = [], holdNew = null, releaseNew, newSeen, failNew = false;
+const memoPlans = new Map(); const memos = new Map(); let holdPut = null, releasePut, putSeen, holdRead = null, releaseRead, readSeen;
+let loseMemoReply=false,memoEffects=0; let badSchema = false, pending = [], legacy = [], holdNew = null, releaseNew, newSeen, failNew = false;
 const doc = (id, ymd) => `${id}/${ymd}`;
+async function signal(promise,label){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>timer=setTimeout(()=>reject(Error(label+' timeout')),15000))]);}finally{clearTimeout(timer);}}
 function memo(id, ymd) {
   const key = doc(id, ymd);
   if (!memos.has(key)) memos.set(key, {ymd,document_id:key,sha:'sha-0',text:`* XXX-99:  hidden original  \n- XXX-1: ${id}/${ymd}\ncommon`});
@@ -31,9 +32,23 @@ async function main() {
     else if(p.endsWith('/rules'))value={git:'none',remotes:[],ledger:{exists:false},worklog:{},drift:[],markers:{},locks:[]};
     else if(p.endsWith('/jira'))value={enabled:true,wf_home:`C:/synthetic/${project}`,scope:{project_key:'XXX',epic_keys:[]},schema_ok:!badSchema,gitignore_ok:true,reason:badSchema?'지원하지 않는 schema':''};
     else if(p.endsWith('/tasks'))value={tasks:[{key:'XXX-1',summary:'synthetic task',status:'In Progress'}],counts:{tasks:1},known_keys:['XXX-1']};
+    else if(p.includes('/writes/memo/plan')) {
+      const id='A-memo-'+requests.length;assert.equal(body.action,'save');assert.equal(body.payload.document_id,doc(project,body.payload.ymd));
+      value={plan_id:'P-'+id,operation_id:id};memoPlans.set(id,{...value,payload:body.payload});
+    }
+    else if(p.includes('/writes/memo/apply')) {
+      assert.deepEqual(Object.keys(body).sort(),['operation_id','plan_id']);
+      const plan=memoPlans.get(body.operation_id);assert.equal(plan.plan_id,body.plan_id);const input=plan.payload;
+      value={...memo(project,input.ymd),text:input.text,sha:`sha-${requests.length}`,status:'succeeded',operation_id:plan.operation_id,plan_id:plan.plan_id};
+      memos.set(doc(project,input.ymd),value);plan.result=value;plan.status='succeeded';memoEffects++;if(loseMemoReply){loseMemoReply=false;return route.abort('failed');}
+      if(holdPut){holdPut=false;putSeen();await new Promise(r=>releasePut=r);}
+    }
+    else if(p.includes('/writes/memo/operations/')) {
+      const plan=memoPlans.get(p.split('/').pop());if(plan.result)plan.status='succeeded';value={status:plan.status||'planned',result:plan.result};
+    }
     else if(p.endsWith('/memo')) {
       const ymd=url.searchParams.get('ymd') || body.ymd;
-      if(method==='GET') { value=memo(project,ymd); if(holdRead===ymd){holdRead=null;readSeen();await new Promise(r=>releaseRead=r);} }
+      if(method==='GET') { value={...memo(project,ymd),common_writes:[...memoPlans.values()].filter(x=>x.status==='uncertain'&&x.payload.ymd===ymd).map(x=>({operation_id:x.operation_id,plan_id:x.plan_id,ymd,status:x.status}))}; if(holdRead===ymd){holdRead=null;readSeen();await new Promise(r=>releaseRead=r);} }
       else { assert.equal(body.document_id,doc(project,ymd));value={...memo(project,ymd),text:body.text,sha:`sha-${requests.length}`};memos.set(doc(project,ymd),value);
         if(holdPut){holdPut=false;putSeen();await new Promise(r=>releasePut=r);} }
     }
@@ -60,24 +75,35 @@ async function main() {
     await choose('b');await date('261017');assert.equal(await task().inputValue(),'b/261017');
     await choose('a');await date('261017');assert.equal(await task().inputValue(),'visible edit');cases.push('project and date documents separated');
     holdPut=true;const seenPut=new Promise(r=>putSeen=r);
-    await task().fill('first save');await page.locator('#jSave').click();await seenPut;
+    await task().fill('first save');await page.locator('#jSave').click();await signal(seenPut,'memo apply observed');
     await task().fill('typed during save');releasePut();
     await page.waitForFunction(()=>!document.querySelector('#jSave').disabled);
     assert.equal(await task().inputValue(),'typed during save');assert.ok((await page.locator('#jSaveState').innerText()).includes('저장되지 않음'));
     assert.ok(memo('a','261017').text.includes('first save'));await page.locator('#jSave').click();await saved();
-    assert.ok(memo('a','261017').text.includes('typed during save'));cases.push('typing during PUT remains dirty then saves against returned revision');
+    assert.ok(memo('a','261017').text.includes('typed during save'));
+    const beforeLoss=memoEffects;loseMemoReply=true;await task().fill('memo reply lost');await page.locator('#jSave').click();
+    await page.locator('#jSaveState').filter({hasText:'결과 확인 필요'}).waitFor();
+    await task().fill('newer draft after lost reply');await page.locator('#jSave').click();await page.waitForFunction(()=>!document.querySelector('#jSave').disabled);
+    assert.equal(memoEffects,beforeLoss+1);assert.equal(await task().inputValue(),'newer draft after lost reply');
+    assert.ok((await page.locator('#jSaveState').innerText()).includes('저장되지 않음'));
+    await page.locator('#jSave').click();await saved();assert.equal(memoEffects,beforeLoss+2);
+    const reloadPlan={plan_id:'P-reload',operation_id:'A-reload',status:'uncertain',payload:{ymd:'261017'},result:memo('a','261017')};memoPlans.set('A-reload',reloadPlan);
+    const beforeReload=memoEffects;await page.reload();await choose('a');await date('261017');
+    await page.locator('#jSaveState').filter({hasText:'결과 확인 필요'}).waitFor();await page.locator('#jSave').click();
+    await page.waitForFunction(()=>!document.querySelector('#jSaveState').textContent.includes('결과 확인 필요'));assert.equal(memoEffects,beforeReload);
+    cases.push('typing during PUT remains dirty then saves against returned revision');
     holdRead='261019';const seenRead=new Promise(r=>readSeen=r);
-    await page.locator('#jYmd').fill('261019');await page.locator('#jYmd').press('Tab');await seenRead;
+    await page.locator('#jYmd').fill('261019');await page.locator('#jYmd').press('Tab');await signal(seenRead,'memo read observed');
     await date('261020');assert.equal(await task().inputValue(),'a/261020');releaseRead();
     await page.waitForFunction(()=>document.querySelector('textarea[data-key]')?.value==='a/261020');
     await date('261019');assert.equal(await task().inputValue(),'a/261019');cases.push('late prior day GET cannot replace visible day');
     holdNew=true;const seenNew=new Promise(r=>newSeen=r);
-    await page.locator('#nSum').fill('old title');await page.locator('#nPlan').click();await seenNew;
+    await page.locator('#nSum').fill('old title');await page.locator('#nPlan').click();await signal(seenNew,'new preview observed');
     await page.locator('#nSum').fill('new title');releaseNew();
     await page.waitForFunction(()=>document.querySelector('#nBox')?.textContent.includes('다시 확인'));
     assert.equal(await page.locator('#nGo').count(),0);cases.push('late new task preview invalidated by changed input');
     holdNew=true;failNew=true;const failedNew=new Promise(r=>newSeen=r);
-    await page.locator('#nPlan').click();await failedNew;await page.locator('#nSum').fill('latest title');releaseNew();
+    await page.locator('#nPlan').click();await signal(failedNew,'failed preview observed');await page.locator('#nSum').fill('latest title');releaseNew();
     await page.waitForFunction(()=>document.querySelector('#nBox')?.textContent.includes('다시 확인'));
     assert.ok(!(await page.locator('#nBox').innerText()).includes('old preview failed'));cases.push('late failed preview does not replace newer form state');
     await page.locator('#jPlan').click();await page.locator('.jPick').check();await snapshot('approval');
@@ -99,7 +125,7 @@ async function main() {
     assert.deepEqual(errors,[]);await snapshot('schema');await page.screenshot({path:path.join(out,'P015-final.png'),fullPage:true});
     fs.writeFileSync(path.join(out,'P015-evidence.json'),JSON.stringify({at:new Date().toISOString(),source:'actual static/index.html, mocked HTTP only',source_sha256:require('crypto').createHash('sha256').update(html).digest('hex'),cases,requests,errors,snapshots},null,2));
     console.log(JSON.stringify({passed:cases.length,cases,errors}));
-  } catch(e){await page.screenshot({path:path.join(out,'P015-failure.png'),fullPage:true});await snapshot('failure');throw e;}
+  } catch(e){fs.writeFileSync(path.join(out,'failure.json'),JSON.stringify({error:e.stack,errors,cases,requests},null,2));await page.screenshot({path:path.join(out,'P015-failure.png'),fullPage:true});await snapshot('failure');throw e;}
   finally{await browser.close();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
