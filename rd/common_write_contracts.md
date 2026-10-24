@@ -51,3 +51,11 @@ CTX-14/F032/F041의 다음 구현이다. 기존 operations.Store의 불변 plan/
 | API guard·기존 입력/버튼·초안 | CW04→CW01~03 | project와 IDs/legacy adapter→response | PASS |
 
 계약 내 UNCOVERED/REDUNDANT 없음. 이는 연결 검토이며 실제 구현·시험 수용은 별도 증거다. 남은 N2/N3/V4/V5/V7과 V3-06 USER_DEFERRED는 범위 밖이다. 일반 CI에 실제 사용자 자격을 제공하지 않는다.
+
+## 독립 검토 후 구체화한 경계
+
+push는 모든 pushurl의 목록·순서와 각 대상의 동일 ref/OID를 대조한다. 태그만 있는 이름은 거절하며 refs/heads의 source:destination을 고정한다. 암묵적 followTags·mirror·재귀 전송은 승인 범위에 넣지 않는다. 모든 주소의 효과가 입증되지 않으면 uncertain이다. 원격 URL이 바뀌었다면 다른 주소에 같은 OID가 있어도 이전 계획의 성공으로 판정하지 않는다.
+
+clean_locks의 source는 실제 git-dir와 lock metadata다. 사용자 작업 파일을 읽는 일반 Git 계획과 달리 lock 작업에 필요한 원본만 결부한다. 최초 관측 시점의 최소 5초 보호를 계획/확인 지연이 소진하지 않게 보수적으로 유지한다. 기존 전체 Git 프로세스 감지 제한 F039는 별개로 남는다.
+
+계획 만료·버전 거절처럼 claim 전 실패는 미실행 상태에서 failed로 종료한다. check에서 아직 planned/approved인 요청도 공통 잠금 안에서 무효과 종료할 수 있으며 늦게 도착한 apply는 이를 되살리지 않는다. 입력은 유지하고 사용자가 다음 요청에서 새 계획을 만든다. before_backup은 예약 경로, backup_exists는 실제 파일 존재 여부이며 어느 것도 단독으로 파일 내용 검증 성공을 뜻하지 않는다.

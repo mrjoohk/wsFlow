@@ -218,7 +218,9 @@ class CommonWrites(CommonFixture):
         return p,bare
 
     def test_changed_push_url_cannot_confirm_other_remote(self):
-        p,bare=self.lost_push();other=make_bare(self.base,'other.git');gitops.remote_set_url(self.repo,'origin',str(other))
+        p,bare=self.lost_push();other=make_bare(self.base,'other.git')
+        git(self.repo,'push',str(other),'refs/heads/main:refs/heads/main')
+        gitops.remote_set_url(self.repo,'origin',str(other))
         with mock.patch.object(gitops,'push',side_effect=AssertionError('no resend')):
             self.assertEqual(self.gs.check(p['operation_id'])['status'],'uncertain')
 

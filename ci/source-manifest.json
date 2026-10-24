@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-24T07:20:38.505833+00:00",
+  "created_at": "2026-10-24T07:23:44.262059+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "7288e61340b534be3b88331a77897007b0572d5b77621d2c07d44dd9a54376c1",
@@ -298,8 +298,8 @@
       "sha256": "502705ccf7471a20fe92eb3ec595f7d10f763a6e76c1586f21831d0cf4a650f2"
     },
     "tests/test_common_writes.py": {
-      "raw_sha256": "ba7a75f7477e039e37b505db24ffd393f321e2922cdf9e6c8d308bdb6ad3084d",
-      "sha256": "ba7a75f7477e039e37b505db24ffd393f321e2922cdf9e6c8d308bdb6ad3084d"
+      "raw_sha256": "6de993b088301805875f6b81f948e3f6f68c79d344defea19663eb124cbaed61",
+      "sha256": "6de993b088301805875f6b81f948e3f6f68c79d344defea19663eb124cbaed61"
     },
     "tests/test_deploy.py": {
       "raw_sha256": "d258fc7d0f21377801f2dc414c3aca76ac29a5d0952bc7725030715beae49e83",
@@ -578,7 +578,7 @@
       "sha256": "89ed42ca6e653571eb02ba3e9e93e51a6993442bd43b010a0b3d753d4a310164"
     }
   },
-  "fingerprint": "ee4fa17d154f881879458a83b0c85f6c7fb3ec01edc68d95024f2f0221e5f6e2",
+  "fingerprint": "c79d26f0c95916b140a99ed131d3e9d3036ab39d8011b5d3d35a16432f280d36",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }
