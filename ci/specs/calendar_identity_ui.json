@@ -9,10 +9,13 @@
     ".github"
   ],
   "test": [
-    "node",
-    "tests/calendar_identity_browser.cjs"
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "tests/calendar_identity_shortpath.py"
   ],
-  "timeout": 100,
+  "timeout": 150,
   "env": {
     "PYTHONDONTWRITEBYTECODE": "1"
   },
@@ -47,6 +50,17 @@
           "file": "static/index.html",
           "old": "if(unavailable.size)",
           "new": "if(false)"
+        }
+      ]
+    },
+    {
+      "id": "FIXTURE_CANONICAL_TEMP",
+      "name": "fixture fails to canonicalize short TEMP before profiles",
+      "edits": [
+        {
+          "file": "tests/calendar_identity_fixture.py",
+          "old": "home=Path(temp).resolve();root=home/'root'",
+          "new": "home=Path(temp);root=home/'root'"
         }
       ]
     }

@@ -160,9 +160,9 @@
     {
       "stage": "calendar_identity_ui",
       "spec": "ci/specs/calendar_identity_ui.json",
-      "count": 3,
+      "count": 4,
       "source": "rd/261026_P045_uid_binding_contract.md"
     }
   ],
-  "total": 319
+  "total": 320
 }

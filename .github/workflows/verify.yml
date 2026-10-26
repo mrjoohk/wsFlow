@@ -91,7 +91,7 @@ jobs:
           WSFLOW_BROWSER_OUTPUT: ${{ runner.temp }}/calendar-identity-ui
         run: |
           $env:PATH = "$env:RUNNER_TEMP/venv/Scripts;$env:PATH"
-          node tests/calendar_identity_browser.cjs
+          & "$env:RUNNER_TEMP/venv/Scripts/python.exe" -B -X utf8 tests/calendar_identity_shortpath.py
           exit $LASTEXITCODE
       - name: Upload calendar identity UI evidence
         if: always()

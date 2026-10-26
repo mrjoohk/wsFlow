@@ -13,7 +13,7 @@ from wsflow.server import serve
 
 def main():
     with tempfile.TemporaryDirectory(prefix='wsflow_uid_browser_') as temp:
-        home=Path(temp);root=home/'root';checkout=root/'project';checkout.mkdir(parents=True)
+        home=Path(temp).resolve();root=home/'root';checkout=root/'project';checkout.mkdir(parents=True)
         os.environ['WSFLOW_DATA_DIR']=str(home/'data')
         def write(path,value):
             path.parent.mkdir(parents=True,exist_ok=True);path.write_text(json.dumps(value),encoding='utf-8')

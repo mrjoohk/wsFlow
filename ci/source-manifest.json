@@ -1,9 +1,9 @@
 {
-  "created_at": "2026-10-26T03:15:24.770784+00:00",
+  "created_at": "2026-10-26T04:11:26.107369+00:00",
   "files": {
     ".github/workflows/verify.yml": {
-      "raw_sha256": "7c6107fda2404cb2b5d3395d733a178a4e790af0cb5e21194f9f8bd9b9a6b9df",
-      "sha256": "7c6107fda2404cb2b5d3395d733a178a4e790af0cb5e21194f9f8bd9b9a6b9df"
+      "raw_sha256": "0e6e3b52fb35f9dcb4ace5c4177245a0c7e6a5ed3d4bbd6ae86ce7bc35a6fc19",
+      "sha256": "0e6e3b52fb35f9dcb4ace5c4177245a0c7e6a5ed3d4bbd6ae86ce7bc35a6fc19"
     },
     "ci/README.md": {
       "raw_sha256": "e577d86c361c091a7524e23d64ea6c019fa632aeff2f15100e20ba547cc706ef",
@@ -42,16 +42,16 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "bda76895e9f3005088e84c93e5600bb2e3adb09dad64b1431712a70fa430e7fa",
-      "sha256": "0f7d447b6b8915bd7247e89582ac528f8b995ceb1142d8f3c656ef08d8794660"
+      "raw_sha256": "d21ac939e8a95ec242b8889f0e0699d5278ffd2f61cf66ff16b1f632c385c7d2",
+      "sha256": "ac10e2f4297c3e8a27fd0f7e4104a53e5def462d1cbdb3c1aca587a9a099e642"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "752d1e3330734566d49e249529c180ed61ed6da1bce8c6677fb325b000da8e8f",
       "sha256": "694aab1c97b60a373af962a6a7ffc41af141708d3c48f9a4254c3f16a089f3b0"
     },
     "ci/specs/calendar_identity_ui.json": {
-      "raw_sha256": "e3bfad7e706c05c86ca825207a80f9adea50904945ebffd5fe2bc989fce9b023",
-      "sha256": "0025ff0cb3f7c00e63d7e8ad5ef0f7bf10da32bad69fb83eedc1c20cb16bedf5"
+      "raw_sha256": "56cb2879c1fa1776385df26f5723bca665fe19f0bd935036be9b2683744b3add",
+      "sha256": "ff6d62d9e53df7d0e944363ab2eb65157dd9d0115bf9cde40c3fa7c340e62d4c"
     },
     "ci/specs/common_writes.json": {
       "raw_sha256": "8fd09961c82d32211fcf81e6bf073fe051ac2c65c67b1c0c116ed59e646619e3",
@@ -150,8 +150,12 @@
       "sha256": "33b310d047423c57abbc6200940473a3143bcc8879caf9f902695a71e9b35eca"
     },
     "tests/calendar_identity_fixture.py": {
-      "raw_sha256": "e1798f7e34923976aa0e47941fc7a285d712c7a5ee5f68a709ee253eb6fc2beb",
-      "sha256": "e1798f7e34923976aa0e47941fc7a285d712c7a5ee5f68a709ee253eb6fc2beb"
+      "raw_sha256": "042b7e687b1a02fc6025bd50d2dfd4cc47777fc3ff2b7510cbff90fe6de9b94d",
+      "sha256": "042b7e687b1a02fc6025bd50d2dfd4cc47777fc3ff2b7510cbff90fe6de9b94d"
+    },
+    "tests/calendar_identity_shortpath.py": {
+      "raw_sha256": "ecc4c2e0a43d3b8838e7cd185f40840d89505247bcf3ecfc66ddc9456ed0482d",
+      "sha256": "ecc4c2e0a43d3b8838e7cd185f40840d89505247bcf3ecfc66ddc9456ed0482d"
     },
     "tests/fixtures/close_intent_bad.json": {
       "raw_sha256": "5ab62ed3fa61e44ff56618a6abbb65594ae89c4536d8f9aa8defdad16bc3daf0",
@@ -606,7 +610,7 @@
       "sha256": "89ed42ca6e653571eb02ba3e9e93e51a6993442bd43b010a0b3d753d4a310164"
     }
   },
-  "fingerprint": "d8ccdc12112bebdba9d323cff06d8b8472acca401bdcfa0c82d58787a7f33b72",
+  "fingerprint": "ceee148fba2e3ab2ab7347c940500a08d1a84591ed9e5657ed3b0650e2bd3fed",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }
