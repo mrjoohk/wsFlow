@@ -3,11 +3,10 @@ from __future__ import annotations
 
 import copy
 import sqlite3
-from pathlib import Path
 from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from . import calendar_query, operations
+from . import calendar_query, operations, calendar_identity
 from .readmodel import fingerprint
 
 
@@ -40,6 +39,7 @@ def query(projects, store, start, end, display_timezone='Asia/Seoul', project_id
     errors = []
     links = {l['local_id']:l for l in (google_links or [])}
     needs_local = 'local' in sources or ('google' in sources and bool(links))
+    current_projects = calendar_identity.observe(projects, store.registry) if needs_local else {}
     if needs_local:
         try:
             records = store.records()
@@ -54,7 +54,8 @@ def query(projects, store, start, end, display_timezone='Asia/Seoul', project_id
         except (OSError, sqlite3.Error, ValueError):
             local_ok = False; errors.append('local_store_unavailable')
     zone = ZoneInfo(display_timezone)
-    current_projects = {p['id']:str(Path(p['path']).resolve()) for p in projects}
+    if needs_local and current_projects != calendar_identity.observe(projects, store.registry):
+        local_ok = False; errors.append('project_identity_changed_during_query')
     days = copy.deepcopy(legacy['days'])
     google_result = google_result or {'events':[], 'sources':[], 'complete':True, 'connected':False}
     google_selected = 'google' in sources and selected is None
@@ -66,13 +67,18 @@ def query(projects, store, start, end, display_timezone='Asia/Seoul', project_id
     for day in days:
         date = calendar_query.iso_date(day['date'])
         day['events'] = []
+        day['project_link_warnings'] = []
         try:
             for record in records:
-                active = {i for i in record['project_ids'] if record['project_references'].get(i) == current_projects.get(i)
-                          and i in current_projects}
+                statuses = {i:calendar_identity.link_status(record.get('project_references', {}).get(i), current_projects.get(i)) for i in record['project_ids']}
+                active = {i for i, status in statuses.items() if status in {'verified','legacy_path'}}
+                on_date = overlaps(record,date,zone) if record['kind']=='event' else record['date']==day['date']
+                if not record['deleted'] and on_date and set(record['project_ids'])-active:
+                    day['project_link_warnings'].append({'record_id':record['id'],'project_ids':sorted(set(record['project_ids'])-active),
+                                                         'status':'unverified_or_unavailable'})
                 if record['deleted'] or (selected is not None and not selected.intersection(active)):
                     continue
-                visible = {**record, 'unavailable_project_ids':sorted(set(record['project_ids'])-active)}
+                visible = {**record, 'unavailable_project_ids':sorted(set(record['project_ids'])-active),'project_link_status':statuses}
                 link = links.get(record['id'])
                 linked_google = bool(link and 'google:'+operations.digest([link['account_id'],link['calendar_id']]) in google_sources)
                 if link:

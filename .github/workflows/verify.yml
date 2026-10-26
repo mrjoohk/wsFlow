@@ -85,6 +85,25 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Calendar project identity with the actual local server
+        shell: pwsh
+        env:
+          WSFLOW_BROWSER_OUTPUT: ${{ runner.temp }}/calendar-identity-ui
+        run: |
+          $env:PATH = "$env:RUNNER_TEMP/venv/Scripts;$env:PATH"
+          node tests/calendar_identity_browser.cjs
+          exit $LASTEXITCODE
+      - name: Upload calendar identity UI evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: uid-ui-windows-${{ matrix.python }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/calendar-identity-ui
+            ci/source-manifest.json
+          if-no-files-found: error
+          retention-days: 30
+
   expected-failure-gate:
     if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
     strategy:

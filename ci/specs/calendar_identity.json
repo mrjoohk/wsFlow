@@ -1,0 +1,333 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_calendar_identity.py"
+  ],
+  "timeout": 90,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "mutants": [
+    {
+      "id": "PLAN_IDENTITY",
+      "name": "PLAN_IDENTITY",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "if op.get('identity_version') != calendar_identity.VERSION or op['project_bindings'] != self._bindings(projects, op['bound_project_ids']):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "SAVED_UID",
+      "name": "SAVED_UID",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "return saved['status'] if saved == reference(current) else 'unavailable'",
+          "new": "return current['status']"
+        }
+      ]
+    },
+    {
+      "id": "PRESERVE_HISTORY",
+      "name": "PRESERVE_HISTORY",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "if current and pid in current['project_ids'] and pid not in rebind:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "EXPLICIT_REBIND",
+      "name": "EXPLICIT_REBIND",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "pid in current['project_ids'] and pid not in rebind:",
+          "new": "pid in current['project_ids'] and True:"
+        }
+      ]
+    },
+    {
+      "id": "ROOT_PARENT",
+      "name": "ROOT_PARENT",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "if pp.get('root_uid') != root_uid:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "ROOT_PATH",
+      "name": "ROOT_PATH",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "if pp.get('checkout_path') != str(checkout) or rp.get('root_path') != str(root):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "DUP_PROJECT",
+      "name": "DUP_PROJECT",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "if sum(p is not None and p.get('project_uid') == project_uid for p in profiles.values()) != 1:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "DUP_ROOT",
+      "name": "DUP_ROOT",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "if sum(r is not None and r.get('root_uid') == root_uid for r in roots.values()) != 1:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "READ_FINISH",
+      "name": "READ_FINISH",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "if not reader.finish():",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "LOCAL_COMMIT",
+      "name": "LOCAL_COMMIT",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "            self._verify_bindings(op, projects)\n            db.execute('INSERT INTO calendar_records",
+          "new": "            db.execute('INSERT INTO calendar_records"
+        }
+      ]
+    },
+    {
+      "id": "GOOGLE_PREFLIGHT",
+      "name": "GOOGLE_PREFLIGHT",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "old": "        self.local._verify_bindings(op, projects)\n        dest=op['destination']",
+          "new": "        dest=op['destination']"
+        }
+      ]
+    },
+    {
+      "id": "GOOGLE_COMMIT",
+      "name": "remove both equivalent Google commit binding checks",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "old": "                self.local._verify_bindings(op, projects)\n                current=self._record",
+          "new": "                current=self._record"
+        },
+        {
+          "file": "wsflow/calendar_sync.py",
+          "old": "or op['project_bindings']!=self.local._bindings(projects,current['project_ids'])",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "id": "LINK_ONLY_NO_SEND",
+      "name": "LINK_ONLY_NO_SEND",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "old": "if existing and current and current['deleted']==record['deleted'] and body(current)==body(record):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "LEGACY_UNVERIFIED",
+      "name": "LEGACY_UNVERIFIED",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "return 'unverified'",
+          "new": "return 'legacy_path'"
+        }
+      ]
+    },
+    {
+      "id": "DUP_REGISTRY_PROJECT",
+      "name": "DUP_REGISTRY_PROJECT",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "if len({p['id'] for p in projects}) != len(projects):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "DUP_REGISTRY_ROOT",
+      "name": "DUP_REGISTRY_ROOT",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "if len({Path(r['path']).resolve() for r in registered_roots}) != len(registered_roots):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "SYNC_BASE_REVISION",
+      "name": "SYNC_BASE_REVISION",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "old": "existing['base_local_revision']=record['revision'];save_link(db,existing)",
+          "new": "pass"
+        }
+      ]
+    },
+    {
+      "id": "HTTP_IDENTITY_PREFLIGHT",
+      "name": "HTTP_IDENTITY_PREFLIGHT",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "old": "local._verify_bindings(op,registry['projects'])",
+          "new": "pass"
+        }
+      ]
+    },
+    {
+      "id": "REMOVED_BINDING",
+      "name": "REMOVED_BINDING",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "sorted(set(payload['project_ids']) | set((current or {}).get('project_ids', [])))",
+          "new": "sorted(set(payload['project_ids']))"
+        }
+      ]
+    },
+    {
+      "id": "OBSERVATION_PIN",
+      "name": "OBSERVATION_PIN",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "return {i:identities.get(i, {'version':calendar_identity.VERSION,'status':'unavailable','reason':'unregistered'}) for i in ids}",
+          "new": "return {i:calendar_identity.reference(identities.get(i, {'version':calendar_identity.VERSION,'status':'unavailable','reason':'unregistered'})) for i in ids}"
+        }
+      ]
+    },
+    {
+      "id": "REMOVE_PREVIEW",
+      "name": "REMOVE_PREVIEW",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "link_updates.extend({'project_id':pid,'action':'remove'} for pid in (current or {}).get('project_ids', []) if pid not in references)",
+          "new": "link_updates.extend([])"
+        }
+      ]
+    },
+    {
+      "id": "PROFILE_SCHEMA",
+      "name": "PROFILE_SCHEMA",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "if value is not None and (type(value.get('schema_version')) is not int or value['schema_version'] != 1):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "DIRECTORY_RECHECK",
+      "name": "DIRECTORY_RECHECK",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": "if directory(path) != before:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "GOOGLE_CACHE",
+      "name": "GOOGLE_CACHE",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "old": "if op['status']=='succeeded':return op['result']",
+          "new": "if False:return op['result']"
+        }
+      ]
+    },
+    {
+      "id": "UID_LENGTH",
+      "name": "accept oversized UID",
+      "edits": [
+        {
+          "file": "wsflow/calendar_identity.py",
+          "old": " or len(text) > 200",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "id": "DELETE_HISTORY",
+      "name": "backfill identity only on delete",
+      "edits": [
+        {
+          "file": "wsflow/calendar_store.py",
+          "old": "if current and pid in current['project_ids'] and pid not in rebind:",
+          "new": "if current and action != 'delete' and pid in current['project_ids'] and pid not in rebind:"
+        }
+      ]
+    },
+    {
+      "id": "EARLY_GOOGLE_IDENTITY",
+      "name": "refuse cached success after identity change",
+      "edits": [
+        {
+          "file": "wsflow/calendar_sync.py",
+          "old": "op=self.local.get(operation_id)\n        if op['status']=='succeeded':return op['result']",
+          "new": "op=self.local.get(operation_id)\n        self.local._verify_bindings(op, projects)\n        if op['status']=='succeeded':return op['result']"
+        }
+      ]
+    }
+  ]
+}

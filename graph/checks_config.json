@@ -619,8 +619,10 @@
     },
     {
       "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",
-      "search_file": "wsflow/calendar_store.py",
-      "quote": "return {i: next((str(Path(p['path']).resolve()) for p in projects if p['id'] == i), None) for i in ids}"
+      "search_file": "ci/history/pre_f185_calendar_store.py.txt",
+      "quote": "return {i: next((str(Path(p['path']).resolve()) for p in projects if p['id'] == i), None) for i in ids}",
+      "original_search_file": "wsflow/calendar_store.py",
+      "historical_sha256": "c682b555fb370d40d12f99ba87455371c8204e2456300c848e9059ac355f9302"
     },
     {
       "doc": "output_docs/261018_1715_i0_i7_final_analysis.md",

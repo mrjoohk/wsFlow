@@ -1,0 +1,54 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "node",
+    "tests/calendar_identity_browser.cjs"
+  ],
+  "timeout": 100,
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "mutants": [
+    {
+      "id": "REBIND_CHECKBOX",
+      "name": "REBIND_CHECKBOX",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "d.unavailable.filter(id=>state.projects.some(p=>p.id===id)).map",
+          "new": "d.unavailable.filter(()=>false).map"
+        }
+      ]
+    },
+    {
+      "id": "REBIND_REQUEST",
+      "name": "REBIND_REQUEST",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "...(action==='update'&&d.rebind?.length?{rebind_project_ids:d.rebind}:{}),",
+          "new": "...{},"
+        }
+      ]
+    },
+    {
+      "id": "UNAVAILABLE_WARNING",
+      "name": "UNAVAILABLE_WARNING",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "if(unavailable.size)",
+          "new": "if(false)"
+        }
+      ]
+    }
+  ]
+}

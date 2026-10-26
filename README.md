@@ -288,3 +288,6 @@ V2는2 PASS/4 PARTIAL, 전체46개는11 PASS/4 PARTIAL/31 NOT_RUN이다. 실제 
 ### P-026 CI 증거 경계
 
 I7 JSON 투영 혼입(F074)은 동일 ZIP의 정확한17사례 stdout·progress·성공명령·화면/필수backend해시 대조로 실행 근거를 수용했다. 원 artifact는 유지하고 격리 문제는 deferred다. 최초314 fixture EPERM·실패2artifact와 재실행 수용7artifact를 구분한다. 수용기 최종 대조는 정상3/음성입력25/보호제거15이며 제품변이242와 합치지 않는다.
+
+
+Calendar project links bind managed project/root identities. Historical links remain globally available and require explicit reviewed reassociation. Queued/uncertain Google intents are preserved. See `rd/261026_P045_uid_binding_contract.md`.

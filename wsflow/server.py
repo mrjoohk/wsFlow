@@ -23,7 +23,7 @@ API
   GET    /api/v1/calendar/range?start=&end=&timezone=&project_id=  기존 날짜 기록 (end 제외)
   GET    /api/v1/calendar/day?date=&start=&end=&snapshot_id=      같은 범위 snapshot의 날짜 상세
   GET    /api/v2/calendar/range|day?start=&end=&timezone=&project_id=&source=  I2 로컬 일정/메모 + 기존 기록
-  POST   /api/v2/calendar/plan {kind,action,payload?,id?,expected_revision?}   로컬 기록 불변 계획
+  POST   /api/v2/calendar/plan {kind,action,payload?,id?,expected_revision?,rebind_project_ids?} 로컬 기록 불변 계획
   POST   /api/v2/calendar/apply {plan_id,operation_id}                        선택 작업의 로컬 원자 적용
   POST   /api/roots        {path, template?}  루트 추가
   DELETE /api/roots        {path}             루트 제거
@@ -76,6 +76,7 @@ import secrets
 import sqlite3
 import sys
 import threading
+import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -380,8 +381,15 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                     if not isinstance(body, dict) or set(body) != {'plan_id','operation_id'}:
                         raise operations.StateConflict('서버 계획 ID와 작업 ID만 제출하십시오')
                     plan=local.plan(body['plan_id'])
+                    if plan.get('binding')!=local.registry or plan.get('kind')!='local_calendar' or len(plan['items'])!=1 or plan['items'][0]['operation_id']!=body['operation_id']:
+                        raise calendar_store.Conflict('이 캘린더 계획의 작업 ID가 아닙니다')
                     item=plan['items'][0]
-                    if item.get('google_target') and local.get(body['operation_id']) and local.get(body['operation_id'])['status']!='succeeded':
+                    op=local.get(body['operation_id'])
+                    if op['status']!='succeeded':
+                        if time.time()>plan['expires_at'] or op['status']!='planned':
+                            raise calendar_store.Conflict('만료됐거나 사용할 수 없는 계획입니다')
+                        local._verify_bindings(op,registry['projects'])
+                    if item.get('google_target') and op['status']!='succeeded':
                         target=item['google_target']
                         if writer is None:raise operations.StateConflict('Google 연결을 확인하십시오')
                         with google.locked():writer._authorize(target['account_id'],target['calendar_id'])

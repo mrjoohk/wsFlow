@@ -12,7 +12,7 @@ from uuid import uuid4
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from . import operations
+from . import operations, calendar_identity
 from .calendar_query import iso_date
 from .wfhome import wf_home_for
 
@@ -117,13 +117,17 @@ class Store(operations.Store):
                 if self.path.resolve().is_relative_to(root):
                     raise Conflict('캘린더 DB는 프로젝트와 WF_HOME 밖에 있어야 합니다')
 
-    @staticmethod
-    def _bindings(projects, ids):
-        return {i: next((str(Path(p['path']).resolve()) for p in projects if p['id'] == i), None) for i in ids}
+    def _bindings(self, projects, ids):
+        identities = calendar_identity.observe(projects, self.registry) if ids else {}
+        return {i:identities.get(i, {'version':calendar_identity.VERSION,'status':'unavailable','reason':'unregistered'}) for i in ids}
+
+    def _verify_bindings(self, op, projects):
+        if op.get('identity_version') != calendar_identity.VERSION or op['project_bindings'] != self._bindings(projects, op['bound_project_ids']):
+            raise Conflict('프로젝트 연결이 바뀌었거나 이전 계획입니다 — 다시 확인하십시오')
 
     def preview(self, request, projects, google_target=None):
         self._storage_boundary(projects)
-        if not isinstance(request, dict) or set(request) - {'action','kind','id','expected_revision','payload'}:
+        if not isinstance(request, dict) or set(request) - {'action','kind','id','expected_revision','payload','rebind_project_ids'}:
             raise ValueError('계획 요청 필드가 올바르지 않습니다')
         action, kind = request.get('action'), request.get('kind')
         if action not in ('create', 'update', 'delete') or kind not in ('event', 'note'):
@@ -144,11 +148,26 @@ class Store(operations.Store):
         allowed = {p['id'] for p in projects} | set((current or {}).get('project_ids', []))
         payload = ({k:v for k,v in current.items() if k not in {'id','kind','revision','deleted','origin','sync_status','created_at','updated_at','project_references'}}
                    if action == 'delete' else normalize(kind, request.get('payload'), allowed))
-        bindings = self._bindings(projects, payload['project_ids'])
+        rebind = request.get('rebind_project_ids', [])
+        if (not isinstance(rebind, list) or any(not isinstance(i, str) for i in rebind) or
+                (rebind and (action != 'update' or not set(rebind).issubset(set(current['project_ids']) & set(payload['project_ids']))))):
+            raise ValueError('기존 연결 중 현재 프로젝트로 다시 연결할 ID를 선택하십시오')
+        bound_ids = sorted(set(payload['project_ids']) | set((current or {}).get('project_ids', [])))
+        bindings = self._bindings(projects, bound_ids)
         previous_refs = (current or {}).get('project_references', {})
+        references = {};link_updates = []
+        for pid in payload['project_ids']:
+            if current and pid in current['project_ids'] and pid not in rebind:
+                references[pid] = previous_refs.get(pid)
+            else:
+                if bindings[pid]['status'] not in {'verified','legacy_path'}:
+                    raise Conflict('프로젝트 정체성을 확인하지 못했습니다 — 연결을 확인하십시오', current)
+                references[pid] = calendar_identity.reference(bindings[pid])
+                link_updates.append({'project_id':pid,'action':'rebind' if pid in rebind else 'add','identity':references[pid]})
+        link_updates.extend({'project_id':pid,'action':'remove'} for pid in (current or {}).get('project_ids', []) if pid not in references)
         item = {'kind': kind, 'action': action, 'target': ident, 'payload': payload, 'expected_revision': expected,
-                'project_bindings': bindings,
-                'project_references': {i:previous_refs.get(i, bindings[i]) for i in payload['project_ids']}}
+                'identity_version':calendar_identity.VERSION,'bound_project_ids':bound_ids,'project_bindings': bindings,
+                'project_references':references,'link_updates':link_updates}
         if google_target is not None:
             item['google_target'] = google_target
         plan = self.save_plan({'kind':'local_calendar', 'binding':self.registry}, [item])
@@ -169,8 +188,7 @@ class Store(operations.Store):
                 return op['result']
             if time.time() > plan['expires_at'] or op['status'] != 'planned':
                 raise Conflict('만료됐거나 사용할 수 없는 계획입니다 — 다시 확인하십시오')
-            if op['project_bindings'] != self._bindings(projects, op['payload']['project_ids']):
-                raise Conflict('프로젝트 연결이 바뀌었습니다 — 다시 확인하십시오')
+            self._verify_bindings(op, projects)
             row = db.execute('SELECT data FROM calendar_records WHERE id=?', (op['target'],)).fetchone()
             current = json.loads(row[0]) if row else None
             if (op['action'] == 'create' and current is not None) or (op['action'] != 'create' and
@@ -185,6 +203,7 @@ class Store(operations.Store):
                       'deleted':op['action']=='delete', 'origin':'local', 'sync_status':'local_only',
                       'project_references':op['project_references'],
                       'created_at':(current or {}).get('created_at',stamp), 'updated_at':stamp}
+            self._verify_bindings(op, projects)
             db.execute('INSERT INTO calendar_records(id,data) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',
                        (record['id'], operations.encoded(record)))
             result = {'schema_version':2, 'operation_id':operation_id, 'record':record}

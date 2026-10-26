@@ -429,7 +429,7 @@ function calendarDateAt(value=new Date(),zone='Asia/Seoul') {
 }
 function calendarTime(value) { return new Intl.DateTimeFormat('ko-KR',{timeZone:CAL.timezone,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value)); }
 function calendarInputTime(value) { return calendarDateAt(value)+'T'+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(value)); }
-function calendarNames(ids, unavailable=[]) { return ids.length ? ids.map(id=>unavailable.includes(id)?id+' (이전 등록)':(state.projects.find(p=>p.id===id)||{alias:id+' (등록 해제)'}).alias).join(', ') : '프로젝트 미연결'; }
+function calendarNames(ids, unavailable=[]) { return ids.length ? ids.map(id=>unavailable.includes(id)?id+' (소속 확인 불가 · 과거 연결 보존)':(state.projects.find(p=>p.id===id)||{alias:id+' (등록 해제)'}).alias).join(', ') : '프로젝트 미연결'; }
 function calendarVisible() { return state.view==='calendar' && !!$('#calendarRoot'); }
 function calendarDrafts() {
   const box=$('#cDrafts');if(!box)return;
@@ -475,6 +475,8 @@ function drawCalendar() {
   $('#cPrev').disabled=calendarMove(CAL.selected,CAL.mode,-1)===CAL.selected;$('#cNext').disabled=calendarMove(CAL.selected,CAL.mode,1)===CAL.selected;
   $('#cStatus').textContent=CAL.error?'확인 불가: '+CAL.error:!CAL.data?'기록을 읽는 중…':CAL.data.complete?'저장된 기록을 확인했습니다.':'일부 기록을 확인하지 못했습니다. ?는 확인이 필요한 건수입니다.';
   if(CAL.data){const sources=CAL.data.sources.filter(s=>s.kind==='google');if(sources.length)$('#cStatus').textContent+=' Google: '+sources.map(s=>s.name+' · '+(s.complete?'확인':'확인 필요')+' · '+(s.last_sync||'미수집')).join(' / ');}
+  const unavailable=new Set((CAL.data?.days||[]).flatMap(d=>(d.project_link_warnings||[]).map(w=>w.record_id)));
+  if(unavailable.size)$('#cStatus').textContent+=` 소속을 확인할 수 없는 기록 ${unavailable.size}개는 프로젝트 필터에 자동 포함하지 않습니다. 전체 프로젝트 조회에서 확인·재연결할 수 있습니다.`;
   const cell=date=>{
     if(date<'2000-01-01'||date>'2099-12-31')return '<div role="gridcell" aria-disabled="true"></div>';
     const day=byDay.get(date),view=day?calendarCell(day):null,selected=date===CAL.selected;
@@ -507,7 +509,7 @@ function selectCalendarDate(date) {
 }
 function openCalendarEditor(kind, record=null, savedKey=null) {
   const key=savedKey||(record?record.id:`new:${kind}:${CAL.selected}`);
-  if(!CAL.drafts.has(key))CAL.drafts.set(key,{kind,id:record?.id||null,expected_revision:record?.revision||null,unavailable:record?.unavailable_project_ids||[],revision:0,dirty:false,plan:null,pending:null,destination:'',googleLink:record?.google_link||null,
+  if(!CAL.drafts.has(key))CAL.drafts.set(key,{kind,id:record?.id||null,expected_revision:record?.revision||null,unavailable:record?.unavailable_project_ids||[],rebind:[],revision:0,dirty:false,plan:null,pending:null,destination:'',googleLink:record?.google_link||null,
     payload:record?Object.fromEntries(Object.entries(record).filter(([key])=>['title','body','location','project_ids','all_day','start_date','end_date','start_at','end_at','timezone','date'].includes(key))):kind==='note'?{date:CAL.selected,body:'',project_ids:CAL.projectId?[CAL.projectId]:[]}:{title:'',body:'',location:'',all_day:true,start_date:CAL.selected,end_date:calendarAdd(CAL.selected,1),project_ids:CAL.projectId?[CAL.projectId]:[]}});
   const d=CAL.drafts.get(key),p=d.payload,dlg=$('#dlg');CAL.editor=key;
   const timedStart=p.start_at?calendarInputTime(p.start_at):(p.start_date||CAL.selected)+'T09:00',timedEnd=p.end_at?calendarInputTime(p.end_at):(p.start_date||CAL.selected)+'T10:00';
@@ -520,6 +522,7 @@ function openCalendarEditor(kind, record=null, savedKey=null) {
       <div id="cTimed" class="cal-editor-times"><label>시작 시각 <input type="datetime-local" data-field="start_at" value="${timedStart}"></label><label>종료 시각 <input type="datetime-local" data-field="end_at" value="${timedEnd}"></label><p class="muted">Asia/Seoul 기준. 시각을 수정하면 이 시간대로 저장합니다.</p></div><label>장소 <input data-field="location" value="${esc(p.location)}"></label>`:
       `<label>업무 날짜 <input type="date" data-field="date" value="${esc(p.date)}"></label>`}
     <label>본문 <textarea data-field="body" rows="5">${esc(p.body)}</textarea></label><label>프로젝트 연결 (복수 선택 가능) <select data-field="project_ids" multiple size="${Math.min(4,Math.max(2,links.length))}">${links.map(id=>`<option value="${esc(id)}" ${p.project_ids.includes(id)?'selected':''}>${esc(calendarNames([id],d.unavailable))}</option>`).join('')}</select></label>
+    ${d.unavailable.filter(id=>state.projects.some(p=>p.id===id)).map(id=>`<label><input type="checkbox" data-rebind="${esc(id)}" ${(d.rebind||[]).includes(id)?'checked':''}>과거 연결을 현재 프로젝트 ${esc((state.projects.find(p=>p.id===id)||{}).alias||id)}에 다시 연결 — 저장 전 별도 확인</label>`).join('')}
     <div id="cEditorStatus" role="status"></div><div id="cPreview"></div><div class="actions"><button type="submit" class="primary" id="cSave">${d.pending?'같은 작업의 저장 결과 확인':'저장 내용 확인'}</button>${d.id?`<button type="button" id="cDelete" class="danger">${d.googleLink?'화면 숨김 내용 확인':'삭제 내용 확인'}</button>`:''}<button type="button" id="cClose">닫기 · 초안 유지</button><button type="button" id="cDiscard">초안 버리기</button></div></form>`;
   function toggle(){if(kind==='event'){$('#cAllDay').style.display=$('[data-field=all_day]',dlg).checked?'flex':'none';$('#cTimed').style.display=$('[data-field=all_day]',dlg).checked?'none':'flex';}}
   toggle();
@@ -531,7 +534,7 @@ function openCalendarEditor(kind, record=null, savedKey=null) {
       if(payload.all_day){payload.start_date=get('start_date').value;payload.end_date=get('end_date').value;}
       else if(p.start_at && get('start_at').value===timedStart && get('end_at').value===timedEnd){payload.start_at=p.start_at;payload.end_at=p.end_at;payload.timezone=p.timezone;}
       else {payload.start_at=get('start_at').value+':00+09:00';payload.end_at=get('end_at').value+':00+09:00';payload.timezone='Asia/Seoul';}}
-    d.payload=payload;d.dirty=true;d.revision++;d.plan=null;$('#cPreview').innerHTML='';calendarDrafts();toggle();
+    d.payload=payload;d.rebind=[...dlg.querySelectorAll('[data-rebind]:checked')].map(e=>e.dataset.rebind).filter(id=>links.includes(id));d.dirty=true;d.revision++;d.plan=null;$('#cPreview').innerHTML='';calendarDrafts();toggle();
     if($('#cDestination'))d.destination=$('#cDestination').value;
   }
   $('#calendarEditor').oninput=collect;
@@ -540,10 +543,12 @@ function openCalendarEditor(kind, record=null, savedKey=null) {
   async function preview(action){
     if(d.pending)return applyPending();
     const rev=d.revision;$('#cSave').disabled=true;
-    try {const payload={action,kind,...(d.id?{id:d.id,expected_revision:d.expected_revision}:{}),...(action==='delete'?{}:{payload:d.payload}),...(!d.id&&d.destination?{destination:{calendar_id:d.destination}}:{})};
+    try {const payload={action,kind,...(d.id?{id:d.id,expected_revision:d.expected_revision}:{}),...(action==='delete'?{}:{payload:d.payload}),...(action==='update'&&d.rebind?.length?{rebind_project_ids:d.rebind}:{}),...(!d.id&&d.destination?{destination:{calendar_id:d.destination}}:{})};
       const plan=await api('POST','/api/v2/calendar/plan',payload);
       if(CAL.editor!==key || rev!==d.revision)return;
       d.plan=plan;$('#cPreview').innerHTML=`<div class="panel"><b>${action==='delete'?(d.googleLink?'이 화면에서 숨깁니다. Google 원본은 유지합니다.':'이 기록을 로컬에서 삭제합니다.'):(d.destination||d.googleLink?'이 내용을 저장하고 Google에 반영합니다.':'이 내용을 로컬에 저장합니다.')}</b><p>${esc(plan.item.payload.title||plan.item.payload.body)}</p><p>${esc(plan.item.payload.date||plan.item.payload.start_date||plan.item.payload.start_at)} ${esc(plan.item.payload.end_date||plan.item.payload.end_at||'')}</p><button type="button" id="cApply" class="${action==='delete'?'danger':'primary'}">${action==='delete'?(d.googleLink?'화면에서 숨김':'로컬에서 삭제'):(d.destination||d.googleLink?'저장·Google 반영':'로컬에 저장')}</button></div>`;
+      const changes=(plan.item.link_updates||[]).map(c=>`${({add:'연결 추가',remove:'연결 해제',rebind:'현재 프로젝트로 명시 재연결'})[c.action]}: ${(state.projects.find(p=>p.id===c.project_id)||{}).alias||c.project_id}${c.identity?.status==='legacy_path'?' (UID 미설정 · 폴더 경계 기준)':''}`);
+      if(changes.length)$('#cApply').insertAdjacentHTML('beforebegin',`<p class="warn">${changes.map(esc).join('<br>')}</p>`);
       $('#cApply').onclick=()=>{d.pending={plan,revision:rev};applyPending();};
     }catch(e){if(d.revision===rev)showError(e);}finally{if(CAL.editor===key)$('#cSave').disabled=false;}
   }

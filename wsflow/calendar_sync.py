@@ -96,6 +96,10 @@ def on_local_save(db, current, record, op):
     target = op.get('google_target')
     if not existing and target is None:
         return None
+    if existing and current and current['deleted']==record['deleted'] and body(current)==body(record):
+        if existing['state']=='synced' and not existing.get('pending') and existing['base_local_revision']==current['revision']:
+            existing['base_local_revision']=record['revision'];save_link(db,existing)
+        return None
     ensure(db)
     link = existing or {**target,'local_id':record['id'],'state':'local_only','base_etag':None,
                         'base_remote':None,'base_local_revision':record['revision'],'hidden':False,'pending':None,'conflict':None}
@@ -216,6 +220,7 @@ class Engine:
                 raise ValueError('지원하지 않는 Google 일정 작업입니다')
             item={'action':action,'target':record['id'],'expected_revision':record['revision'],
                   'destination':target,'remote':remote,'resolution':request.get('resolution'),
+                  'identity_version':calendar_store.calendar_identity.VERSION,'bound_project_ids':record['project_ids'],
                   'project_bindings':self.local._bindings(projects,record['project_ids'])}
             plan=self.local.save_plan({'kind':'google_write','binding':self.local.registry},[item])
             return {'plan_id':plan['plan_id'],'operation_id':plan['items'][0]['operation_id'],
@@ -230,6 +235,7 @@ class Engine:
         if op['status']=='succeeded':return op['result']
         if op['status']!='planned' or time.time()>plan['expires_at']:
             raise operations.StateConflict('만료됐거나 사용할 수 없는 계획입니다')
+        self.local._verify_bindings(op, projects)
         dest=op['destination']
         with self.google.locked():
             if op['action']=='show':
@@ -241,6 +247,7 @@ class Engine:
                     raise operations.StateConflict('계획 후 Google 일정이 바뀌었습니다 — 다시 확인하십시오')
             with self.local.connection(True) as db:
                 ensure(db)
+                self.local._verify_bindings(op, projects)
                 current=self._record(db,op['target'])
                 if current is None or current['revision']!=op['expected_revision'] or op['project_bindings']!=self.local._bindings(projects,current['project_ids']):
                     raise calendar_store.Conflict('계획 후 로컬 일정이 바뀌었습니다',current)

@@ -150,7 +150,19 @@
       "spec": "ci/specs/common_writes_ui.json",
       "count": 3,
       "source": "rd/common_write_contracts.md"
+    },
+    {
+      "stage": "calendar_identity",
+      "spec": "ci/specs/calendar_identity.json",
+      "count": 27,
+      "source": "rd/261026_P045_uid_binding_contract.md"
+    },
+    {
+      "stage": "calendar_identity_ui",
+      "spec": "ci/specs/calendar_identity_ui.json",
+      "count": 3,
+      "source": "rd/261026_P045_uid_binding_contract.md"
     }
   ],
-  "total": 289
+  "total": 319
 }

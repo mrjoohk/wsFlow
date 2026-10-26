@@ -174,7 +174,7 @@
       "edits": [
         {
           "file": "wsflow/calendar_store.py",
-          "old": "if op['project_bindings'] != self._bindings(projects, op['payload']['project_ids']):",
+          "old": "if op.get('identity_version') != calendar_identity.VERSION or op['project_bindings'] != self._bindings(projects, op['bound_project_ids']):",
           "new": "if False:"
         }
       ]
@@ -252,7 +252,7 @@
       "edits": [
         {
           "file": "wsflow/calendar_view.py",
-          "old": "active = {i for i in record['project_ids'] if record['project_references'].get(i) == current_projects.get(i)\n                          and i in current_projects}",
+          "old": "active = {i for i, status in statuses.items() if status in {'verified','legacy_path'}}",
           "new": "active = set(record['project_ids'])"
         }
       ]
