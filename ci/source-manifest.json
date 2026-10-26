@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-26T04:11:26.107369+00:00",
+  "created_at": "2026-10-26T06:54:32.454106+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "0e6e3b52fb35f9dcb4ace5c4177245a0c7e6a5ed3d4bbd6ae86ce7bc35a6fc19",
@@ -42,8 +42,8 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "d21ac939e8a95ec242b8889f0e0699d5278ffd2f61cf66ff16b1f632c385c7d2",
-      "sha256": "ac10e2f4297c3e8a27fd0f7e4104a53e5def462d1cbdb3c1aca587a9a099e642"
+      "raw_sha256": "1fc0a249fc0e782aa5c3377853f39fcde5d80eaf2181b210cdfcda28c08a6feb",
+      "sha256": "8fcb393b7a267682b290beb5d5011cd58a9d256dd84ec7dfbe00a0de769c6009"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "752d1e3330734566d49e249529c180ed61ed6da1bce8c6677fb325b000da8e8f",
@@ -62,8 +62,8 @@
       "sha256": "304782c997fe22be6374a5ce5ec394d9d97b1f13211f62c14b6d996eec62eefe"
     },
     "ci/specs/fixture_reliability.json": {
-      "raw_sha256": "f10174d3fb657b0374b88369e1d0e6617a5a759afa7b3b1939f586880e341d20",
-      "sha256": "eca20293aa4a34cde4bead1db3dcb6af2b6f35e88b6fe175bf5d52037e58dd40"
+      "raw_sha256": "f18e2d26585d63236fad0564fb005faf784f3bbf924c0b58c559d81156d59359",
+      "sha256": "dd8089159b974fff72167f94b8dead8cca565e968f3ec866c22f46fd8ccd70ac"
     },
     "ci/specs/i0.json": {
       "raw_sha256": "450bdd54f4fe74a1a5f061f9d171ffef2b9ea0b94456afdb5358cf9a7e5a9706",
@@ -366,8 +366,8 @@
       "sha256": "1b3c3b724248d65ebfb97a0186542e539093b34643f82cfea9ee0a57aa944f61"
     },
     "tests/test_i7.py": {
-      "raw_sha256": "861af51e963cd8d5b9db7d2e847773c5c3fccc3013fe19e0c4f70b4e7b2ead5d",
-      "sha256": "861af51e963cd8d5b9db7d2e847773c5c3fccc3013fe19e0c4f70b4e7b2ead5d"
+      "raw_sha256": "e6bd3b26d87496bba8fd76e0e8bf187bb497895e3d899c3e524f0d6d7529e8d1",
+      "sha256": "e6bd3b26d87496bba8fd76e0e8bf187bb497895e3d899c3e524f0d6d7529e8d1"
     },
     "tests/test_jiraapi.py": {
       "raw_sha256": "cbdce06c1e2ca965e63658934d42340907d9b9ac7b672d1abe75c151684be9fd",
@@ -610,7 +610,7 @@
       "sha256": "89ed42ca6e653571eb02ba3e9e93e51a6993442bd43b010a0b3d753d4a310164"
     }
   },
-  "fingerprint": "ceee148fba2e3ab2ab7347c940500a08d1a84591ed9e5657ed3b0650e2bd3fed",
+  "fingerprint": "35f45e98c4d0200dbabd4bde0459ee704538f9a01105162c35fcd5e85a295e03",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }

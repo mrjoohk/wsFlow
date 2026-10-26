@@ -254,6 +254,84 @@
           "new": "pass  # budget override lost"
         }
       ]
+    },
+    {
+      "id": "CF22_auth_late_body",
+      "name": "CF22_auth_late_body",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_early_auth_rejection_has_no_late_body_send"
+      ],
+      "edits": [
+        {
+          "file": "tests/test_i7.py",
+          "old": "self.api(route,None,403,headers={},method='POST')",
+          "new": "self.api(route,{},403,headers={},method='POST')"
+        }
+      ]
+    },
+    {
+      "id": "CF23_auth_method",
+      "name": "CF23_auth_method",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_early_auth_rejection_has_no_late_body_send"
+      ],
+      "edits": [
+        {
+          "file": "tests/test_i7.py",
+          "old": "self.api(route,None,403,headers={},method='POST')",
+          "new": "self.api(route,None,403,headers={})"
+        }
+      ]
+    },
+    {
+      "id": "CF24_auth_guard",
+      "name": "CF24_auth_guard",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_i7.py",
+        "-k",
+        "test_early_auth_rejection_has_no_late_body_send"
+      ],
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "old": "if not secrets.compare_digest(got, token):",
+          "new": "if False:"
+        }
+      ]
     }
   ],
   "test": [

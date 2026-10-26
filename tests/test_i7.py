@@ -1,5 +1,6 @@
 """I7 contracts: real local Git/files/vendor; synthetic Jira at transport boundary."""
 import copy
+import http.client
 from datetime import datetime, timezone
 import json
 import os
@@ -431,16 +432,20 @@ class HttpTests(Home):
         for patch in (mock.patch.object(auth,'load',return_value=CREDS),mock.patch.object(jiraapi,'_send',self.provider),mock.patch.object(newtask.jirawrite,'_send',self.provider)):
             patch.start();self.addCleanup(patch.stop)
 
-    def api(self,path,body=None,status=200,headers=None):
+    def api(self,path,body=None,status=200,headers=None,method=None):
         req=urllib.request.Request(f'http://127.0.0.1:{self.httpd.server_address[1]}'+path,data=json.dumps(body).encode() if body is not None else None,
-                                   headers=headers if headers is not None else {'X-Auth-Token':self.httpd.wsflow_token,'Content-Type':'application/json'})
+                                   headers=headers if headers is not None else {'X-Auth-Token':self.httpd.wsflow_token,'Content-Type':'application/json'},method=method)
         try:response=urllib.request.urlopen(req,timeout=15)
         except urllib.error.HTTPError as exc:response=exc
         with response:
             text=response.read().decode();self.assertEqual(response.status,status,text);return json.loads(text)
 
     def test_batch_routes_guard_inputs_status_and_readonly_overview(self):
-        route='/api/projects/p/jira/batch/run';self.api(route,{},403,headers={})
+        # The guard may close before a separately sent body reaches it (Windows 10053).
+        route='/api/projects/p/jira/batch/run'
+        before={str(p):p.read_bytes() for p in self.base.rglob('*') if p.is_file()};calls=list(self.provider.calls)
+        self.api(route,None,403,headers={},method='POST')
+        self.assertEqual(before,{str(p):p.read_bytes() for p in self.base.rglob('*') if p.is_file()});self.assertEqual(calls,self.provider.calls)
         for body in ({'date':'2026-10-01'},{'path':'outside'},{'watermark':'2099-01-01'}):self.api(route,body,400)
         real=workflow.run
         with mock.patch.object(workflow,'run',lambda home,creds:real(home,creds,clock=lambda:WHEN)):
@@ -449,6 +454,23 @@ class HttpTests(Home):
         before={str(p):p.read_bytes() for p in self.base.rglob('*') if p.is_file()}
         self.assertTrue(self.api('/api/v1/workflow/status?date=2026-10-18')['projects'][0]['complete'])
         self.assertIn('workflow',self.api('/api/v1/context/dashboard'));self.assertEqual(before,{str(p):p.read_bytes() for p in self.base.rglob('*') if p.is_file()})
+
+    def test_early_auth_rejection_has_no_late_body_send(self):
+        closed=threading.Event();unauthorized=[];original_close=self.httpd.close_request
+        def close(request):
+            original_close(request);closed.set()
+        class DelayedBody(http.client.HTTPConnection):
+            def send(connection,data):
+                if isinstance(data,bytes) and data.startswith((b'GET ',b'POST ')):
+                    connection.unauthorized=b'X-Auth-Token:' not in data
+                    if connection.unauthorized:unauthorized.append(data.split(b' ',1)[0].decode())
+                elif getattr(connection,'unauthorized',False):
+                    if not closed.wait(5):raise AssertionError('server did not reject before the late body')
+                    raise AssertionError('unauthorized request sent a late body after the server closed')
+                return super().send(data)
+        with mock.patch.object(self.httpd,'close_request',close),mock.patch.object(http.client,'HTTPConnection',DelayedBody):
+            self.test_batch_routes_guard_inputs_status_and_readonly_overview()
+        self.assertEqual(unauthorized,['POST'])
 
     def test_offline_preview_remains_available_but_cannot_create(self):
         self.state['epic_keys']=[];self.save_state()
