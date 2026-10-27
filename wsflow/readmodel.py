@@ -19,11 +19,7 @@ def fingerprint(value) -> str:
 
 
 def inside(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return False
+    return path.is_relative_to(parent)
 
 
 class Reader:
@@ -39,8 +35,11 @@ class Reader:
         self._missing: list[tuple[Path, dict]] = []
 
     def allowed(self, resolved: Path) -> bool:
-        return (not any(inside(resolved, p) for p in self.excluded)
-                and (resolved in self.files or any(inside(resolved, p) for p in self.directories)))
+        # Build this per observation: callers may extend or replace scope lists.
+        ancestors = set(resolved.parents)
+        ancestors.add(resolved)
+        return (not any((p if isinstance(p, Path) else Path(p)) in ancestors for p in self.excluded)
+                and (resolved in self.files or any((p if isinstance(p, Path) else Path(p)) in ancestors for p in self.directories)))
 
     def record(self, path: Path, logical_id: str, owner: str, status: str, **extra) -> dict:
         item = dict(logical_id=logical_id, declared_path=str(path), resolved_path=None,

@@ -1,0 +1,187 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_readmodel_scope.py"
+  ],
+  "timeout": 90,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "mutants": [
+    {
+      "id": "EXCLUDED",
+      "name": "EXCLUDED",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.allowed",
+          "old": "not any((p if isinstance(p, Path) else Path(p)) in ancestors for p in self.excluded)",
+          "new": "True"
+        }
+      ]
+    },
+    {
+      "id": "DIRECTORY_BOUNDARY",
+      "name": "DIRECTORY_BOUNDARY",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.allowed",
+          "old": "any((p if isinstance(p, Path) else Path(p)) in ancestors for p in self.directories)",
+          "new": "True"
+        }
+      ]
+    },
+    {
+      "id": "FILE_IDENTITY",
+      "name": "FILE_IDENTITY",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader._signature",
+          "old": "return st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns",
+          "new": "return st.st_size, st.st_mtime_ns"
+        }
+      ]
+    },
+    {
+      "id": "EXPLICIT_ONLY",
+      "name": "EXPLICIT_ONLY",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.allowed",
+          "old": "resolved in self.files",
+          "new": "any(inside(resolved, p) for p in self.files)"
+        }
+      ]
+    },
+    {
+      "id": "READ_GUARD",
+      "name": "READ_GUARD",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.read",
+          "old": "if not self.allowed(resolved) or (boundary is not None and not inside(resolved, boundary)):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "SIZE_LIMIT",
+      "name": "SIZE_LIMIT",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.read",
+          "old": "if len(data) > MAX_SOURCE_BYTES:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "READ_CHANGED",
+      "name": "READ_CHANGED",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.read",
+          "old": "if before != after or after != self._signature(path.stat()) or path.resolve() != resolved:",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "FINISH_CHANGED",
+      "name": "FINISH_CHANGED",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.finish",
+          "old": "if (self._signature(path.stat()) != signature\n                        or str(path.resolve()) != item['resolved_path']):",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "MISSING_CREATED",
+      "name": "MISSING_CREATED",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.finish",
+          "old": "if path.exists():",
+          "new": "if False:"
+        }
+      ]
+    },
+    {
+      "id": "READ_PATH_STAT",
+      "name": "READ_PATH_STAT",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.read",
+          "old": "if before != after or after != self._signature(path.stat()) or path.resolve() != resolved:",
+          "new": "if before != after or path.resolve() != resolved:"
+        }
+      ]
+    },
+    {
+      "id": "READ_RERESOLVE",
+      "name": "READ_RERESOLVE",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.read",
+          "old": "if before != after or after != self._signature(path.stat()) or path.resolve() != resolved:",
+          "new": "if before != after or after != self._signature(path.stat()):"
+        }
+      ]
+    },
+    {
+      "id": "FINISH_RERESOLVE",
+      "name": "FINISH_RERESOLVE",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.finish",
+          "old": "if (self._signature(path.stat()) != signature\n                        or str(path.resolve()) != item['resolved_path']):",
+          "new": "if self._signature(path.stat()) != signature:"
+        }
+      ]
+    },
+    {
+      "id": "LOGICAL_ROOT",
+      "name": "LOGICAL_ROOT",
+      "edits": [
+        {
+          "file": "wsflow/readmodel.py",
+          "func": "Reader.__init__",
+          "old": "self.directories = [Path(os.path.abspath(p)) for p in directories]",
+          "new": "self.directories = [Path(p).resolve() for p in directories]"
+        }
+      ]
+    }
+  ]
+}

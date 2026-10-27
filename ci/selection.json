@@ -162,7 +162,13 @@
       "spec": "ci/specs/calendar_identity_ui.json",
       "count": 4,
       "source": "rd/261026_P045_uid_binding_contract.md"
+    },
+    {
+      "stage": "reader_scope",
+      "spec": "ci/specs/reader_scope.json",
+      "count": 13,
+      "source": "rd/reader_scope_contracts.md"
     }
   ],
-  "total": 323
+  "total": 336
 }
