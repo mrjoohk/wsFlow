@@ -30,7 +30,7 @@ class ModuleEvidenceTests(unittest.TestCase):
 
     def test_finished_snapshot_covers_all_cases_and_eight_shutdowns(self):
         result=runner.validate_module_browser(self.root,self.folder)
-        self.assertEqual(result,dict(cases=12,starts=8,provider_attempts=0,source_files=9,shutdowns=8))
+        self.assertEqual(result,dict(cases=14,starts=8,provider_attempts=0,source_files=9,shutdowns=8))
         hashes=runner.read(self.folder/'result.json')['source_sha256']
         for name in ('wsflow/modules/work_calendar/ui.js','wsflow/modules/work_calendar/module.json'):
             self.assertIn(name,hashes)
@@ -125,7 +125,7 @@ class ModuleEvidenceTests(unittest.TestCase):
         import json
         result=runner.validate_module_browser(self.root,self.folder,
                 load=lambda p:json.loads(originals[p]),blob=lambda p:originals[p])
-        self.assertEqual(result['cases'],12)
+        self.assertEqual(result['cases'],14)
         with self.assertRaises(ValueError):runner.validate_module_browser(self.root,self.folder)
 
 if __name__=='__main__':unittest.main()

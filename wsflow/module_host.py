@@ -18,7 +18,7 @@ import re
 import sys
 from uuid import uuid4
 
-from . import fileio, operations
+from . import fileio, operations, module_continuity
 from .path_policy import plain_path
 
 HOST_API = 1
@@ -116,7 +116,7 @@ def _relative(value):
 
 def _manifest(value, builtin_id=None):
     allowed = {'schema_version', 'id', 'name', 'version', 'host_api', 'data_schema_version',
-               'capabilities', 'requires', 'config_schema', 'entrypoint', 'ui'}
+               'capabilities', 'requires', 'config_schema', 'entrypoint', 'ui', 'data_compatibility'}
     if not isinstance(value, dict) or set(value) - allowed:
         raise ModuleError('지원하지 않는 모듈 manifest 필드입니다')
     if type(value.get('schema_version')) is not int or value['schema_version'] != 1:
@@ -165,6 +165,13 @@ def _manifest(value, builtin_id=None):
         if field.get('secret') or field.get('sensitive') or field.get('writeOnly'):
             raise ModuleError('비밀 설정은 별도 credential 계약이 필요합니다')
     result = copy.deepcopy(value)
+    if 'data_compatibility' in value:
+        if value['data_compatibility'] is None:
+            raise ModuleError('자료 호환성 선언은 object여야 합니다')
+        try:
+            result['data_compatibility'] = module_continuity.validate_contract(value['data_compatibility'])
+        except ValueError as exc:
+            raise ModuleError('잘못된 자료 호환성 선언: ' + str(exc)) from exc
     result.update(requires=value.get('requires', []), capabilities=value.get('capabilities', []),
                   config_schema=schema, ui=ui)
     return result
@@ -228,8 +235,10 @@ def _validate_modules(modules):
         if record['builtin']:
             if ident not in BUILTINS or not set(BUILTINS[ident]['capabilities']).issubset(record.get('capabilities', [])):
                 raise ModuleError('기본 모듈 선언이 변경되었습니다')
-        _manifest({k: record[k] for k in ('schema_version', 'id', 'name', 'version', 'host_api', 'data_schema_version', 'capabilities', 'requires', 'config_schema', 'entrypoint', 'ui')},
-                  builtin_id=ident if record['builtin'] else None)
+        declaration = {k: record[k] for k in ('schema_version', 'id', 'name', 'version', 'host_api', 'data_schema_version', 'capabilities', 'requires', 'config_schema', 'entrypoint', 'ui')}
+        if 'data_compatibility' in record:
+            declaration['data_compatibility'] = record['data_compatibility']
+        _manifest(declaration, builtin_id=ident if record['builtin'] else None)
         _settings(record['config_schema'], record.get('settings', {}))
     visiting, visited = set(), set()
     def visit(ident):
@@ -552,15 +561,34 @@ class ModuleHost:
             else:
                 raise ModuleError('지원하지 않는 모듈 변경입니다')
             _validate_modules(modules)
+            continuity = module_continuity.audit_transition(
+                Path(self.registry), self.root, current['modules'], modules, action, ident)
             plan = {'plan_id': 'MP-' + uuid4().hex, 'action': action, 'module_id': ident,
                     'expected_revision': current['revision'], 'modules': modules,
                     'source_path': source, 'package': package,
                     'restart_required': modules != self._active['modules'],
                     'data_adoption': False, 'data_preserved': True,
+                    'continuity': continuity, 'can_apply': continuity['ready'],
                     'changes': [{'id': key, 'before': current['modules'].get(key), 'after': modules.get(key)}
                                 for key in sorted(set(modules) | set(current['modules'])) if modules.get(key) != current['modules'].get(key)]}
             fileio.atomic_write(self._path('plans/' + plan['plan_id'] + '.json'), _bytes(plan))
             return copy.deepcopy(plan)
+
+    def _check_continuity(self, current, plan):
+        """Re-observe before reservation; this is not a startup transaction."""
+        fresh = module_continuity.audit_transition(
+            Path(self.registry), self.root, current['modules'], plan['modules'],
+            plan['action'], plan['module_id'])
+        previous = plan.get('continuity')
+        if fresh['affected_modules']:
+            if not isinstance(previous, dict) or not previous.get('ready') or plan.get('can_apply') is not True:
+                raise ModuleError('자료 사전검사가 없거나 차단된 계획입니다. 새로 미리보기하십시오', 409)
+            if not fresh['ready']:
+                reasons = ' · '.join(item['message'] for item in fresh['blockers'][:3])
+                raise ModuleError('미처리 작업 또는 확인 불가 자료 때문에 예약할 수 없습니다: ' + reasons, 409)
+            if fresh['fingerprint'] != previous.get('fingerprint'):
+                raise ModuleError('미리보기 이후 업무 자료나 연결이 바뀌었습니다. 새로 미리보기하십시오', 409)
+        return fresh
 
     def _stage_package(self, source, inspected, record):
         destination = self._path(record['package_path'])
@@ -603,6 +631,7 @@ class ModuleHost:
             if current['revision'] != plan['expected_revision']:
                 raise ModuleError('계획 이후 모듈 구성이 바뀌었습니다', 409)
             _validate_modules(plan['modules'])
+            self._check_continuity(current, plan)
             if plan['package']:
                 manifest_id = plan['package']['manifest']['id']
                 actual = inspect_package(plan['source_path'], builtin_id=manifest_id if manifest_id in BUILTINS else None)
@@ -616,6 +645,7 @@ class ModuleHost:
                 if record['installed'] and record['enabled']:
                     self._loaded_package(plan['modules'][ident])
             history = self._path('history/' + str(current['revision']) + '.json')
+            before = None
             if not history.exists():
                 before = copy.deepcopy(current)
                 for ident, record in list(before['modules'].items()):
@@ -626,6 +656,8 @@ class ModuleHost:
                             # A damaged installation must still be removable.
                             # Restoring that damaged version will fail integrity checks.
                             pass
+            self._check_continuity(current, plan)
+            if before is not None:
                 fileio.atomic_write(history, _bytes(before))
             after = {'schema_version': 1, 'revision': current['revision'] + 1,
                      'modules': plan['modules'], 'applied_plans': [*current['applied_plans'], plan_id]}

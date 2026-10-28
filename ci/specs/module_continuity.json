@@ -1,0 +1,785 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_module_continuity.py",
+    "-k",
+    "test_absent_stores"
+  ],
+  "timeout": 120,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "mutants": [
+    {
+      "id": "MC_CONTRACT",
+      "name": "mc contract",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "or value.get('pending_policy') != 'block'",
+          "new": "or False",
+          "func": "validate_contract"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_contract_is_strict"
+      ]
+    },
+    {
+      "id": "MC_PLANNED",
+      "name": "mc planned",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "OP_PENDING = {'planned', 'approved', 'executing', 'uncertain'}",
+          "new": "OP_PENDING = {'approved', 'executing', 'uncertain'}"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_all_common_statuses"
+      ]
+    },
+    {
+      "id": "MC_QUEUED",
+      "name": "mc queued",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "OUTBOX_PENDING = {'queued', 'syncing', 'uncertain', 'error', 'conflict'}",
+          "new": "OUTBOX_PENDING = {'syncing', 'uncertain', 'error', 'conflict'}"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_all_outbox_states"
+      ]
+    },
+    {
+      "id": "MC_WAL",
+      "name": "mc wal",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "for suffix, raw in parts.items():",
+          "new": "for suffix, raw in [('', parts[''])]:",
+          "func": "_Audit.sqlite"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_uncheckpointed_wal"
+      ]
+    },
+    {
+      "id": "MC_ORIGINAL_SQLITE",
+      "name": "mc original sqlite",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "sqlite3.connect(str(clone))",
+          "new": "sqlite3.connect(str(path))",
+          "func": "_Audit.sqlite"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_uncheckpointed_wal"
+      ]
+    },
+    {
+      "id": "MC_SQLITE_VERSION",
+      "name": "mc sqlite version",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if db.execute('PRAGMA user_version').fetchone()[0] != 1:",
+          "new": "if False:",
+          "func": "_Audit._sqlite_status"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "user_version"
+      ]
+    },
+    {
+      "id": "MC_SOURCE_BYTES",
+      "name": "mc source bytes",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if (after['status'], after.get('sha256')) != (before['status'], before.get('sha256')):",
+          "new": "if False:",
+          "func": "_Audit.finish"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_source_change_even_with_restored"
+      ]
+    },
+    {
+      "id": "MC_DECLARE",
+      "name": "mc declare",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if relevant and ident + '-v1' not in contract.get('preserves', []):",
+          "new": "if False:",
+          "func": "audit_transition"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_nonempty_builtin_requires"
+      ]
+    },
+    {
+      "id": "MC_SCHEMA_TRANSFER",
+      "name": "mc schema transfer",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if old.get(ident, {}).get('installed') and old[ident].get('data_schema_version') != target.get('data_schema_version'):",
+          "new": "if False:",
+          "func": "audit_transition"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_schema_change_restore"
+      ]
+    },
+    {
+      "id": "MC_SHARED_SESSION",
+      "name": "mc shared session",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if store['role'] == 'session-operations':",
+          "new": "if True:",
+          "func": "_Audit._sqlite_status"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_session_receipt_in_shared_store"
+      ]
+    },
+    {
+      "id": "MC_RECHECK_FINAL",
+      "name": "mc recheck final",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "            self._check_continuity(current, plan)\n            if before is not None:",
+          "new": "            if before is not None:",
+          "func": "ModuleHost.apply"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_transition.py",
+        "-k",
+        "test_pending_introduced_during_staging"
+      ]
+    },
+    {
+      "id": "MC_FRESHNESS",
+      "name": "mc freshness",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "if fresh['fingerprint'] != previous.get('fingerprint'):",
+          "new": "if False:",
+          "func": "ModuleHost._check_continuity"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_transition.py",
+        "-k",
+        "test_terminal_data_added_after_preview"
+      ]
+    },
+    {
+      "id": "MC_LEGACY",
+      "name": "mc legacy",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "if not isinstance(previous, dict) or not previous.get('ready') or plan.get('can_apply') is not True:",
+          "new": "if False:",
+          "func": "ModuleHost._check_continuity"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_transition.py",
+        "-k",
+        "test_legacy_code_change_plan"
+      ]
+    },
+    {
+      "id": "MC_UI_BLOCK",
+      "name": "mc ui block",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "${plan.can_apply===true?'':' disabled'}",
+          "new": ""
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_transition_ui.py",
+        "-k",
+        "test_blocked_preview_disables"
+      ]
+    },
+    {
+      "id": "MC_UI_ESCAPE",
+      "name": "mc ui escape",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "const blockers=(report.blockers||[]).map(item=>`<li>${esc(item.message)}</li>`).join('');",
+          "new": "const blockers=(report.blockers||[]).map(item=>`<li>${item.message}</li>`).join('');"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_transition_ui.py",
+        "-k",
+        "test_report_text_and_data"
+      ]
+    },
+    {
+      "id": "MC_EXPORT",
+      "name": "mc export",
+      "edits": [
+        {
+          "file": ".github/workflows/verify.yml",
+          "old": "          include-hidden-files: true\n",
+          "new": ""
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_workflow_exports_hidden"
+      ]
+    },
+    {
+      "id": "MC_UNKNOWN_TABLE",
+      "name": "mc unknown table",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if tables - (set(required) | {'sqlite_sequence'}):",
+          "new": "if False:",
+          "func": "_Audit._sqlite_status"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_unknown_sqlite_table"
+      ]
+    },
+    {
+      "id": "MC_COLUMN_SET",
+      "name": "mc column set",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if table not in tables or {row[1] for row in db.execute('PRAGMA table_info(' + table + ')')} != columns:",
+          "new": "if table not in tables or not columns <= {row[1] for row in db.execute('PRAGMA table_info(' + table + ')')}:",
+          "func": "_Audit._sqlite_status"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_extra_sqlite_column"
+      ]
+    },
+    {
+      "id": "MC_OPERATION_METADATA",
+      "name": "mc operation metadata",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if db.execute(\"SELECT count(*) FROM operations WHERE json_type(intent,'$.kind') IS NOT 'text' OR local_recorded NOT IN (0,1)\").fetchone()[0]:",
+          "new": "if False:",
+          "func": "_Audit._sqlite_status"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_invalid_local_recorded_metadata"
+      ]
+    },
+    {
+      "id": "MC_BATCH_STATUS",
+      "name": "mc batch status",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "receipt.get('status') not in {'executing','failed','succeeded'}",
+          "new": "receipt.get('status') not in {'executing','failed','succeeded','invented'}",
+          "func": "_Audit.tree"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_workflow_receipt_metadata"
+      ]
+    },
+    {
+      "id": "MC_INTERNAL_CAP",
+      "name": "mc internal cap",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "cap = MAX_EXTERNAL_FILES if external else MAX_FILES",
+          "new": "cap = MAX_EXTERNAL_FILES if external else 1000000000",
+          "func": "_Audit.listing"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_internal_directory_listing_bound"
+      ]
+    },
+    {
+      "id": "MC_OUTBOX_COUNTS",
+      "name": "mc outbox counts",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "store['counts']['outbox_states'] = {str(k): v for k, v in states.items() if k in OUTBOX_PENDING | OUTBOX_TERMINAL}",
+          "new": "store['counts']['outbox_states'] = {str(k): 1 for k, v in states.items() if k in OUTBOX_PENDING | OUTBOX_TERMINAL}",
+          "func": "_Audit._sqlite_status"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity.py",
+        "-k",
+        "test_multiple_outbox_rows"
+      ]
+    },
+    {
+      "id": "MC_CANON_STORES",
+      "name": "mc canon stores",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "return _canonical_set([{**store, 'owners': sorted(set(store['owners'])),\n                            'sources': _canonical_set(store['sources'])} for store in stores])",
+          "new": "return [{**store, 'owners': sorted(set(store['owners'])),\n             'sources': _canonical_set(store['sources'])} for store in stores]",
+          "func": "_canonical_stores"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity_flow.py",
+        "-k",
+        "test_fingerprint_ignores_injected"
+      ]
+    },
+    {
+      "id": "MC_CANON_SOURCES",
+      "name": "mc canon sources",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "'sources': _canonical_set(store['sources'])",
+          "new": "'sources': store['sources']",
+          "func": "_canonical_stores"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity_flow.py",
+        "-k",
+        "test_fingerprint_ignores_injected"
+      ]
+    },
+    {
+      "id": "MC_CANON_BLOCKERS",
+      "name": "mc canon blockers",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "blockers = _canonical_set(audit.blockers)",
+          "new": "blockers = audit.blockers",
+          "func": "audit_transition"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity_flow.py",
+        "-k",
+        "test_fingerprint_ignores_injected"
+      ]
+    },
+    {
+      "id": "MC_SQLITE_DEDUP",
+      "name": "mc sqlite dedup",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if store['path'] in self.sqlite_seen:",
+          "new": "if False:",
+          "func": "_Audit.sqlite"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity_flow.py",
+        "-k",
+        "test_two_checkouts_sharing_home"
+      ]
+    },
+    {
+      "id": "MC_SKILL_ASSETS",
+      "name": "mc skill assets",
+      "edits": [
+        {
+          "file": "wsflow/module_continuity.py",
+          "old": "if role in {'canonical-skills', 'projected-skills'}:",
+          "new": "if False:",
+          "func": "_Audit.tree"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_continuity_flow.py",
+        "-k",
+        "test_skill_assets_match_producer"
+      ]
+    },
+    {
+      "id": "MC_UI_KNOWN_COUNT",
+      "name": "mc ui known count",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "    const pendingOnly=reasons.length>0&&reasons.every(item=>['pending_operations','pending_outbox','pending_batch','legacy_uncertain','unrecorded_success'].includes(item.code));",
+          "new": "    const pendingOnly=false;"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_transition_ui.py",
+        "-k",
+        "test_known_pending_count"
+      ]
+    }
+  ],
+  "source_contract": "rd/module_continuity_contracts.md"
+}

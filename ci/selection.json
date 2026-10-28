@@ -192,6 +192,11 @@
       "spec": "ci/specs/module_bootstrap_ui.json",
       "count": 1,
       "source": "rd/module_ci_contracts.md"
+    },
+    {
+      "stage": "module_continuity",
+      "spec": "ci/specs/module_continuity.json",
+      "count": 28
     }
   ],
   "total": 374

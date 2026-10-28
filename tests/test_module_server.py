@@ -241,7 +241,7 @@ class ModuleServerTests(unittest.TestCase):
         source = self.package(['work-items', 'calendar'])
         workflow_data = self.project / '.workflow' / 'state.json'
         workflow_data.parent.mkdir()
-        workflow_data.write_bytes(b'{"kept":true}')
+        workflow_data.write_bytes(b'{"schema_version":4,"kept":true}')
         self.install_package(source, action='replace', module_id=WORK_CALENDAR)
         with mock.patch('wsflow.server.google_calendar.Service') as google_factory:
             with self.running():
@@ -249,7 +249,7 @@ class ModuleServerTests(unittest.TestCase):
                 self.request('GET', '/api/v2/calendar/range', status=409)
                 self.assertEqual(self.request('GET', '/api/v1/modules/erp-test/api/ping')['module_id'], 'erp-test')
                 google_factory.assert_not_called()
-        self.assertEqual(workflow_data.read_bytes(), b'{"kept":true}')
+        self.assertEqual(workflow_data.read_bytes(), b'{"schema_version":4,"kept":true}')
 
 
 class ModuleOwnershipTests(unittest.TestCase):

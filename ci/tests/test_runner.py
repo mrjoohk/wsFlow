@@ -21,6 +21,13 @@ spec.loader.exec_module(runner)
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_workflow_exports_hidden_module_witnesses(self):
+        workflow = (SOURCE / '.github/workflows/verify.yml').read_text(encoding='utf-8')
+        segment = workflow.split('- name: Upload exact source and execution evidence', 1)[1]
+        segment = segment.split('- name: V2 migration UI', 1)[0]
+        self.assertIn('actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02', segment)
+        self.assertRegex(segment, r'include-hidden-files:\s+true')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='wsflow ci acceptance ')
         self.addCleanup(self.temp.cleanup)

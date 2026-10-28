@@ -5,6 +5,11 @@
   "version": "1.0.0",
   "host_api": 1,
   "data_schema_version": 1,
+  "data_compatibility": {
+    "version": 1,
+    "preserves": ["workspace-operations-v1"],
+    "pending_policy": "block"
+  },
   "capabilities": [
     "workspace",
     "development-context"

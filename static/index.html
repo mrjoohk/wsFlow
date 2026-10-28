@@ -191,14 +191,34 @@ async function moduleSettingsDialog(record,revision) {
   dlg.showModal();
 }
 
+function moduleContinuityHTML(report) {
+  if(!report)return '<div class="moduleContinuity"><p class="bad">자료 사전검사 결과를 확인할 수 없습니다.</p></div>';
+  const roles={'work-calendar':'업무·일정','workspace-operations':'워크스페이스 운영'};
+  const names=(report.affected_modules||[]).map(id=>roles[id]||id).join(', ')||'코드 교체 없음';
+  const stores=(report.stores||[]).map(store=>{
+    const reasons=(report.blockers||[]).filter(item=>item.store_id===store.store_id);
+    const pendingOnly=reasons.length>0&&reasons.every(item=>['pending_operations','pending_outbox','pending_batch','legacy_uncertain','unrecorded_success'].includes(item.code));
+    const unknown=['unknown','error','unverifiable'].includes(store.status)||(store.status==='blocked'&&!pendingOnly);
+    const measured=Number.isInteger(store.pending_count)?store.pending_count:null;
+    const pending=unknown?(measured>0?`${measured}건 이상 · 추가 확인 필요`:'확인 불가'):measured===null?'—':String(measured);
+    return `<tr><td>${esc(store.store_id)}</td><td>${esc(store.status)}</td><td>${esc(pending)}</td></tr>`;
+  }).join('');
+  const blockers=(report.blockers||[]).map(item=>`<li>${esc(item.message)}</li>`).join('');
+  return `<div class="moduleContinuity" data-scope="${esc(report.scope)}" data-affected="${esc((report.affected_modules||[]).join(','))}"><h4>자료 교체 사전검사</h4>
+    <p>${report.ready?'예약 시점 사전검사 통과':'미처리 작업 또는 확인 불가 자료로 예약 차단'} · 영향 모듈: ${esc(names)}</p>
+    ${blockers?`<ul class="bad">${blockers}</ul>`:''}
+    ${stores?`<details><summary>확인한 저장소 ${report.stores.length}개</summary><table><thead><tr><th>저장소</th><th>관측 상태</th><th>미처리 작업</th></tr></thead><tbody>${stores}</tbody></table></details>`:''}
+    <p>미리보기·예약 시점의 검사입니다. 데이터 이관·복구 검증과 재시작 직전의 작업 정지·최종 검증은 후속 단계입니다.</p></div>`;
+}
+
 async function previewModuleChange(body) {
   const status=$('#moduleStatus'),box=$('#modulePlan');if(!status||!box)return;
   try {
     const plan=await api('POST','/api/v1/modules/plan',body);
-    box.innerHTML=`<div class="box"><h3>모듈 변경 확인</h3><p>${esc(plan.action)} · ${esc(plan.module_id||'이전 구성')} · 변경 ${plan.changes.length}개</p><pre style="white-space:pre-wrap">${esc(JSON.stringify(plan.changes.map(x=>({id:x.id,before:x.before?{version:x.before.version,installed:x.before.installed,enabled:x.before.enabled,settings:x.before.settings}:null,after:x.after?{version:x.after.version,installed:x.after.installed,enabled:x.after.enabled,settings:x.after.settings}:null})),null,2))}</pre><p>업무 데이터 보존 · 자동 이관 없음 · 실행 구성은 재시작 후 변경됩니다.</p><button id="moduleApply">이 변경 예약</button> <button id="moduleCancel">취소</button></div>`;
-    status.textContent='미리보기만 수행했습니다.';
+    box.innerHTML=`<div class="box"><h3>모듈 변경 확인</h3><p>${esc(plan.action)} · ${esc(plan.module_id||'이전 구성')} · 변경 ${plan.changes.length}개</p><pre style="white-space:pre-wrap">${esc(JSON.stringify(plan.changes.map(x=>({id:x.id,before:x.before?{version:x.before.version,installed:x.before.installed,enabled:x.before.enabled,settings:x.before.settings}:null,after:x.after?{version:x.after.version,installed:x.after.installed,enabled:x.after.enabled,settings:x.after.settings}:null})),null,2))}</pre>${moduleContinuityHTML(plan.continuity)}<p>업무 데이터 보존 · 자동 이관 없음 · 실행 구성은 재시작 후 변경됩니다.</p><button id="moduleApply"${plan.can_apply===true?'':' disabled'}>이 변경 예약</button> <button id="moduleCancel">취소</button></div>`;
+    status.textContent=plan.can_apply===true?'미리보기만 수행했습니다.':'자료 사전검사가 차단되어 예약할 수 없습니다. 표시된 이유를 확인하고 새로 미리보기하십시오.';
     $('#moduleCancel').onclick=()=>{box.innerHTML='';status.textContent='변경을 예약하지 않았습니다.';};
-    $('#moduleApply').onclick=async()=>{const b=$('#moduleApply');b.disabled=true;try{await api('POST','/api/v1/modules/apply',{plan_id:plan.plan_id});await renderModules();$('#moduleStatus').textContent='변경을 예약했습니다. 서버를 종료하고 다시 실행한 뒤 새 토큰 주소로 여십시오.';}catch(e){status.textContent=e.message;b.disabled=false;}};
+    $('#moduleApply').onclick=async()=>{const b=$('#moduleApply');b.disabled=true;try{await api('POST','/api/v1/modules/apply',{plan_id:plan.plan_id});await renderModules();$('#moduleStatus').textContent='변경을 예약했습니다. 서버를 종료하고 다시 실행한 뒤 새 토큰 주소로 여십시오.';}catch(e){status.textContent=e.message+' 새로 미리보기하십시오.';b.disabled=true;}};
   } catch(e) {status.textContent=e.message;}
 }
 

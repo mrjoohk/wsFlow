@@ -2,6 +2,14 @@
   "schema_version": 1,
   "cases": [
     {
+      "id": "MOD-B13",
+      "description": "builtin update preview shows a clear data preflight, affected stores and preflight-only limits without reserving or changing business bytes"
+    },
+    {
+      "id": "MOD-B14",
+      "description": "a real synthetic planned operation blocks builtin update reservation, disables apply and displays its store and reason while preserving provider-free business bytes"
+    },
+    {
       "id": "MOD-B01",
       "description": "both builtin integration modules initially active and browser module manager available"
     },
@@ -85,6 +93,8 @@
     ]
   },
   "screenshots": [
+    "continuity-clear-preflight.png",
+    "continuity-blocked-preflight.png",
     "pending-work-disable.png",
     "core-without-business-modules.png",
     "erp-module-view.png",
