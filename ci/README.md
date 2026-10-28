@@ -1,12 +1,14 @@
 # V0/V1 frozen verification
 
-This branch contains a source-only acceptance candidate. User profiles, skills, credentials, business data and historical evidence are excluded. Existing application/test/vendor bytes are preserved; CI tools have their own acceptance tests.
+This branch contains a source-only acceptance candidate. User profiles, skills, credentials, business data and historical evidence are excluded. Historical source and evidence are retained separately; changed application, package and CI code requires new source-qualified evidence.
 
 Use an isolated Windows Python **3.10.11** compatibility environment or **3.14.3**, Node **24.14.0**, and the dependencies locked here. Install Node packages outside the source tree and set `PLAYWRIGHT_MODULE` and `PLAYWRIGHT_BROWSERS_PATH`. Python tzdata is installed with `pip install --require-hashes -r ci/python-requirements.txt`. Python 3.10 is a historical compatibility target, not a production recommendation.
 
 Calendar/Jira features using IANA zones need system timezone data or the tzdata distribution at runtime. Windows acceptance explicitly installs that data. Python source imports only the standard library; this does not eliminate the timezone-data requirement. Node/Playwright/browser are test-only dependencies.
 
-Run `python tools/ci/runner.py check`, then `python tools/ci/runner.py run --out <new-evidence-directory> --expected-python <exact-version> --jobs 4`. The complete run includes CI tool acceptance, vendor hashes, 415 application tests, 82 named browser cases, 208 selected strict mutations, and three controlled gate fixtures. Partial `--step` runs are labelled and cannot alone satisfy V1.
+Run `python tools/ci/runner.py check` against the newly sealed candidate, then `python tools/ci/runner.py run --out <new-evidence-directory> --expected-python <exact-version> --jobs 4`. The complete run includes CI tool acceptance, vendor hashes, all application tests, the browser profile, the strict mutations in `ci/selection.json`, and three controlled gate fixtures. Partial `--step` runs are labelled and cannot alone satisfy V1. The root `ci/source-manifest.json` remains a historical manifest; seal and check a fresh candidate before execution.
+
+Builtin business implementation and UI are owned by independent packages. The module stage explicitly selects package/update/UI/generation tests. The full all/browser profile also executes the actual module browser fixture and immediately seals its snapshot in the regression artifact. Exact case identity, eight server generations, observed provider/worker/preservation fields, all package input hashes and the fixture Python executable/version are required. Current profile counts are pinned in ci/profile-baseline.json. Functional details are in rd/module_ci_contracts.md.
 
 The mutation runner's local CI profile requires fresh output. Existing results and resume/budget/summary are rejected because cached proof cannot establish the current inherited runtime. All-skipped unittest baselines are rejected. The original shared skill remains unchanged; patch provenance is recorded separately.
 

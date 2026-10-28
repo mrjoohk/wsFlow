@@ -12,6 +12,7 @@ import time
 import unittest
 from unittest import mock
 import zipfile
+import module_fixture
 
 SOURCE = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('ci_runner', SOURCE / 'tools/ci/runner.py')
@@ -33,6 +34,7 @@ class EvidenceTests(unittest.TestCase):
         (self.root / 'static/index.html').write_text('synthetic html', encoding='utf-8')
         for name in ('browser-baseline.json',):
             shutil.copyfile(SOURCE / 'ci' / name, self.root / 'ci' / name)
+        module_fixture.prepare_inputs(runner, self.root, SOURCE)
         runner.save(self.root / 'ci/selection.json', {'specs': [{'stage': 'i0', 'spec': 'ci/spec.json', 'count': 1}]})
         runner.save(self.root / 'evidence_pack/metrics.yaml', [dict(metric_id='fixture', value=1, threshold=1,
                     comparison='gte', status='PASS', unit='cases', mode='PLANNED', source='run.py')])
@@ -192,13 +194,15 @@ class EvidenceTests(unittest.TestCase):
         self.assertIsNotNone(re.fullmatch('[0-9a-f]{64}', digest))
 
     def test_ambient_output_paths_and_workflow_home_are_not_inherited(self):
-        values = {key:'outside-sentinel' for key in (*runner.OUTPUT_ENV, 'WF_HOME')}
+        values = {key:'outside-sentinel' for key in (*runner.OUTPUT_ENV, 'WF_HOME', 'WSFLOW_PYTHON')}
         (self.base/'ambient').mkdir()
         with mock.patch.dict(os.environ, values):
             env = runner.clean_env(self.base/'ambient', self.base/'logs')
         self.assertNotIn('WSFLOW_BROWSER_OUTPUT', env)
         self.assertNotIn('WSFLOW_GRAPH_EVIDENCE', env)
         self.assertNotIn('WF_HOME', env)
+        self.assertNotIn('WSFLOW_PYTHON', env)
+        self.assertNotIn('WSFLOW_MODULES_BROWSER_BASE', env)
         for key in ('WSFLOW_RUN_EVIDENCE_DIR','WSFLOW_TEST_EVIDENCE_DIR'):
             self.assertNotEqual(env[key], 'outside-sentinel')
 
@@ -242,6 +246,12 @@ class EvidenceTests(unittest.TestCase):
     def test_validation_to_snapshot_gap_cannot_seal_foreign_bytes(self):
         self.run_output_isolation('validation_gap')
 
+    def test_late_module_raw_writer_is_rejected(self):
+        self.run_output_isolation('module_raw')
+
+    def test_late_module_snapshot_writer_is_rejected(self):
+        self.run_output_isolation('module_sealed')
+
     def run_output_isolation(self, fault):
         baseline=runner.read(self.root/'ci/browser-baseline.json')
         # Actual mutation_runner descendants write through inherited environment,
@@ -262,7 +272,7 @@ class EvidenceTests(unittest.TestCase):
             'mutants':[{'id':'one','name':'one','edits':[{'file':'subject.py','old':'VALUE = False','new':'VALUE = True'}]}]})
         runner.save(self.root/'ci/selection.json',{'specs':[{'stage':'v2_fixes','spec':'ci/spec.json','count':1}]})
         (self.root/runner.MANIFEST).unlink();runner.seal(self.root);out=self.base/('isolation-'+fault)
-        original=runner.command;normal_folders=[];original_read=runner.read
+        original=runner.command;normal_folders=[];module_folders=[];original_read=runner.read
         def read_with_race(path):
             result=original_read(path)
             if fault=='validation_gap' and Path(path).name=='evidence.json' and Path(path).parent.name=='i7':
@@ -271,11 +281,15 @@ class EvidenceTests(unittest.TestCase):
         def dispatch(args,cwd,log,env=None,timeout=900):
             log.parent.mkdir(parents=True,exist_ok=True);log.write_text('synthetic stage\n')
             if args[:2]==['node','--version']:log.write_text('v24.14.0')
-            elif args[:2]==['node','-e']:runner.save(log,{'browser':'synthetic','playwright':'synthetic'})
+            elif args[:2]==['node','-e']:runner.save(log,{'browser':'synthetic','playwright':'1.62.1'})
             elif 'tests/run_tests.py' in args:
                 runner.save(Path(env['WSFLOW_RUN_EVIDENCE_DIR'])/'unit_evidence.json',
                             dict(ok=True,tests_run=415,failures=0,errors=0,skipped=0))
                 runner.save(Path(env['WSFLOW_TEST_EVIDENCE_DIR'])/'owner.json',{'owner':'unit'})
+            elif args[:2]==['node','tests/modules_browser.cjs']:
+                self.assertEqual(env['WSFLOW_PYTHON'],runner.sys.executable)
+                folder=Path(env['WSFLOW_BROWSER_OUTPUT']);module_folders.append(folder)
+                module_fixture.snapshot(runner,self.root,folder)
             elif len(args)>1 and args[1].endswith('_browser.cjs'):
                 n=int(args[1][7]);folder=Path(env['WSFLOW_BROWSER_OUTPUT']);normal_folders.append(folder)
                 data={'cases':baseline[n-1]['cases'],'errors':[],
@@ -288,6 +302,9 @@ class EvidenceTests(unittest.TestCase):
                 if fault in ('raw','sealed'):
                     folder=normal_folders[-1] if fault=='raw' else out/'artifacts/browser/i7'
                     (folder/'evidence.json').write_text('foreign writer')
+                if fault in ('module_raw','module_sealed'):
+                    folder=module_folders[-1] if fault=='module_raw' else out/'artifacts/browser/modules'
+                    (folder/'result.json').write_text('foreign writer')
                 return result
             return dict(exit_code=0,log=str(log))
         with mock.patch.object(runner,'command',side_effect=dispatch), \
@@ -313,7 +330,7 @@ class EvidenceTests(unittest.TestCase):
         for problem, step in [('runtime', 'unit'), ('command', 'unit'), ('unit', 'unit'), ('browser', 'browser'),
                               ('cases', 'browser'), ('duplicate', 'browser'), ('ambiguous', 'browser'),
                               ('backend', 'browser'), ('mutation', 'mutations'), ('source', 'unit'),
-                              ('artifacts', 'unit'), ('valid', 'unit')]:
+                              ('artifacts', 'unit'), ('module_runtime', 'browser'), ('valid', 'unit')]:
             with self.subTest(problem=problem):
                 out = self.base / ('run-' + problem)
                 def controlled(args, cwd, log, env=None, timeout=900):
@@ -333,6 +350,11 @@ class EvidenceTests(unittest.TestCase):
                             (out / 'artifacts').mkdir()
                         if problem == 'command':
                             return {'exit_code': 1, 'log': str(log)}
+                    elif args[:2] == ['node', 'tests/modules_browser.cjs']:
+                        module_fixture.snapshot(runner,self.root,Path(env['WSFLOW_BROWSER_OUTPUT']))
+                        if problem == 'module_runtime':
+                            path=Path(env['WSFLOW_BROWSER_OUTPUT'])/'result.json'
+                            data=runner.read(path);data['browser']='foreign';runner.save(path,data)
                     elif len(args) > 1 and args[1].endswith('_browser.cjs'):
                         n = int(args[1][7]);cases = list(baseline[n-1]['cases'])
                         if problem == 'cases':

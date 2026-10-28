@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import json
 import copy
+import os
 import re
 import threading
+import time
 from pathlib import Path
 
 DEFAULT_TEMPLATE_DIR = "0.PROJECT_TEMPLATE"
@@ -42,7 +44,16 @@ class Store:
     def _save(self) -> None:
         tmp = self.file.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(self.data, ensure_ascii=False, indent=2), encoding="utf-8")
-        tmp.replace(self.file)
+        for attempt in range(6):
+            try:
+                tmp.replace(self.file)
+                return
+            except PermissionError as error:
+                # A Windows reader or scanner may briefly deny delete-sharing.
+                # Keep the same replacement bytes; never mask a permanent error.
+                if os.name != "nt" or getattr(error, "winerror", None) not in (5, 32, 33) or attempt == 5:
+                    raise
+                time.sleep(.01 * 2 ** attempt)
 
     def snapshot(self) -> dict:
         """Consistent in-memory registry view for read models; never saves/migrates."""

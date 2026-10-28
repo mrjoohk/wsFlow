@@ -23,7 +23,7 @@
       "name": "Google edit control exposed",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "${e.origin==='google'?'<span class=\"muted\">Google 읽기 전용</span>'",
           "new": "${false?'<span class=\"muted\">Google 읽기 전용</span>'"
         }
@@ -34,7 +34,7 @@
       "name": "event private body leaks into date cell",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": " ${esc(e.title)}</span>",
           "new": " ${esc(e.title)} ${esc(e.body)}</span>"
         }

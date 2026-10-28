@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "work-calendar",
+  "name": "업무·일정 통합",
+  "version": "1.0.0",
+  "host_api": 1,
+  "data_schema_version": 1,
+  "capabilities": [
+    "work-items",
+    "calendar"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "entrypoint": "backend.py:create_module",
+  "ui": {
+    "entry": "ui.js",
+    "label": "업무·일정 통합",
+    "mode": "classic"
+  }
+}

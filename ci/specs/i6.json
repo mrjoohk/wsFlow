@@ -44,7 +44,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.prepare",
           "old": "'recognition':'unknown','observation_kind':'static_only'",
           "new": "'recognition':'tool_observed','observation_kind':'static_only'"
@@ -70,7 +70,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.prepare",
           "old": "if not isinstance(body,dict) or set(body)!={'tool','version','surface'}:",
           "new": "if not isinstance(body,dict):"
@@ -96,7 +96,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.observe",
           "old": "if doc['snapshot_id']!=packet['snapshot_id'] or doc['profile_id']!=packet['profile']['profile_id'] or not same_cwd:",
           "new": "if False:"
@@ -122,7 +122,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.observe",
           "old": "if doc['origin']!=expected_origin:",
           "new": "if False:"
@@ -148,7 +148,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.observe",
           "old": "if kind=='tool_observed' and body.get('attest_tool_output') is not True:",
           "new": "if False:"
@@ -174,7 +174,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.observe",
           "old": "'selected_scope_complete':not missing_sources and not missing_skills",
           "new": "'selected_scope_complete':True"
@@ -200,7 +200,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service._receipt",
           "old": "recognition=kind if receipt['verification_scope']['selected_scope_complete'] else 'partial'",
           "new": "recognition='tool_observed' if receipt['verification_scope']['selected_scope_complete'] else 'partial'"
@@ -226,7 +226,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service._receipt",
           "old": "if not reasons and kind in ('agent_reported','tool_observed'):",
           "new": "if not reasons:"
@@ -252,7 +252,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service._stale",
           "old": "if packet['snapshot_id']!=current['snapshot_id']:",
           "new": "if False:"
@@ -278,7 +278,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.inspect",
           "old": "if owned.get('skill_id')!=ident or owned.get('tree_hash')!=p['tree_hash'] or current['tree_hash']!=p['tree_hash']:",
           "new": "if False:"
@@ -304,7 +304,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.inspect",
           "old": "if not actual or expected.get('sha256')!=actual:",
           "new": "if False:"
@@ -330,7 +330,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service._stale",
           "old": "if latest and latest['plan_id']!=packet['plan_id']:",
           "new": "if False:"
@@ -356,7 +356,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service._stale",
           "old": "if any(packet['profile'][k]!=v for k,v in runtime().items()):",
           "new": "if False:"
@@ -382,7 +382,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service._evidence",
           "old": "or projection.sha(raw)!=meta['sha256'] ",
           "new": " "
@@ -408,7 +408,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.upload",
           "old": "if not isinstance(content,str) or not content or len(content.encode('utf-8'))>MAX_EVIDENCE:",
           "new": "if not isinstance(content,str) or not content:"
@@ -434,7 +434,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.observe",
           "old": "source_ids,missing_sources=checked(doc['observed_sources'],packet['expected_sources'],'sha256')",
           "new": "exec(doc['notes'])\n        source_ids,missing_sources=checked(doc['observed_sources'],packet['expected_sources'],'sha256')"
@@ -460,7 +460,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service._packet",
           "old": "if packet.get('kind')!='session_packet' or packet.get('project_id')!=pid:",
           "new": "if False:"
@@ -486,7 +486,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.observe",
           "old": "if captured<timestamp(packet['created_at']) or captured>datetime.now(timezone.utc)+timedelta(minutes=5):",
           "new": "if False:"
@@ -512,7 +512,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.observe",
           "old": "ident='R-'+operations.digest([body['packet_id'],body['evidence_id'],kind,body.get('attest_tool_output',False)])",
           "new": "ident='R-'+uuid4().hex"
@@ -538,7 +538,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service._storage",
           "old": "if base.is_relative_to(Path(entry['path']).resolve()):",
           "new": "if False:"
@@ -564,7 +564,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.status",
           "old": "'recognition':latest_receipt['recognition'] if latest_receipt else 'unknown'",
           "new": "'recognition':latest_receipt['recognition'] if latest_receipt else 'tool_observed'"
@@ -590,7 +590,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.dashboard",
           "old": "'calendar':calendar or {'state':'unknown','warnings':['캘린더 상태 미확인']}",
           "new": "'calendar':{'state':'unknown','warnings':['캘린더 상태 미확인']}"
@@ -616,7 +616,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/session_prep.py",
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
           "func": "Service.inspect",
           "old": "if tool=='claude':",
           "new": "if False:"

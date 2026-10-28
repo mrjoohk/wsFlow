@@ -7,19 +7,25 @@ import os
 from pathlib import Path
 import time
 
-from . import fileio, gitops, operations, wfhome, writeplans
+from . import fileio, operations
+from .write_context import binding
 
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 
 
 class Service:
-    def __init__(self, project, kind, home=None):
+    def __init__(self, project, kind, home=None, git_adapter=None, memo_adapter=None):
         if kind not in ('git','memo'):raise ValueError('지원하지 않는 쓰기 종류입니다')
+        if kind=='git' and git_adapter is None:
+            from . import gitops as git_adapter
+        if kind=='memo' and memo_adapter is None:
+            from . import wfhome as memo_adapter
+        self.git=git_adapter;self.memo=memo_adapter
         self.project=project;self.kind=kind
         self.home=Path(home if kind=='memo' else project['path']).resolve()
         self.store=operations.Store(self.home)
-        self.binding={**writeplans.binding(project,self.home),'write_kind':kind}
+        self.binding={**binding(project,self.home),'write_kind':kind}
         self.lock=self.home if kind=='memo' else self.store.path.parent/'common-locks'/operations.digest(str(self.home))
 
     def _payload(self,action,payload):
@@ -29,13 +35,13 @@ class Service:
         if action not in allowed or not isinstance(payload,dict) or set(payload)-allowed[action]:
             raise ValueError('지원하지 않는 작업 또는 payload 필드입니다')
         p=dict(payload)
-        if self.kind=='git' and action!='clean_locks' and gitops.repo_kind(self.home)!='repo':
+        if self.kind=='git' and action!='clean_locks' and self.git.repo_kind(self.home)!='repo':
             raise ValueError('유효한 Git 저장소가 필요합니다')
         for key in ('all','add_all','set_upstream'):
             if key in p and type(p[key]) is not bool:raise ValueError('명시적인 bool 옵션이 필요합니다')
         if self.kind=='memo':
             if set(p)!=allowed[action] or any(not isinstance(v,str) for v in p.values()):raise ValueError('메모 문서·날짜·본문·SHA가 필요합니다')
-            wfhome.daily_path(self.home,p['ymd'])
+            self.memo.daily_path(self.home,p['ymd'])
         if action=='commit' and (not isinstance(p.get('message'),str) or not p['message'].strip()):raise ValueError('커밋 메시지가 필요합니다')
         if action=='add' and not p.get('all'):
             if not isinstance(p.get('paths'),list) or not p['paths']:raise ValueError('스테이징할 상대 경로가 필요합니다')
@@ -49,20 +55,20 @@ class Service:
         if action in ('remote_add','remote_set') and (not isinstance(p.get('url'),str) or not p['url'] or p['url'].startswith('-')):
             raise ValueError('remote URL이 필요합니다')
         if action=='push':
-            p['branch']=p.get('branch') or gitops.run_git(self.home,'symbolic-ref','--quiet','--short','HEAD').stdout.strip()
+            p['branch']=p.get('branch') or self.git.run_git(self.home,'symbolic-ref','--quiet','--short','HEAD').stdout.strip()
             if not isinstance(p['branch'],str) or ':' in p['branch'] or p['branch'].startswith('-'):
                 raise ValueError('push는 명시한 단일 로컬 브랜치를 사용합니다')
-            gitops.run_git(self.home,'check-ref-format','--branch',p['branch'])
+            self.git.run_git(self.home,'check-ref-format','--branch',p['branch'])
         return p
 
     def _git_source(self,action=None):
-        def read(*args):return gitops.run_git(self.home,*args,check=args[0] not in ('rev-parse','show-ref')).stdout
+        def read(*args):return self.git.run_git(self.home,*args,check=args[0] not in ('rev-parse','show-ref')).stdout
         if action=='clean_locks':
-            gitdir=gitops.git_dir(self.home) if gitops.repo_kind(self.home)=='repo' else self.home/'.git'
-            return dict(git_dir=str(gitdir.resolve()),locks={l['path']:[Path(l['path']).stat().st_mtime_ns,sha(Path(l['path']).read_bytes())] for l in gitops.find_locks(self.home)})
-        if gitops.repo_kind(self.home)!='repo':
-            return dict(broken=True,git_dir=str((self.home/'.git').resolve()),locks={l['path']:[Path(l['path']).stat().st_mtime_ns,sha(Path(l['path']).read_bytes())] for l in gitops.find_locks(self.home)})
-        gitdir=gitops.git_dir(self.home).resolve()
+            gitdir=self.git.git_dir(self.home) if self.git.repo_kind(self.home)=='repo' else self.home/'.git'
+            return dict(git_dir=str(gitdir.resolve()),locks={l['path']:[Path(l['path']).stat().st_mtime_ns,sha(Path(l['path']).read_bytes())] for l in self.git.find_locks(self.home)})
+        if self.git.repo_kind(self.home)!='repo':
+            return dict(broken=True,git_dir=str((self.home/'.git').resolve()),locks={l['path']:[Path(l['path']).stat().st_mtime_ns,sha(Path(l['path']).read_bytes())] for l in self.git.find_locks(self.home)})
+        gitdir=self.git.git_dir(self.home).resolve()
         files={}
         names=read('ls-files','-z','--cached','--others','--exclude-standard').split('\0')
         for name in sorted(set(names)-{''}):
@@ -78,21 +84,21 @@ class Service:
                         for chunk in iter(lambda:stream.read(1024*1024),b''):digest.update(chunk)
                     files[name]=[digest.hexdigest(),path.stat().st_mode]
         locks={}
-        for lock in gitops.find_locks(self.home):
+        for lock in self.git.find_locks(self.home):
             path=Path(lock['path']);locks[str(path)]=[path.stat().st_mtime_ns,sha(path.read_bytes())]
         return dict(git_dir=str(gitdir),head=read('rev-parse','--verify','HEAD').strip(),
                     refs=sha(read('show-ref').encode()),index=sha((gitdir/'index').read_bytes()) if (gitdir/'index').exists() else None,
                     config=sha(read('config','--null','--list','--show-origin').encode()),files=files,locks=locks)
 
     def _memo_source(self,payload):
-        if wfhome.read_state(self.home).get('schema_version')!=wfhome.SCHEMA_VERSION:raise operations.StateConflict('지원하지 않는 업무 schema입니다')
-        path=fileio.within(self.home,wfhome.daily_path(self.home,payload['ymd']))
-        raw=path.read_bytes();head,memo,tail=wfhome._split(raw.decode('utf-8'))
-        if payload['sha']!=wfhome.sha(memo) or payload['document_id']!=wfhome.memo_document_id(self.home,payload['ymd']):
-            raise wfhome.MemoConflict(memo,wfhome.sha(memo))
+        if self.memo.read_state(self.home).get('schema_version')!=self.memo.SCHEMA_VERSION:raise operations.StateConflict('지원하지 않는 업무 schema입니다')
+        path=fileio.within(self.home,self.memo.daily_path(self.home,payload['ymd']))
+        raw=path.read_bytes();head,memo,tail=self.memo._split(raw.decode('utf-8'))
+        if payload['sha']!=self.memo.sha(memo) or payload['document_id']!=self.memo.memo_document_id(self.home,payload['ymd']):
+            raise self.memo.MemoConflict(memo,self.memo.sha(memo))
         text=payload['text'];text=text if text.startswith('\n') else '\n'+text
         if not text.endswith('\n'):text+='\n'
-        return dict(state=writeplans.state_hash(self.home),before_sha256=sha(raw),before_hex=raw.hex(),
+        return dict(state=operations.digest(self.memo.state_path(self.home).read_bytes().hex()),before_sha256=sha(raw),before_hex=raw.hex(),
                     target_sha256=sha((head+text+tail).encode('utf-8')))
 
     def _resource(self,payload):return 'git' if self.kind=='git' else payload['ymd']
@@ -111,8 +117,8 @@ class Service:
             target=None
             if action=='push':
                 ref='refs/heads/'+payload['branch']
-                target=dict(urls=gitops.run_git(self.home,'remote','get-url','--push','--all',payload['remote']).stdout.splitlines(),
-                            ref=ref,oid=gitops.run_git(self.home,'rev-parse','--verify',ref+'^{commit}').stdout.strip())
+                target=dict(urls=self.git.run_git(self.home,'remote','get-url','--push','--all',payload['remote']).stdout.splitlines(),
+                            ref=ref,oid=self.git.run_git(self.home,'rev-parse','--verify',ref+'^{commit}').stdout.strip())
             plan=self.store.save_plan(dict(kind='local_write',write_kind=self.kind,binding=self.binding,
                 source=source,action=action,payload=payload,target=target,resource=resource,observed_at=observed_at),
                 [dict(kind='local_write',write_kind=self.kind,action=action,resource=resource)])
@@ -133,32 +139,32 @@ class Service:
 
     def _execute(self,plan):
         p=plan['payload'];action=plan['action']
-        if self.kind=='memo':return wfhome.write_memo(self.home,p['ymd'],p['text'],p['sha'],p['document_id'])
-        if action=='fetch':return gitops.fetch(self.home)
-        if action=='pull':return gitops.pull_ff(self.home)
+        if self.kind=='memo':return self.memo.write_memo(self.home,p['ymd'],p['text'],p['sha'],p['document_id'])
+        if action=='fetch':return self.git.fetch(self.home)
+        if action=='pull':return self.git.pull_ff(self.home)
         if action=='push':
             ref=plan['target']['ref']
             args=['push','--no-mirror','--no-follow-tags','--recurse-submodules=no']
             if p.get('set_upstream'):args.append('-u')
             args.extend([p['remote'],ref+':'+ref])
-            cp=gitops.run_git(self.home,*args,check=False)
+            cp=self.git.run_git(self.home,*args,check=False)
             return dict(ok=cp.returncode==0,returncode=cp.returncode,stdout=cp.stdout,stderr=cp.stderr,command='git '+' '.join(args))
-        if action=='commit':return gitops.commit(self.home,p['message'],p.get('add_all',False))
-        if action=='add':gitops.add(self.home,p.get('paths'),p.get('all',False));return gitops.status(self.home)
-        if action=='remote_add':gitops.remote_add(self.home,p['name'],p['url'])
-        elif action=='remote_set':gitops.remote_set_url(self.home,p['name'],p['url'])
-        elif action=='remote_remove':gitops.remote_remove(self.home,p['name'])
-        elif action=='clean_locks':return gitops.clean_locks(self.home,min_age_sec=5+max(0,time.time()-plan['observed_at']))
-        return {'remotes':gitops.remotes(self.home)}
+        if action=='commit':return self.git.commit(self.home,p['message'],p.get('add_all',False))
+        if action=='add':self.git.add(self.home,p.get('paths'),p.get('all',False));return self.git.status(self.home)
+        if action=='remote_add':self.git.remote_add(self.home,p['name'],p['url'])
+        elif action=='remote_set':self.git.remote_set_url(self.home,p['name'],p['url'])
+        elif action=='remote_remove':self.git.remote_remove(self.home,p['name'])
+        elif action=='clean_locks':return self.git.clean_locks(self.home,min_age_sec=5+max(0,time.time()-plan['observed_at']))
+        return {'remotes':self.git.remotes(self.home)}
 
     def _result(self,plan,op,reused=False):
         if self.kind=='memo':
-            path=fileio.within(self.home,wfhome.daily_path(self.home,plan['payload']['ymd']))
+            path=fileio.within(self.home,self.memo.daily_path(self.home,plan['payload']['ymd']))
             if not path.is_file():raise operations.StateConflict('저장 이후 문서가 사라졌습니다 — 자동 복원하지 않습니다')
             raw=path.read_bytes()
             if sha(raw)!=plan['source']['target_sha256']:
-                _,memo,_=wfhome._split(raw.decode('utf-8'))
-                raise wfhome.MemoConflict(memo,wfhome.sha(memo))
+                _,memo,_=self.memo._split(raw.decode('utf-8'))
+                raise self.memo.MemoConflict(memo,self.memo.sha(memo))
         return {**op['result'],'plan_id':plan['plan_id'],'operation_id':op['operation_id'],'status':op['status'],'reused':reused}
 
     def apply(self,plan_id,ident):
@@ -194,7 +200,7 @@ class Service:
             except Exception as exc:
                 exc.plan_id=plan_id;exc.operation_id=ident
                 safe_failure=not started
-                if started and self.kind=='git' and plan['action']!='push' and isinstance(exc,gitops.GitError) and exc.returncode!=124:
+                if started and self.kind=='git' and plan['action']!='push' and isinstance(exc,self.git.GitError) and exc.returncode!=124:
                     try:safe_failure=self._git_source(plan['action'])==plan['source']
                     except Exception:pass
                 try:self.store.finish(ident,'failed' if safe_failure else 'uncertain',error=str(exc))
@@ -233,21 +239,21 @@ class Service:
                     raise operations.StateConflict('작업 결과 receipt가 다릅니다')
                 if saved['status']=='succeeded':result=saved['result']
             if result is None and self.kind=='memo':
-                path=fileio.within(self.home,wfhome.daily_path(self.home,plan['payload']['ymd']))
+                path=fileio.within(self.home,self.memo.daily_path(self.home,plan['payload']['ymd']))
                 if backup.is_file() and sha(backup.read_bytes())==plan['source']['before_sha256'] and path.is_file() and sha(path.read_bytes())==plan['source']['target_sha256']:
-                    _,memo,_=wfhome._split(path.read_bytes().decode('utf-8'));ymd=plan['payload']['ymd']
-                    result=dict(path=str(path),text=memo,sha=wfhome.sha(memo),parsed=wfhome.parse_memo(memo),ymd=ymd,
-                                document_id=wfhome.memo_document_id(self.home,ymd),backup=str(backup),backup_format='full_daily')
+                    _,memo,_=self.memo._split(path.read_bytes().decode('utf-8'));ymd=plan['payload']['ymd']
+                    result=dict(path=str(path),text=memo,sha=self.memo.sha(memo),parsed=self.memo.parse_memo(memo),ymd=ymd,
+                                document_id=self.memo.memo_document_id(self.home,ymd),backup=str(backup),backup_format='full_daily')
             if result is None and plan['action']=='push':
                 target=plan['target'];p=plan['payload']
-                urls=gitops.run_git(self.home,'remote','get-url','--push','--all',p['remote']).stdout.splitlines()
+                urls=self.git.run_git(self.home,'remote','get-url','--push','--all',p['remote']).stdout.splitlines()
                 remotes=[]
                 if urls==target['urls']:
                     for url in urls:
-                        cp=gitops.run_git(self.home,'ls-remote','--refs',url,target['ref'],check=False)
+                        cp=self.git.run_git(self.home,'ls-remote','--refs',url,target['ref'],check=False)
                         if cp.returncode or cp.stdout.split()!=[target['oid'],target['ref']]:break
                         remotes.append(cp.stdout)
-                upstream=gitops.run_git(self.home,'rev-parse','--abbrev-ref',p['branch']+'@{upstream}',check=False).stdout.strip()
+                upstream=self.git.run_git(self.home,'rev-parse','--abbrev-ref',p['branch']+'@{upstream}',check=False).stdout.strip()
                 if urls and len(remotes)==len(target['urls']) and (not p.get('set_upstream') or upstream==p['remote']+'/'+p['branch']):
                     result=dict(ok=True,command='git push (all targets readback verified)',stdout=''.join(remotes),stderr='')
             if result is None:return observed

@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "MOD-B01",
+      "description": "both builtin integration modules initially active and browser module manager available"
+    },
+    {
+      "id": "MOD-B02",
+      "description": "disable reserves next generation while current calendar remains active and pending restart is explicit"
+    },
+    {
+      "id": "MOD-B03",
+      "description": "restart hides inactive calendar and blocks its legacy API while workspace operation UI remains"
+    },
+    {
+      "id": "MOD-B04",
+      "description": "both business modules may be inactive while core registry reads and module management remain usable"
+    },
+    {
+      "id": "MOD-B05",
+      "description": "untrusted package preview is rejected without an apply action"
+    },
+    {
+      "id": "MOD-B06",
+      "description": "trusted local ERP model package can be staged with no execution before restart"
+    },
+    {
+      "id": "MOD-B07",
+      "description": "new ERP model module contributes a real browser menu/view and calls its registered API with both builtins disabled"
+    },
+    {
+      "id": "MOD-B08",
+      "description": "module setting preview/apply retains active settings until restart, then new configuration reaches the extension API"
+    },
+    {
+      "id": "MOD-B12",
+      "description": "pending update with a different UI entry keeps the current menu/view/API on active_ui until restart"
+    },
+    {
+      "id": "MOD-B09",
+      "description": "same-ID module update is reserved and becomes the active version only after restart"
+    },
+    {
+      "id": "MOD-B10",
+      "description": "alternative-ID replacement reserves removal and installation, activates only the new implementation on restart"
+    },
+    {
+      "id": "MOD-B11",
+      "description": "GUI uninstall removes extension navigation on restart while core manager and preserved project registry remain"
+    }
+  ],
+  "starts": 8,
+  "shutdown_keys": {
+    "1": [
+      "extensions",
+      "work-calendar",
+      "workspace-operations"
+    ],
+    "2": [
+      "extensions",
+      "workspace-operations"
+    ],
+    "3": [
+      "extensions"
+    ],
+    "4": [
+      "erp-demo",
+      "extensions"
+    ],
+    "5": [
+      "erp-demo",
+      "extensions"
+    ],
+    "6": [
+      "erp-demo",
+      "extensions"
+    ],
+    "7": [
+      "erp-demo-alternative",
+      "extensions"
+    ],
+    "8": [
+      "extensions"
+    ]
+  },
+  "screenshots": [
+    "pending-work-disable.png",
+    "core-without-business-modules.png",
+    "erp-module-view.png",
+    "pending-update-active-ui.png",
+    "updated-ui-entry-active.png"
+  ]
+}

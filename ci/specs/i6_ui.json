@@ -23,7 +23,7 @@
       "name": "late prepare response reused",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "if(captured!==generation||!dlg.open)return;\n        if(!p.ready)",
           "new": "if(!dlg.open)return;\n        if(!p.ready)"
         }
@@ -34,7 +34,7 @@
       "name": "agent report label implies tool observation",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "agent_reported:'에이전트 보고 · 수동 제출'",
           "new": "agent_reported:'도구 출력 관측 · 수동 제출'"
         }
@@ -45,7 +45,7 @@
       "name": "observation notes rendered as HTML",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "${esc(r.notes)}",
           "new": "${r.notes}"
         }
@@ -56,7 +56,7 @@
       "name": "old dashboard response overwrites latest",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "if(state.view !== 'dashboard' || generation!==state.dashboardGeneration)return;",
           "new": "if(state.view !== 'dashboard')return;"
         }
@@ -67,7 +67,7 @@
       "name": "new preparation reuses previous recognition UI",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "d.packet=p;packetView();$('#ssDistinction').textContent='파일 기준 새 세션 준비 · 실제 도구 인식 미확인';$('#ssHistory').textContent='새 패킷의 관측은 없습니다. 이전 이력을 다시 확인하는 중입니다.';\n        const next=await api('GET',`/api/v1/projects/${encodeURIComponent(pid)}/session/status`);if(captured!==generation||!dlg.open)return;status=next;render();$('#ssMessage').textContent='파일 기준 세션 준비 완료 · 실제 도구 인식 미확인';",
           "new": "d.packet=p;packetView();$('#ssMessage').textContent='파일 기준 세션 준비 완료 · 실제 도구 인식 미확인';"
         }

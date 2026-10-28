@@ -4,6 +4,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs = require('fs'), path = require('path'), assert = require('assert/strict');
 const out = path.resolve(process.env.WSFLOW_BROWSER_OUTPUT || 'output/playwright/i1-' + Date.now()); fs.mkdirSync(out, {recursive:true});
 const html = fs.readFileSync('static/index.html', 'utf8');
+const builtinViews=Object.fromEntries([['work-calendar','work_calendar'],['workspace-operations','workspace_operations']].map(([id,folder])=>{
+  const directory=path.join('wsflow','modules',folder),manifest=JSON.parse(fs.readFileSync(path.join(directory,'module.json'),'utf8'));
+  assert.equal(manifest.id,id);assert.equal(manifest.ui.mode,'classic');
+  return [id,{manifest,source:fs.readFileSync(path.join(directory,manifest.ui.entry),'utf8'),file:path.join(directory,manifest.ui.entry).split(path.sep).join('/')}];
+}));
 const requests = [], cases = [], errors = [], snapshots = [];
 const memoPlans = new Map(); const memos = new Map(); let holdPut = null, releasePut, putSeen, holdRead = null, releaseRead, readSeen;
 let loseMemoReply=false,memoEffects=0; let badSchema = false, pending = [], legacy = [], holdNew = null, releaseNew, newSeen, failNew = false;
@@ -25,8 +30,15 @@ async function main() {
     if (!url.pathname.startsWith('/api/')) return route.fulfill({contentType:'text/html',body:html});
     const body=req.postDataJSON(), method=req.method(), p=url.pathname;
     requests.push({method,path:p,body,query:url.search});let value={},status=200;
+    const asset=/^\/api\/v1\/modules\/(work-calendar|workspace-operations)\/assets\/(.+)$/.exec(p);
+    if(asset){const view=builtinViews[asset[1]];assert.equal(method,'GET');assert.equal(decodeURIComponent(asset[2]),view.manifest.ui.entry);assert.equal(url.searchParams.get('t'),'synthetic');return route.fulfill({contentType:'application/javascript',body:view.source});}
     const project = /\/projects\/([^/]+)/.exec(p)?.[1];
-    if(p==='/api/config')value={roots:[]};
+    if(p==='/api/v1/modules'){
+      assert.equal(req.headers()['x-auth-token'],'synthetic');
+      const modules=Object.values(builtinViews).map(({manifest})=>({...manifest,builtin:true,installed:true,enabled:true,active:true,active_version:manifest.version,active_ui:manifest.ui,settings:{},pending:false,error:null}));
+      value={schema_version:1,revision:0,active_revision:0,restart_required:false,configuration_error:null,storage_warning:null,modules,catalog:modules};
+    }
+    else if(p==='/api/config')value={roots:[]};
     else if(p==='/api/projects')value={projects:['a','b'].map(id=>({id,alias:id==='a'?'Alpha':'Beta',path:`C:/synthetic/${id}`,exists:true,git:'none'}))};
     else if(p==='/api/jira/status')value={configured:true,source:'synthetic'};
     else if(p.endsWith('/rules'))value={git:'none',remotes:[],ledger:{exists:false},worklog:{},drift:[],markers:{},locks:[]};
@@ -123,7 +135,7 @@ async function main() {
     for(const id of ['jSave','jPlan','nPlan'])assert.equal(await page.locator('#'+id).isDisabled(),true);
     cases.push('unsupported schema disables business write controls');
     assert.deepEqual(errors,[]);await snapshot('schema');await page.screenshot({path:path.join(out,'P015-final.png'),fullPage:true});
-    fs.writeFileSync(path.join(out,'P015-evidence.json'),JSON.stringify({at:new Date().toISOString(),source:'actual static/index.html, mocked HTTP only',source_sha256:require('crypto').createHash('sha256').update(html).digest('hex'),cases,requests,errors,snapshots},null,2));
+    fs.writeFileSync(path.join(out,'P015-evidence.json'),JSON.stringify({at:new Date().toISOString(),source:'actual core HTML and package UI bundles, mocked HTTP only',source_sha256:require('crypto').createHash('sha256').update(html).digest('hex'),ui_asset_sha256:Object.fromEntries(Object.values(builtinViews).map(view=>[view.file,require('crypto').createHash('sha256').update(view.source).digest('hex')])),cases,requests,errors,snapshots},null,2));
     console.log(JSON.stringify({passed:cases.length,cases,errors}));
   } catch(e){fs.writeFileSync(path.join(out,'failure.json'),JSON.stringify({error:e.stack,errors,cases,requests},null,2));await page.screenshot({path:path.join(out,'P015-failure.png'),fullPage:true});await snapshot('failure');throw e;}
   finally{await browser.close();}

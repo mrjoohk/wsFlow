@@ -44,7 +44,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "for rel in p['files']:",
           "new": "for rel in ['SKILL.md']:"
@@ -70,7 +70,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_skills.py",
+          "file": "wsflow/modules/workspace_operations/context_skills.py",
           "func": "catalog",
           "old": "if key in names:",
           "new": "if False:"
@@ -96,7 +96,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_skills.py",
+          "file": "wsflow/modules/workspace_operations/context_skills.py",
           "func": "package",
           "old": "if not target.is_relative_to(path.resolve()) or not target.exists():",
           "new": "if False:"
@@ -122,7 +122,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "if raw and not body.get('adopt_existing'):",
           "new": "if False:"
@@ -148,7 +148,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "if entry.get('sha256') != sha(current):",
           "new": "if False:"
@@ -174,7 +174,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "if entry and entry.get('sha256') != sha(raw):",
           "new": "if False:"
@@ -200,7 +200,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "if not current or current['tree_hash'] != expected['tree_hash']:",
           "new": "if False:"
@@ -226,7 +226,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service._manifest",
           "old": "if expected != sha(path.read_bytes()):",
           "new": "if False:"
@@ -252,7 +252,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.apply",
           "old": "if not continuing and time.time()>saved['expires_at']:",
           "new": "if False:"
@@ -278,7 +278,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.apply",
           "old": "if not op or op.get('kind')!='context' or op.get('project_id')!=pid or op.get('plan_id')!=plan_id or saved.get('project_id')!=pid:",
           "new": "if False:"
@@ -304,7 +304,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.apply",
           "old": "if operations.digest(registry)!=saved['registry_hash'] or str(checkout)!=saved['checkout_path'] or str(root)!=saved['root_path']:",
           "new": "if False:"
@@ -330,7 +330,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.apply",
           "old": "if current!=a['before'] and not (continuing and self._matches(current,a['after'])):",
           "new": "if False:"
@@ -356,7 +356,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.apply",
           "old": "if continuing and not recover:",
           "new": "if False:"
@@ -382,7 +382,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.apply",
           "old": "if op['status']=='succeeded':return op['result']",
           "new": "if False:return op['result']"
@@ -408,13 +408,13 @@
       ],
       "edits": [
         {
-          "file": "wsflow/deploy.py",
+          "file": "wsflow/modules/workspace_operations/deploy.py",
           "func": "_entries",
           "old": "if conflict:",
           "new": "if False:"
         },
         {
-          "file": "wsflow/deploy.py",
+          "file": "wsflow/modules/workspace_operations/deploy.py",
           "func": "apply",
           "old": "if conflict:",
           "new": "if False:"
@@ -440,7 +440,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.apply",
           "old": "validate_handle=lambda fd:validate_staging_handle(fd,saved['owner'])",
           "new": "validate_handle=None"
@@ -466,7 +466,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "for rel in p['directories']:",
           "new": "for rel in []:"
@@ -492,7 +492,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "if rel in new or rel==rules_rel:continue",
           "new": "if True:continue"
@@ -518,7 +518,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "project_uid=(pp or {}).get('project_uid') or str(uuid4())",
           "new": "project_uid=str(uuid4())"
@@ -544,7 +544,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "if before['kind']=='absent':\n                write(rules_rel,",
           "new": "if True:\n                write(rules_rel,"
@@ -570,7 +570,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "if other and other.get('project_uid')==pp.get('project_uid'):",
           "new": "if False:"
@@ -596,10 +596,10 @@
       ],
       "edits": [
         {
-          "file": "wsflow/server.py",
-          "func": "make_handler",
+          "file": "wsflow/modules/workspace_operations/routes.py",
           "old": "if body.get('kind','project_init')!='project_init':",
-          "new": "if False:"
+          "new": "if False:",
+          "func": "_context_v1"
         }
       ]
     },
@@ -648,7 +648,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.apply",
           "old": "if not self._guard_matches(source,expected,saved['actions']):",
           "new": "if False:"
@@ -674,7 +674,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "for ident in selected:",
           "new": "for ident in by_id:"
@@ -700,7 +700,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "if any(p['skill_id'] in selected and p['name'].casefold()==child.name.casefold() for p in catalog):",
           "new": "if False:"
@@ -726,7 +726,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.preview",
           "old": "if other and other.get('root_uid')==rp.get('root_uid'):",
           "new": "if False:"
@@ -752,7 +752,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "validate_staging_handle",
           "old": "skills.plain_path(actual,Path(owner))",
           "new": "pass"
@@ -778,7 +778,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/context_projection.py",
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
           "func": "Service.setup",
           "old": "if rp and common.is_file() and rp.get('rules_sha256')!=sha(common.read_bytes()):",
           "new": "if False:"

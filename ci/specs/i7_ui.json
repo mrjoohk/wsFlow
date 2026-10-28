@@ -23,8 +23,8 @@
       "name": "batch ignores unsaved draft",
       "edits": [
         {
-          "file": "static/index.html",
-          "old": "if(!await guardUnsaved(p))return;\n    if(!box.isConnected)return;",
+          "file": "wsflow/modules/work_calendar/ui.js",
+          "old": "if(!await guardJiraUnsaved(p))return;\n    if(!box.isConnected)return;",
           "new": "if(false)return;\n    if(!box.isConnected)return;"
         }
       ]
@@ -34,7 +34,7 @@
       "name": "partial query warning omitted",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "if(v.complete===false || v.warnings?.length)",
           "new": "if(false)"
         }
@@ -45,7 +45,7 @@
       "name": "late date reply overwrites selected day",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "if(!box.isConnected||generation!==state.workflowGeneration)return;",
           "new": "if(!box.isConnected)return;"
         }
@@ -56,7 +56,7 @@
       "name": "untrusted project alias rendered as HTML",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "${esc(p.alias)}</b> · ${p.enabled?",
           "new": "${p.alias}</b> · ${p.enabled?"
         }
@@ -67,7 +67,7 @@
       "name": "late Git response binds wrong view",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "if(!body.isConnected||state.current!==p.id||state.tab!=='status')return;",
           "new": "if(false)return;"
         }
@@ -78,7 +78,7 @@
       "name": "successful create hides failed personal-list visibility",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "if(jiraVisible(p,J)&&r.visibility&&r.visibility.state!=='visible')",
           "new": "if(false)"
         }
@@ -89,7 +89,7 @@
       "name": "failed batch claims watermark commit",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "result.committed?result.watermark_out:'보존 · 전진하지 않음'",
           "new": "result.watermark_out||'commit 완료'"
         }
@@ -100,7 +100,7 @@
       "name": "unknown signal becomes zero",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "p.signals?.new??'?'",
           "new": "p.signals?.new??0"
         }
@@ -111,7 +111,7 @@
       "name": "corrupt receipt warning hidden",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "(r.warnings||[]).map(w=>",
           "new": "[].map(w=>"
         }

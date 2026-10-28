@@ -23,7 +23,7 @@
       "name": "uncertain offers resend before lookup",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "['queued','error'].includes(op.state)",
           "new": "['queued','error','uncertain'].includes(op.state)"
         }
@@ -34,7 +34,7 @@
       "name": "lost approval response discards server IDs",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "if(e.status&&e.status<500)GCAL.pending=null;",
           "new": "GCAL.pending=null;"
         }
@@ -45,7 +45,7 @@
       "name": "event private body leaked into date cell",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": " ${esc(e.title)}</span>",
           "new": " ${esc(e.title)} ${esc(e.body)}</span>"
         }
@@ -56,7 +56,7 @@
       "name": "note editor offers Google target",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "${kind==='event'&&!d.id?`<label>저장 대상",
           "new": "${!d.id?`<label>저장 대상"
         }

@@ -1,0 +1,437 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "ci/tests",
+    "-p",
+    "test_module_evidence.py"
+  ],
+  "timeout": 120,
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "CI_MOD_CASES",
+      "name": "CI_MOD_CASES",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if not isinstance(cases, list) or sorted(cases, key=lambda c: c['id']) != sorted(baseline['cases'], key=lambda c: c['id']):",
+          "new": "if False:",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_missing_replaced"
+      ]
+    },
+    {
+      "id": "CI_MOD_SOURCE",
+      "name": "CI_MOD_SOURCE",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if evidence.get('source_sha256') != expected or evidence.get('source_sha256_end') != expected:",
+          "new": "if False:",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_package_fixture"
+      ]
+    },
+    {
+      "id": "CI_MOD_PROVIDER",
+      "name": "CI_MOD_PROVIDER",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if type(stopped.get('provider_attempts')) is not int or stopped['provider_attempts'] != 0:",
+          "new": "if False:",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_actual_checkpoint"
+      ]
+    },
+    {
+      "id": "CI_MOD_WORKERS",
+      "name": "CI_MOD_WORKERS",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if (set(workers) != set(baseline['shutdown_keys'][str(number)]) or\n                any(not isinstance(value, dict) or set(value) != {'workers_stopped'} or\n                    value['workers_stopped'] is not True for value in workers.values())):",
+          "new": "if False:",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_actual_checkpoint"
+      ]
+    },
+    {
+      "id": "CI_MOD_PNG",
+      "name": "CI_MOD_PNG",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if not valid_png(raw):",
+          "new": "if False:",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_missing_truncated"
+      ]
+    },
+    {
+      "id": "CI_MOD_ENV",
+      "name": "CI_MOD_ENV",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "'WF_HOME', 'WSFLOW_PYTHON'):",
+          "new": "'WF_HOME'):",
+          "func": "clean_env"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_ambient_output"
+      ]
+    },
+    {
+      "id": "CI_MOD_LATE",
+      "name": "CI_MOD_LATE",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if result.get('modules'):",
+          "new": "if False:",
+          "func": "run"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_late_module"
+      ]
+    },
+    {
+      "id": "CI_MOD_RUNTIME",
+      "name": "CI_MOD_RUNTIME",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if (observed['node'] != result['environment']['node'] or\n                    observed['browser'] != result['environment']['browser']['browser'] or\n                    observed['playwright'] != result['environment']['browser']['playwright']):",
+          "new": "if False:",
+          "func": "run"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_run_evidence_contracts"
+      ]
+    },
+    {
+      "id": "CI_MOD_INPUT_TYPES",
+      "name": "CI_MOD_INPUT_TYPES",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "p.suffix in ('.py', '.js', '.json')",
+          "new": "p.suffix in ('.py',)",
+          "func": "module_source_hashes"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_finished_snapshot"
+      ]
+    },
+    {
+      "id": "CI_MOD_PYTHON",
+      "name": "CI_MOD_PYTHON",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if evidence.get('fixtureRuntimes') != expected_runtime:",
+          "new": "if False:",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_unobserved_start"
+      ]
+    },
+    {
+      "id": "CI_MOD_ERRORS",
+      "name": "CI_MOD_ERRORS",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if any(evidence.get(key) != [] for key in ('pageErrors', 'unexpectedConsoleErrors', 'unexpectedResponses', 'forbidden')):",
+          "new": "if False:",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_missing_replaced"
+      ]
+    },
+    {
+      "id": "CI_MOD_STOP_EVENT",
+      "name": "CI_MOD_STOP_EVENT",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "stopped.get('event') != 'stopped' or ",
+          "new": "",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_actual_checkpoint"
+      ]
+    },
+    {
+      "id": "CI_MOD_STOP_GEN",
+      "name": "CI_MOD_STOP_GEN",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "stopped['starts'] != number or ",
+          "new": "",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_actual_checkpoint"
+      ]
+    },
+    {
+      "id": "CI_MOD_FINAL_EVENT",
+      "name": "CI_MOD_FINAL_EVENT",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "final.get('event') != 'snapshot' or\n            ",
+          "new": "",
+          "func": "validate_module_browser"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_missing_restart"
+      ]
+    },
+    {
+      "id": "CI_MOD_IHDR",
+      "name": "CI_MOD_IHDR",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "if len(tags) == 1 and (tag != b'IHDR' or size != 13 or\n                              int.from_bytes(data[:4], 'big') == 0 or int.from_bytes(data[4:8], 'big') == 0):",
+          "new": "if False:",
+          "func": "valid_png"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_module_evidence.py",
+        "-k",
+        "test_missing_truncated"
+      ]
+    }
+  ]
+}

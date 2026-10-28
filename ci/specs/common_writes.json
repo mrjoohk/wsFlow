@@ -134,7 +134,7 @@
       "edits": [
         {
           "file": "wsflow/common_writes.py",
-          "old": "payload['sha']!=wfhome.sha(memo)",
+          "old": "payload['sha']!=self.memo.sha(memo)",
           "new": "False",
           "func": "Service._memo_source"
         }
@@ -146,7 +146,7 @@
       "edits": [
         {
           "file": "wsflow/common_writes.py",
-          "old": "payload['document_id']!=wfhome.memo_document_id(self.home,payload['ymd'])",
+          "old": "payload['document_id']!=self.memo.memo_document_id(self.home,payload['ymd'])",
           "new": "False",
           "func": "Service._memo_source"
         }
@@ -230,7 +230,7 @@
       "edits": [
         {
           "file": "wsflow/common_writes.py",
-          "old": "if wfhome.read_state(self.home).get('schema_version')!=wfhome.SCHEMA_VERSION:",
+          "old": "if self.memo.read_state(self.home).get('schema_version')!=self.memo.SCHEMA_VERSION:",
           "new": "if False:",
           "func": "Service._memo_source"
         }

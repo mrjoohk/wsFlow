@@ -7,6 +7,7 @@
 <style>
   :root { --bg:#f6f5f1; --panel:#fff; --fg:#1f2328; --muted:#6b7280; --line:#e2dfd7; --accent:#2f5d8a; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --chip:#eef2f7; }
   * { box-sizing:border-box; }
+  .hlabel[hidden] { display:none; }
   body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 "Noto Sans KR","Malgun Gothic",system-ui,sans-serif; height:100vh; display:flex; flex-direction:column; }
   header { display:flex; gap:.6rem; align-items:center; padding:.5rem .9rem; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; }
   header h1 { font-size:1.05rem; margin:0 .6rem 0 0; }
@@ -107,6 +108,8 @@
   </details>
   <button id="btnDash" class="nav">대시보드</button>
   <button id="btnCalendar" class="nav">캘린더</button>
+  <button id="btnModules" class="nav">모듈 관리</button>
+  <span id="moduleNavigation"></span>
   <span style="flex:1"></span>
   <button id="btnNotices" title="최근 알림·오류 다시 보기">알림</button>
   <button id="btnRefresh" title="목록과 현재 화면을 다시 읽습니다" aria-label="새로고침">↻</button>
@@ -123,8 +126,123 @@ const $ = (s, el=document) => el.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let state = { roots: [], projects: [], current: null, tab: "status", view: "project", jira: {} };
 
+function moduleActive(id) { return !state.modules || state.modules.modules.some(m => m.id === id && m.active); }
+function syncBuiltinNavigation() {
+  const workspace=!!window.wsflowUI.get('workspace-operations'),calendar=!!window.wsflowUI.get('work-calendar');
+  $('#menuAdd').hidden=!workspace;$('#menuTools').hidden=!workspace;
+  $('#rootSel').closest('label').hidden=!workspace;$('#btnCalendar').hidden=!calendar;
+}
+async function refreshModuleState() {
+  state.modules = await api('GET', '/api/v1/modules');
+  syncBuiltinNavigation();
+  const extensions = state.modules.modules.filter(m => m.active && !m.builtin && m.active_ui?.entry).map(m=>({...m,ui:m.active_ui}));
+  $('#moduleNavigation').innerHTML = extensions.map((m,i) => `<button data-module-view="${i}">${esc(m.ui.label || m.name)}</button>`).join('');
+  $('#moduleNavigation').querySelectorAll('[data-module-view]').forEach(b => b.onclick=()=>openModuleView(extensions[+b.dataset.moduleView]).catch(fail));
+}
+
+async function openModuleView(record) {
+  state.view='extension';state.current=null;state.landed=true;renderList();
+  const content=$('#content');content.innerHTML=`<h2>${esc(record.name)}</h2><div id="extensionView">불러오는 중…</div>`;
+  const entry=record.ui.entry.split('/').map(encodeURIComponent).join('/');
+  const view=await import(`/api/v1/modules/${encodeURIComponent(record.id)}/assets/${entry}?t=${encodeURIComponent(AUTH_TOKEN)}`);
+  if(typeof view.mount!=='function')throw new Error('모듈 화면의 mount 계약이 없습니다');
+  const target=$('#extensionView');if(!target)return;target.textContent='';
+  await view.mount(target,(method,path,body)=>api(method,`/api/v1/modules/${encodeURIComponent(record.id)}/api/${String(path).replace(/^\//,'')}`,body));
+}
+
+async function renderModules() {
+  state.view='modules';state.current=null;state.landed=true;renderList();
+  await refreshModuleState();const snapshot=state.modules,c=$('#content');
+  c.innerHTML=`<h2>통합 기능 모듈 관리</h2>
+    <p>변경은 미리보기 후 예약하며 서버를 다시 실행하면 적용됩니다. 현재 실행 중인 구성과 다음 구성을 구분합니다.</p>
+    ${snapshot.configuration_error?`<p class="bad" role="alert">${esc(snapshot.configuration_error)} · 저장 구성을 자동 초기화하지 않았습니다.</p>`:''}
+    ${snapshot.storage_warning?`<p class="warn">${esc(snapshot.storage_warning)} · 기본 기능은 유지하며 모듈 구성 저장은 차단합니다.</p>`:''}
+    <p id="moduleRevision">현재 실행 구성 ${snapshot.active_revision} · 저장 구성 ${snapshot.revision} · <strong>${snapshot.restart_required?'재시작 필요':'적용 대기 없음'}</strong></p>
+    <div style="overflow:auto"><table><thead><tr><th>모듈</th><th>현재 실행</th><th>다음 실행</th><th>관리</th></tr></thead><tbody>
+    ${snapshot.modules.map((m,i)=>`<tr data-module-id="${esc(m.id)}"><td><b>${esc(m.name)}</b><br><code>${esc(m.id)}</code>${m.error||state.moduleUIErrors?.[m.id]?`<p class="bad">${esc(m.error||state.moduleUIErrors[m.id])}</p>`:''}</td><td>${m.active?'활성':'비활성'} ${esc(m.active_version||'')}</td><td>${m.installed?(m.enabled?'활성':'비활성'):'제거'} ${esc(m.version)} ${m.pending?'· 재시작 대기':''}</td><td>${m.installed?`<button data-module-action="${m.enabled?'disable':'enable'}" data-module-index="${i}">${m.enabled?'비활성화':'활성화'}</button> <button data-module-action="configure" data-module-index="${i}">설정</button> <button data-module-action="uninstall" data-module-index="${i}">제거</button>`:m.builtin?`<button data-module-action="install" data-module-index="${i}">다시 추가</button>`:''}</td></tr>`).join('')}
+    </tbody></table></div>
+    <details id="modulePackageForm" style="margin-top:1rem"><summary>로컬 모듈 패키지 추가·갱신·교체</summary>
+      <p>신뢰한 로컬 코드만 선택하십시오. 패키지는 이 앱의 권한으로 실행됩니다. 설치 단계에서 외부 ERP에 연결하지 않습니다.</p>
+      <label>작업 <select id="moduleAction"><option value="install">추가</option><option value="update">같은 모듈 버전 갱신</option><option value="replace">다른 구현으로 교체</option></select></label>
+      <label>대상 모듈 <select id="moduleTarget"><option value="">추가 시 패키지에서 결정</option>${snapshot.modules.filter(m=>m.installed).map(m=>`<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('')}</select></label>
+      <p><input id="moduleSource" type="text" placeholder="module.json이 있는 폴더의 절대 경로" style="width:min(38rem,80%)"> <button id="modulePick">찾아보기…</button></p>
+      <label><input id="moduleTrusted" type="checkbox">선택한 패키지의 코드를 신뢰합니다</label>
+      <p>초기 설정(JSON, 자격 원문 입력 금지)</p><textarea id="moduleInitialSettings" rows="3" style="width:min(38rem,95%)">{}</textarea>
+      <p>다른 구현 교체는 기존 데이터를 보관하고 새 저장 공간을 사용합니다. 자동 업무 데이터 이관과 schema 변환은 지원하지 않습니다.</p><button id="modulePackagePreview">패키지 변경 미리보기</button>
+    </details>
+    <p><label>이전 구성 revision <input id="moduleRestoreRevision" type="number" min="0" step="1" value="${snapshot.active_revision}"></label> <button id="moduleRestore">이전 구성 복구 미리보기</button></p>
+    <p>제거는 프로젝트 폴더·업무 기록·보호된 자격을 삭제하거나 외부 계정 권한을 철회하지 않습니다.</p>
+    <div id="modulePlan"></div><p id="moduleStatus" role="status"></p>`;
+  c.querySelectorAll('[data-module-action]').forEach(b=>b.onclick=async()=>{
+    const m=snapshot.modules[+b.dataset.moduleIndex],action=b.dataset.moduleAction;
+    if(action==='configure')return moduleSettingsDialog(m,snapshot.revision);
+    await previewModuleChange({action,module_id:m.id,expected_revision:snapshot.revision});
+  });
+  $('#modulePick').onclick=async()=>{try{const r=await api('POST','/api/pick-folder',{});if(r.path)$('#moduleSource').value=r.path;}catch(e){fail(e);}};
+  $('#modulePackagePreview').onclick=async()=>{try{const action=$('#moduleAction').value;const request={action,expected_revision:snapshot.revision,source_path:$('#moduleSource').value.trim(),trusted:$('#moduleTrusted').checked,settings:JSON.parse($('#moduleInitialSettings').value)};if(action!=='install')request.module_id=$('#moduleTarget').value;await previewModuleChange(request);}catch(e){$('#moduleStatus').textContent=e.message;}};
+  $('#moduleRestore').onclick=()=>previewModuleChange({action:'restore',expected_revision:snapshot.revision,target_revision:Number($('#moduleRestoreRevision').value)});
+}
+
+async function moduleSettingsDialog(record,revision) {
+  const dlg=$('#dlg');dlg.onclose=null;
+  dlg.innerHTML=`<h3>${esc(record.name)} 설정</h3><p>선언 필드: ${esc(Object.keys(record.config_schema?.properties||{}).join(', ')||'없음')}</p><p>Jira·Google·프로젝트 설정은 기존 기능 화면에서 관리합니다.</p><textarea id="moduleSettings" rows="8" style="width:100%">${esc(JSON.stringify(record.settings||{},null,2))}</textarea><p id="moduleSettingsError" role="status"></p><button id="moduleSettingsPreview">설정 미리보기</button> <button id="moduleSettingsClose">닫기</button>`;
+  $('#moduleSettingsClose').onclick=()=>dlg.close();
+  $('#moduleSettingsPreview').onclick=async()=>{try{const settings=JSON.parse($('#moduleSettings').value);dlg.close();await previewModuleChange({action:'configure',module_id:record.id,settings,expected_revision:revision});}catch(e){if($('#moduleSettingsError'))$('#moduleSettingsError').textContent=e.message;}};
+  dlg.showModal();
+}
+
+async function previewModuleChange(body) {
+  const status=$('#moduleStatus'),box=$('#modulePlan');if(!status||!box)return;
+  try {
+    const plan=await api('POST','/api/v1/modules/plan',body);
+    box.innerHTML=`<div class="box"><h3>모듈 변경 확인</h3><p>${esc(plan.action)} · ${esc(plan.module_id||'이전 구성')} · 변경 ${plan.changes.length}개</p><pre style="white-space:pre-wrap">${esc(JSON.stringify(plan.changes.map(x=>({id:x.id,before:x.before?{version:x.before.version,installed:x.before.installed,enabled:x.before.enabled,settings:x.before.settings}:null,after:x.after?{version:x.after.version,installed:x.after.installed,enabled:x.after.enabled,settings:x.after.settings}:null})),null,2))}</pre><p>업무 데이터 보존 · 자동 이관 없음 · 실행 구성은 재시작 후 변경됩니다.</p><button id="moduleApply">이 변경 예약</button> <button id="moduleCancel">취소</button></div>`;
+    status.textContent='미리보기만 수행했습니다.';
+    $('#moduleCancel').onclick=()=>{box.innerHTML='';status.textContent='변경을 예약하지 않았습니다.';};
+    $('#moduleApply').onclick=async()=>{const b=$('#moduleApply');b.disabled=true;try{await api('POST','/api/v1/modules/apply',{plan_id:plan.plan_id});await renderModules();$('#moduleStatus').textContent='변경을 예약했습니다. 서버를 종료하고 다시 실행한 뒤 새 토큰 주소로 여십시오.';}catch(e){status.textContent=e.message;b.disabled=false;}};
+  } catch(e) {status.textContent=e.message;}
+}
+
 // F-004: 기동 시 난수 토큰. 주소의 ?t= 에서 받아 모든 API 요청 헤더에 실어 보낸다.
 // 다른 출처의 페이지는 이 값을 읽을 수 없으므로 요청을 위조하지 못한다.
+
+// Builtin UI contributions use the active package generation. External ES modules
+// keep the existing mount(container, api) contract and do not use this registry.
+const moduleUIEntries=new Map(),moduleUIScripts=new Map();
+window.wsflowUI={
+  register(id,entry){if(!moduleActive(id))throw new Error('비활성 모듈 화면을 등록할 수 없습니다: '+id);if(moduleUIEntries.has(id))throw new Error('중복 모듈 화면입니다: '+id);moduleUIEntries.set(id,entry);},
+  get(id){return moduleActive(id)?moduleUIEntries.get(id):undefined;},
+  entries(){return [...moduleUIEntries].filter(([id])=>moduleActive(id)).map(([,entry])=>entry);},
+  tabs(){return this.entries().flatMap(entry=>entry.tabs||[]).sort((left,right)=>(left.order||0)-(right.order||0));},
+  async invoke(id,action,...args){const fn=this.get(id)?.[action];if(typeof fn!=='function')throw new Error('모듈 화면이 준비되지 않았습니다: '+id);return fn(...args);},
+  async guardUnsaved(project){for(const entry of this.entries())if(entry.guardUnsaved&&!await entry.guardUnsaved(project))return false;return true;},
+  clearProject(id){for(const entry of this.entries())entry.clearProject?.(id);}
+};
+async function loadBuiltinUI() {
+  state.moduleUIErrors=state.moduleUIErrors||{};
+  for(const record of state.modules.modules.filter(item=>item.builtin&&item.active)){
+    const ui=record.active_ui||{},key=record.id+'@'+record.active_version+':'+(ui.entry||'');
+    if(moduleUIScripts.has(key)){await moduleUIScripts.get(key);continue;}
+    if(!ui.entry||ui.mode!=='classic'){state.moduleUIErrors[record.id]='기본 모듈의 classic UI entry가 없습니다';moduleUIScripts.set(key,'failed');continue;}
+    const promise=new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      const timeout=setTimeout(()=>reject(new Error('모듈 화면 로딩 시간이 초과되었습니다')),15000);
+      script.src=`/api/v1/modules/${encodeURIComponent(record.id)}/assets/${ui.entry.split('/').map(encodeURIComponent).join('/')}?t=${encodeURIComponent(AUTH_TOKEN)}`;
+      script.dataset.moduleId=record.id;
+      script.onload=()=>{clearTimeout(timeout);resolve();};script.onerror=()=>{clearTimeout(timeout);reject(new Error('모듈 화면을 읽을 수 없습니다: '+record.id));};
+      document.head.append(script);
+    });
+    const ready=promise.then(async()=>{
+      const entry=window.wsflowUI.get(record.id);if(!entry)throw new Error('모듈 화면 등록 계약이 없습니다: '+record.id);
+      const bindings=[...document.querySelectorAll('header button, header input, header select')]
+        .flatMap(element=>['onclick','onkeydown','oninput','onchange'].map(property=>[element,property,element[property]]));
+      try{await entry.onReady?.();}catch(error){for(const [element,property,binding] of bindings)element[property]=binding;throw error;}
+      delete state.moduleUIErrors[record.id];
+    }).catch(error=>{moduleUIEntries.delete(record.id);moduleUIScripts.set(key,'failed');state.moduleUIErrors[record.id]=error.message;notice('error',error.message);});
+    moduleUIScripts.set(key,ready);await ready;
+  }
+  syncBuiltinNavigation();
+}
+
 const AUTH_TOKEN = new URLSearchParams(location.search).get("t") || "";
 
 async function api(method, path, body) {
@@ -315,836 +433,15 @@ function calendarCurrent(C,ticket,key,visible) { return visible && ticket===C.re
 if(typeof module!=='undefined')module.exports={calendarMove,calendarRange,calendarCell,calendarCurrent};
 </script>
 <script>
-const CAL = { mode:'month',selected:null,projectId:'',source:'',timezone:'Asia/Seoul',requestRevision:0,queryKey:null,data:null,error:null,drafts:new Map(),editor:null };
-const GCAL = {busy:false,status:null,calendars:[],error:null,timer:null,authTimer:null,outbox:{links:[],operations:[]},pending:null,revision:0,planRevision:0};
-async function googleAction(action,body={}) {
-  if(GCAL.busy)return;
-  GCAL.busy=true;GCAL.error=null;GCAL.revision++;GCAL.planRevision++;drawGoogle();
-  try {
-    if(action==='connect') {
-      const result=await api('POST','/api/v2/calendar/google/connect',body);
-      if(calendarVisible()) {
-        const box=$('#gAuthorization');box.replaceChildren();
-        const link=document.createElement('a');link.href=result.authorization_url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Google 브라우저 승인 열기 (3분 이내)';box.append(link);
-      }
-      clearInterval(GCAL.authTimer);
-      GCAL.authTimer=setInterval(async()=>{
-        if(GCAL.busy)return;
-        if(!calendarVisible()){clearInterval(GCAL.authTimer);return;}
-        try {const s=await api('GET','/api/v2/calendar/google/status');GCAL.status=s;
-          if(!s.pending){clearInterval(GCAL.authTimer);GCAL.error=s.auth_error;await refreshGoogle();if(calendarVisible())$('#gAuthorization').replaceChildren();await loadCalendar();}
-        } catch(e){GCAL.error=e.message;clearInterval(GCAL.authTimer);}drawGoogle();
-      },2000);
-    } else {
-      const result=await api('POST','/api/v2/calendar/google/'+action,body);
-      GCAL.error=result.warning||(!result.complete&&action==='sync'?'일부 Google 캘린더를 확인하지 못했습니다. 이전 결과와 ? 표시를 확인하십시오.':null);
-      if(action==='select') {
-        const synced=await api('POST','/api/v2/calendar/google/sync',{});
-        if(!synced.complete)GCAL.error='Google 수집 미완료 — 이전 결과와 ? 표시를 확인하십시오.';
-      }
-      await refreshGoogle();await loadCalendar();
-    }
-  } catch(e){GCAL.error=e.message;}
-  finally{GCAL.busy=false;drawGoogle();}
-}
-async function refreshGoogle() {
-  const ticket=++GCAL.revision;
-  try {
-    const status=await api('GET','/api/v2/calendar/google/status');
-    const values=status.connected?await Promise.allSettled([api('GET','/api/v2/calendar/google/calendars'),api('GET','/api/v2/calendar/google/outbox')]):[];
-    if(ticket!==GCAL.revision)return;
-    const sameAccount=GCAL.status?.account?.id===status.account?.id;GCAL.status=status;
-    GCAL.calendars=values[0]?.status==='fulfilled'?values[0].value.calendars:[];
-    GCAL.outbox=values[1]?.status==='fulfilled'?values[1].value:(sameAccount&&status.connected?GCAL.outbox:{links:[],operations:[]});
-    const failed=values.find(v=>v.status==='rejected');if(failed)GCAL.error=failed.reason.message;
-  } catch(e){if(ticket===GCAL.revision)GCAL.error=e.message;}drawGoogle();
-}
-function drawGoogle() {
-  const box=$('#gControls');if(!box||!calendarVisible())return;
-  const s=GCAL.status,disabled=GCAL.busy?'disabled':'';
-  box.innerHTML=`<p>${!s?'Google 연결 확인 중…':s.connected?'연결: '+esc(s.account.email)+' · 마지막 수집 '+esc(s.last_sync||'미수집')+' · '+(s.complete?'수집 확인':'수집 확인 필요'):'Google 미연결'}</p>
-    ${GCAL.error||s?.background_error?`<p role="alert" class="warn">${esc(GCAL.error||s.background_error)}</p>`:''}
-    ${s?.setup_error?`<p class="muted">${esc(s.setup_error)} · Google Cloud에서 Calendar API 사용 설정과 Desktop 앱 OAuth client를 준비하십시오.</p>`:''}
-    <button id="gConnect" ${disabled} ${s&&!s.configured?'disabled':''}>${s?.connected?'계정 다시 연결':'Google 연결'}</button>
-    ${s?.connected?`<button id="gDisconnect" ${disabled}>Google 연결 해제</button><button id="gSync" ${disabled}>Google 지금 동기화</button>
-    ${!s.can_write?`<button id="gWrite" ${disabled}>Google 쓰기 권한 연결</button>`:''}
-    <p class="muted">표시할 캘린더를 선택하십시오. 연결한 로컬 일정은 쓰기 권한이 있으면 동기화합니다. 외부 일정은 읽기 전용입니다. 앱 실행 중 5분마다 확인합니다.</p>
-    <div>${GCAL.calendars.map((c,i)=>`<label style="display:block"><input type="checkbox" data-gcal="${i}" ${s.selected_calendar_ids.includes(c.id)?'checked':''} ${!c.can_read?'disabled':disabled}> ${esc(c.summary||c.id)} · ${esc(c.accessRole||'권한 미확인')}${!c.can_read?' (일정 내용 조회 불가)':''}</label>`).join('')}</div><button id="gSelect" ${disabled}>선택 저장·동기화</button>`:''}`;
-  $('#gConnect').onclick=()=>googleAction('connect');
-  if(s?.connected){$('#gDisconnect').onclick=()=>googleAction('disconnect');$('#gSync').onclick=()=>googleAction('sync');
-    if($('#gWrite'))$('#gWrite').onclick=()=>googleAction('connect',{write:true});
-    $('#gSelect').onclick=()=>googleAction('select',{calendar_ids:[...box.querySelectorAll('[data-gcal]:checked')].map(el=>GCAL.calendars[+el.dataset.gcal].id)});}
-  drawGoogleOutbox();
-}
-function googleState(value){return ({local_only:'로컬만',queued:'전송 대기',syncing:'전송 중 · 재시작 후 대조',synced:'동기화됨',error:'전송 오류',conflict:'충돌 · 양쪽 확인',uncertain:'결과 미확인 · 원격 대조 필요',cancelled:'취소된 전송'})[value]||value;}
-function drawGoogleOutbox(){
-  const box=$('#gOutbox');if(!box)return;
-  const links=GCAL.outbox.links||[],ops=GCAL.outbox.operations||[];
-  box.innerHTML=`${GCAL.pending?'<p class="warn">승인 응답을 확인 중입니다. <button id="gPending">같은 승인 결과 확인</button></p>':''}
-    ${links.length?'<h3>Google 연결 일정·복구</h3>':''}${links.map((l,i)=>{const op=ops.find(o=>o.id===l.pending),c=l.conflict;
-      return `<div class="cal-entry"><b>${esc(l.local?.title||l.local_id)}</b> · ${esc(l.calendar_id)} · ${esc(googleState(l.state))}${l.hidden?' · 화면에서 숨김':''}
-        ${l.remote_deleted?'<p class="warn">Google 원본이 삭제/취소됐습니다. 다시 표시는 로컬 보관 내용만 보여줍니다.</p>':''}
-        ${op?.error?`<p class="warn">${esc(op.error)}</p>`:''}
-        ${op&&['queued','error'].includes(op.state)?`<button data-gsend="${i}">같은 작업 전송</button>`:''}
-        ${op&&['syncing','uncertain'].includes(op.state)?`<button data-greconcile="${i}">원격 결과 대조</button>`:''}
-        ${c?`<p class="warn">${esc(c.reason)}</p><div style="white-space:pre-wrap"><b>로컬 내용</b><p>${esc(l.local?.title||'')}\n${esc(l.local?.body||'')}</p><b>Google 내용</b><p>${esc(c.remote?.summary||'원격 삭제/취소')}\n${esc(c.remote?.description||'')}</p></div>
-        <button data-gresolve="${i}" data-choice="remote">Google 내용 채택 확인</button>${c.remote&&c.remote.status!=='cancelled'?`<button data-gresolve="${i}" data-choice="local">로컬 내용 Google 반영 확인</button>`:''}`:''}
-        ${l.hidden?`<button data-gshow="${i}">화면에 다시 표시 확인</button>`:''}
-        ${l.base_etag&&!l.remote_deleted?`<button class="danger" data-gdelete="${i}">Google에서 삭제 내용 확인</button>`:''}</div>`;}).join('')}`;
-  if($('#gPending'))$('#gPending').onclick=()=>googleWriteApply();
-  box.querySelectorAll('[data-gsend]').forEach(b=>b.onclick=()=>googleAction('outbox/run',{operation_id:links[+b.dataset.gsend].pending}));
-  box.querySelectorAll('[data-greconcile]').forEach(b=>b.onclick=()=>googleAction('outbox/reconcile',{operation_id:links[+b.dataset.greconcile].pending}));
-  box.querySelectorAll('[data-gresolve],[data-gshow],[data-gdelete]').forEach(b=>b.onclick=()=>{
-    const i=+(b.dataset.gresolve??b.dataset.gshow??b.dataset.gdelete),l=links[i];
-    googleWritePlan({action:b.dataset.gresolve!==undefined?'resolve':b.dataset.gshow!==undefined?'show':'delete',local_id:l.local_id,expected_revision:l.local.revision,
-      ...(b.dataset.gresolve!==undefined?{resolution:b.dataset.choice,remote_etag:l.conflict.remote?.etag??null}:{})});
-  });
-}
-async function googleWritePlan(request){
-  if(GCAL.pending){GCAL.error='먼저 같은 승인 결과를 확인하십시오.';$('#gPanel').open=true;drawGoogle();return;}
-  const ticket=++GCAL.planRevision;
-  try{
-    const plan=await api('POST','/api/v2/calendar/google/write/plan',request),dlg=$('#dlg');
-    if(ticket!==GCAL.planRevision||!calendarVisible())return;
-    dlg.onclose=null;dlg.innerHTML=`<h3>Google 일정 변경 확인</h3><p>${esc(request.action==='delete'?'Google 원본을 삭제합니다.':request.action==='publish'?'로컬 일정을 Google에 추가합니다.':request.action==='show'?'숨긴 일정을 이 화면에 다시 표시합니다.':request.resolution==='remote'?'Google 내용을 로컬에 채택합니다.':'로컬 내용을 Google에 반영합니다.')}</p><p>${esc(plan.item.destination.calendar_id)}</p><p>${esc(plan.item.remote?.summary||'')} ${esc(plan.item.remote?.description||'')}</p><button id="gApprove" class="danger">이 변경 승인</button><button id="gCancel">닫기</button>`;
-    $('#gApprove').onclick=()=>{GCAL.pending=plan;dlg.close();googleWriteApply();};$('#gCancel').onclick=()=>dlg.close();if(!dlg.open)dlg.showModal();
-  }catch(e){GCAL.error=e.message;$('#gPanel').open=true;drawGoogle();}
-}
-async function googleWriteApply(){
-  if(!GCAL.pending||GCAL.busy)return;GCAL.busy=true;const plan=GCAL.pending;
-  try{await api('POST','/api/v2/calendar/google/write/apply',{plan_id:plan.plan_id,operation_id:plan.operation_id});GCAL.pending=null;GCAL.error=null;}
-  catch(e){GCAL.error=e.message;if(e.status&&e.status<500)GCAL.pending=null;}
-  finally{GCAL.busy=false;await refreshGoogle();if(calendarVisible()){$('#gPanel').open=true;await loadCalendar();}}
-}
-function googlePublish(record){
-  const choices=GCAL.calendars.filter(c=>c.can_write&&GCAL.status?.selected_calendar_ids.includes(c.id)),dlg=$('#dlg');
-  if(!choices.length){GCAL.error='먼저 Google 쓰기 권한을 연결하고 쓸 수 있는 캘린더를 선택하십시오.';$('#gPanel').open=true;drawGoogle();return;}
-  dlg.onclose=null;dlg.innerHTML=`<h3>Google에 추가할 일정</h3><p>${esc(record.title)}</p><label>대상 캘린더 <select id="gPublishTarget">${choices.map((c,i)=>`<option value="${i}">${esc(c.summary||c.id)}</option>`).join('')}</select></label><button id="gPublishPreview">추가 내용 확인</button><button id="gPublishCancel">닫기</button>`;
-  $('#gPublishPreview').onclick=()=>googleWritePlan({action:'publish',local_id:record.id,expected_revision:record.revision,calendar_id:choices[+$('#gPublishTarget').value].id});
-  $('#gPublishCancel').onclick=()=>dlg.close();if(!dlg.open)dlg.showModal();
-}
 function calendarDateAt(value=new Date(),zone='Asia/Seoul') {
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(value));
   return ['year','month','day'].map(key=>parts.find(p=>p.type===key).value).join('-');
 }
-function calendarTime(value) { return new Intl.DateTimeFormat('ko-KR',{timeZone:CAL.timezone,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value)); }
-function calendarInputTime(value) { return calendarDateAt(value)+'T'+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(value)); }
-function calendarNames(ids, unavailable=[]) { return ids.length ? ids.map(id=>unavailable.includes(id)?id+' (소속 확인 불가 · 과거 연결 보존)':(state.projects.find(p=>p.id===id)||{alias:id+' (등록 해제)'}).alias).join(', ') : '프로젝트 미연결'; }
-function calendarVisible() { return state.view==='calendar' && !!$('#calendarRoot'); }
-function calendarDrafts() {
-  const box=$('#cDrafts');if(!box)return;
-  const drafts=[...CAL.drafts.entries()].filter(([,d])=>d.dirty||d.pending);
-  box.innerHTML=drafts.length?`<p class="warn">미저장 초안 ${drafts.length}개 — ${drafts.map(([key,d],i)=>`<button data-draft="${i}">${esc(d.payload.date||d.payload.start_date||(d.payload.start_at||'').slice(0,10))} ${d.kind==='event'?'일정':'메모'} 이어쓰기</button>`).join(' ')}</p>`:'';
-  box.querySelectorAll('[data-draft]').forEach(b=>b.onclick=()=>openCalendarEditor(drafts[+b.dataset.draft][1].kind,null,drafts[+b.dataset.draft][0]));
-}
-async function renderCalendar() {
-  state.view='calendar';state.current=null;renderList();$('#btnDash').classList.remove('on');$('#btnCalendar').classList.add('on');
-  CAL.selected=CAL.selected||calendarDateAt();
-  $('#content').innerHTML=`<div id="calendarRoot"><h2 style="margin:.1rem 0">캘린더</h2><p class="muted">저장된 업무 기록과 일정 · 표시 시간대 Asia/Seoul</p>
-    <details id="gPanel"><summary>Google 연결·캘린더 선택</summary><div id="gAuthorization"></div><div id="gControls"></div><div id="gOutbox"></div></details>
-    <div class="calendar-toolbar"><button id="cPrev" aria-label="이전 기간">←</button><button id="cToday">오늘</button><button id="cNext" aria-label="다음 기간">→</button><strong id="cPeriod"></strong>
-    <label>보기 <select id="cMode"><option value="month">월</option><option value="week">주</option></select></label>
-    <label>프로젝트 <select id="cProject"><option value="">전체 프로젝트</option>${state.projects.map(p=>`<option value="${esc(p.id)}">${esc(p.alias)}</option>`).join('')}</select></label>
-    <label>출처 <select id="cSource"><option value="">전체 기록</option><option value="local">직접 등록 일정·메모</option><option value="legacy_daily">기존 일지</option><option value="google">Google 일정</option></select></label><button id="cReload">새로 읽기</button></div>
-    <div id="cDrafts"></div><p id="cStatus" role="status" aria-live="polite"></p><div class="calendar-layout"><div id="cGrid" role="grid" aria-label="날짜 캘린더"></div><div id="cDetail" class="cal-detail" aria-live="polite"></div></div></div>`;
-  $('#cMode').value=CAL.mode;$('#cProject').value=CAL.projectId;$('#cSource').value=CAL.source;
-  $('#cMode').onchange=e=>{CAL.mode=e.target.value;loadCalendar();};
-  $('#cProject').onchange=e=>{CAL.projectId=e.target.value;loadCalendar();};$('#cSource').onchange=e=>{CAL.source=e.target.value;loadCalendar();};
-  $('#cPrev').onclick=()=>{CAL.selected=calendarMove(CAL.selected,CAL.mode,-1);loadCalendar();};
-  $('#cNext').onclick=()=>{CAL.selected=calendarMove(CAL.selected,CAL.mode,1);loadCalendar();};
-  $('#cToday').onclick=()=>{CAL.selected=calendarDateAt();loadCalendar();};$('#cReload').onclick=()=>loadCalendar();
-  clearInterval(GCAL.timer);
-  GCAL.timer=setInterval(()=>{if(!calendarVisible()){clearInterval(GCAL.timer);return;}if(GCAL.status?.connected&&!GCAL.busy)googleAction('sync');},300000);
-  calendarDrafts();refreshGoogle();await loadCalendar();
-}
-async function loadCalendar(focus=false) {
-  if(!calendarVisible())return;
-  const range=calendarRange(CAL.selected,CAL.mode), params=new URLSearchParams({start:range.start,end:range.end,timezone:CAL.timezone});
-  if(CAL.projectId)params.append('project_id',CAL.projectId);if(CAL.source)params.append('source',CAL.source);
-  const key=CAL.queryKey=params.toString(),ticket=++CAL.requestRevision;CAL.data=null;CAL.error=null;drawCalendar();
-  try {
-    const result=await api('GET','/api/v2/calendar/range?'+key);
-    if(!calendarCurrent(CAL,ticket,key,calendarVisible()))return;
-    CAL.data=result;drawCalendar();if(focus)$(`[data-date="${CAL.selected}"]`)?.focus();
-  } catch(e) { if(calendarCurrent(CAL,ticket,key,calendarVisible())){CAL.error=e.message;drawCalendar();} }
-}
-function drawCalendar() {
-  if(!calendarVisible())return;
-  const range=calendarRange(CAL.selected,CAL.mode),today=calendarDateAt(), byDay=new Map((CAL.data?.days||[]).map(d=>[d.date,d]));
-  $('#cPeriod').textContent=CAL.mode==='month'?CAL.selected.slice(0,7):range.start+' ~ '+calendarAdd(range.end,-1);
-  $('#cPrev').disabled=calendarMove(CAL.selected,CAL.mode,-1)===CAL.selected;$('#cNext').disabled=calendarMove(CAL.selected,CAL.mode,1)===CAL.selected;
-  $('#cStatus').textContent=CAL.error?'확인 불가: '+CAL.error:!CAL.data?'기록을 읽는 중…':CAL.data.complete?'저장된 기록을 확인했습니다.':'일부 기록을 확인하지 못했습니다. ?는 확인이 필요한 건수입니다.';
-  if(CAL.data){const sources=CAL.data.sources.filter(s=>s.kind==='google');if(sources.length)$('#cStatus').textContent+=' Google: '+sources.map(s=>s.name+' · '+(s.complete?'확인':'확인 필요')+' · '+(s.last_sync||'미수집')).join(' / ');}
-  const unavailable=new Set((CAL.data?.days||[]).flatMap(d=>(d.project_link_warnings||[]).map(w=>w.record_id)));
-  if(unavailable.size)$('#cStatus').textContent+=` 소속을 확인할 수 없는 기록 ${unavailable.size}개는 프로젝트 필터에 자동 포함하지 않습니다. 전체 프로젝트 조회에서 확인·재연결할 수 있습니다.`;
-  const cell=date=>{
-    if(date<'2000-01-01'||date>'2099-12-31')return '<div role="gridcell" aria-disabled="true"></div>';
-    const day=byDay.get(date),view=day?calendarCell(day):null,selected=date===CAL.selected;
-    return `<button class="cal-day ${date.slice(0,7)!==CAL.selected.slice(0,7)?'outside':''} ${date===today?'today':''}" role="gridcell" data-date="${date}" aria-selected="${selected}" tabindex="${selected?0:-1}" aria-label="${date} 일정 ${day?.event_count??'?'} · 업무 ${day?.task_count??'?'} · 메모 ${day?.memo_count??'?'}"><span class="cal-date">${+date.slice(-2)}${date===today?' · 오늘':''}</span>
-      ${view?view.events.map(e=>`<span class="cal-event">${e.all_day?'종일':calendarDateAt(e.start_at)!==date?'이어짐':calendarTime(e.start_at)} ${esc(e.title)}</span>`).join(''):''}
-      ${view?.overflow?`<span class="muted">일정 +${view.overflow}</span>`:''}<span class="cal-counts">업무 ${day?.task_count??'?'} · 메모 ${day?.memo_count??'?'}</span></button>`;
-  };
-  let rows='<div class="cal-week" role="row">'+['월','화','수','목','금','토','일'].map(d=>`<span role="columnheader">${d}</span>`).join('')+'</div>';
-  for(let i=0;i<range.dates.length;i+=7)rows+='<div class="cal-week" role="row">'+range.dates.slice(i,i+7).map(cell).join('')+'</div>';
-  $('#cGrid').innerHTML=rows;
-  $('#cGrid').querySelectorAll('[data-date]').forEach(button=>{
-    button.onclick=()=>selectCalendarDate(button.dataset.date);
-    button.onkeydown=e=>{const moves={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7};if(!(e.key in moves))return;e.preventDefault();selectCalendarDate(calendarClamp(calendarAdd(button.dataset.date,moves[e.key])));};
-  });
-  const day=byDay.get(CAL.selected),detail=$('#cDetail');
-  const entry=(body,meta)=>`<div class="cal-entry">${body}<small class="muted">${esc(meta)}</small></div>`;
-  detail.innerHTML=`<h2 style="margin:0;font-size:1.1rem">${esc(CAL.selected)}</h2><div class="actions"><button id="cAddEvent">일정 추가</button><button id="cAddNote">메모 추가</button></div>
-    ${!day?`<p class="muted">${CAL.error?'기록을 확인할 수 없습니다.':'기록을 읽는 중입니다.'}</p>`:`${!day.complete?'<p class="warn">일부 출처 확인 불가</p>':''}
-    <h3>일정 ${day.event_count??'?'}</h3>${day.events.map(e=>entry(`<b>${esc(e.title)}</b><p>${e.all_day?esc(e.start_date+' ~ '+e.end_date+' (종료일 제외)'):esc(calendarDateAt(e.start_at)+' '+calendarTime(e.start_at)+' ~ '+calendarDateAt(e.end_at)+' '+calendarTime(e.end_at))}</p>${e.location?`<p>${esc(e.location)}</p>`:''}<p>${esc(e.body)}</p>${e.origin==='google'?'<span class="muted">Google 읽기 전용</span>':`<button data-edit="${esc(e.id)}">수정·삭제</button>${e.google_link?`<p class="muted">Google · ${esc(e.google_link.calendar_id)} · ${esc(googleState(e.sync_status))}</p>`:`<button data-gpublish="${esc(e.id)}">Google에 추가</button>`}`}`,e.origin==='google'?'Google · '+e.calendar_name+' · '+e.access_role:calendarNames(e.project_ids,e.unavailable_project_ids)+(e.google_link?' · Google 연결 일정':' · 로컬에만 저장'))).join('')||'<p class="muted">확인된 일정이 없습니다.</p>'}
-    <h3>수행 업무 ${day.task_count??'?'}</h3>${day.tasks.map(t=>entry(`<b>${esc(t.summary||t.key)}</b>${t.records.map(r=>`<p>${esc(r.text)}</p>`).join('')}`,calendarNames(t.project_ids)+' · 기존 일지')).join('')||'<p class="muted">저장된 업무 기록이 없습니다.</p>'}
-    <h3>메모 ${day.memo_count??'?'}</h3>${day.memos.map(m=>entry(`<p>${esc(m.kind==='note'?m.body:[...(m.common||[]),...(m.marks||[]).map(x=>x.mark+' '+x.text)].join('\n'))}</p>${m.kind==='note'?`<button data-edit="${esc(m.id)}">수정·삭제</button>`:''}`,calendarNames(m.project_ids,m.unavailable_project_ids)+(m.kind==='note'?' · 로컬 메모':' · 기존 공통 메모 묶음'))).join('')||'<p class="muted">저장된 메모가 없습니다.</p>'}`}`;
-  $('#cAddEvent').onclick=()=>openCalendarEditor('event');$('#cAddNote').onclick=()=>openCalendarEditor('note');
-  detail.querySelectorAll('[data-gpublish]').forEach(b=>b.onclick=()=>googlePublish(day.events.find(e=>e.id===b.dataset.gpublish)));
-  detail.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{const r=[...day.events,...day.memos].find(r=>r.id===b.dataset.edit);openCalendarEditor(r.kind,r);});calendarDrafts();
-}
-function selectCalendarDate(date) {
-  CAL.selected=date;const range=calendarRange(date,CAL.mode);
-  if(!CAL.data||range.start!==CAL.data.query.start||range.end!==CAL.data.query.end)loadCalendar(true);
-  else {drawCalendar();$(`[data-date="${date}"]`)?.focus();}
-}
-function openCalendarEditor(kind, record=null, savedKey=null) {
-  const key=savedKey||(record?record.id:`new:${kind}:${CAL.selected}`);
-  if(!CAL.drafts.has(key))CAL.drafts.set(key,{kind,id:record?.id||null,expected_revision:record?.revision||null,unavailable:record?.unavailable_project_ids||[],rebind:[],revision:0,dirty:false,plan:null,pending:null,destination:'',googleLink:record?.google_link||null,
-    payload:record?Object.fromEntries(Object.entries(record).filter(([key])=>['title','body','location','project_ids','all_day','start_date','end_date','start_at','end_at','timezone','date'].includes(key))):kind==='note'?{date:CAL.selected,body:'',project_ids:CAL.projectId?[CAL.projectId]:[]}:{title:'',body:'',location:'',all_day:true,start_date:CAL.selected,end_date:calendarAdd(CAL.selected,1),project_ids:CAL.projectId?[CAL.projectId]:[]}});
-  const d=CAL.drafts.get(key),p=d.payload,dlg=$('#dlg');CAL.editor=key;
-  const timedStart=p.start_at?calendarInputTime(p.start_at):(p.start_date||CAL.selected)+'T09:00',timedEnd=p.end_at?calendarInputTime(p.end_at):(p.start_date||CAL.selected)+'T10:00';
-  const links=[...new Set([...state.projects.map(p=>p.id),...p.project_ids])];
-  const destinations=GCAL.calendars.filter(c=>c.can_write&&GCAL.status?.selected_calendar_ids.includes(c.id));
-  dlg.innerHTML=`<form id="calendarEditor"><h3>${d.id?'로컬 기록 수정':'로컬 '+(kind==='event'?'일정':'메모')+' 추가'}</h3><p class="muted">${d.googleLink?'Google 연결 일정입니다. 저장한 변경은 연결된 캘린더로 전송합니다.':'로컬 저장 또는 Google 추가를 선택할 수 있습니다.'}</p>
-    ${kind==='event'&&!d.id?`<label>저장 대상 <select id="cDestination"><option value="">로컬만</option>${destinations.map(c=>`<option value="${esc(c.id)}" ${d.destination===c.id?'selected':''}>Google · ${esc(c.summary||c.id)}</option>`).join('')}</select></label>`:''}
-    ${kind==='event'?`<label>제목 <input data-field="title" value="${esc(p.title)}" required maxlength="500"></label><label><input type="checkbox" data-field="all_day" ${p.all_day?'checked':''}>종일 일정</label>
-      <div id="cAllDay" class="cal-editor-times"><label>시작 날짜 <input type="date" data-field="start_date" value="${esc(p.start_date||calendarDateAt(p.start_at))}"></label><label>종료 날짜 (이 날 미포함) <input type="date" data-field="end_date" value="${esc(p.end_date||calendarDateAt(p.end_at))}"></label></div>
-      <div id="cTimed" class="cal-editor-times"><label>시작 시각 <input type="datetime-local" data-field="start_at" value="${timedStart}"></label><label>종료 시각 <input type="datetime-local" data-field="end_at" value="${timedEnd}"></label><p class="muted">Asia/Seoul 기준. 시각을 수정하면 이 시간대로 저장합니다.</p></div><label>장소 <input data-field="location" value="${esc(p.location)}"></label>`:
-      `<label>업무 날짜 <input type="date" data-field="date" value="${esc(p.date)}"></label>`}
-    <label>본문 <textarea data-field="body" rows="5">${esc(p.body)}</textarea></label><label>프로젝트 연결 (복수 선택 가능) <select data-field="project_ids" multiple size="${Math.min(4,Math.max(2,links.length))}">${links.map(id=>`<option value="${esc(id)}" ${p.project_ids.includes(id)?'selected':''}>${esc(calendarNames([id],d.unavailable))}</option>`).join('')}</select></label>
-    ${d.unavailable.filter(id=>state.projects.some(p=>p.id===id)).map(id=>`<label><input type="checkbox" data-rebind="${esc(id)}" ${(d.rebind||[]).includes(id)?'checked':''}>과거 연결을 현재 프로젝트 ${esc((state.projects.find(p=>p.id===id)||{}).alias||id)}에 다시 연결 — 저장 전 별도 확인</label>`).join('')}
-    <div id="cEditorStatus" role="status"></div><div id="cPreview"></div><div class="actions"><button type="submit" class="primary" id="cSave">${d.pending?'같은 작업의 저장 결과 확인':'저장 내용 확인'}</button>${d.id?`<button type="button" id="cDelete" class="danger">${d.googleLink?'화면 숨김 내용 확인':'삭제 내용 확인'}</button>`:''}<button type="button" id="cClose">닫기 · 초안 유지</button><button type="button" id="cDiscard">초안 버리기</button></div></form>`;
-  function toggle(){if(kind==='event'){$('#cAllDay').style.display=$('[data-field=all_day]',dlg).checked?'flex':'none';$('#cTimed').style.display=$('[data-field=all_day]',dlg).checked?'none':'flex';}}
-  toggle();
-  function collect(){
-    const get=name=>$(`[data-field=${name}]`,dlg),links=[...get('project_ids').selectedOptions].map(o=>o.value);
-    let payload={body:get('body').value,project_ids:links};
-    if(kind==='note')payload.date=get('date').value;
-    else {payload={...payload,title:get('title').value,location:get('location').value,all_day:get('all_day').checked};
-      if(payload.all_day){payload.start_date=get('start_date').value;payload.end_date=get('end_date').value;}
-      else if(p.start_at && get('start_at').value===timedStart && get('end_at').value===timedEnd){payload.start_at=p.start_at;payload.end_at=p.end_at;payload.timezone=p.timezone;}
-      else {payload.start_at=get('start_at').value+':00+09:00';payload.end_at=get('end_at').value+':00+09:00';payload.timezone='Asia/Seoul';}}
-    d.payload=payload;d.rebind=[...dlg.querySelectorAll('[data-rebind]:checked')].map(e=>e.dataset.rebind).filter(id=>links.includes(id));d.dirty=true;d.revision++;d.plan=null;$('#cPreview').innerHTML='';calendarDrafts();toggle();
-    if($('#cDestination'))d.destination=$('#cDestination').value;
-  }
-  $('#calendarEditor').oninput=collect;
-  $('#cClose').onclick=()=>dlg.close();$('#cDiscard').onclick=()=>{if(!d.pending){CAL.drafts.delete(key);dlg.close();calendarDrafts();}else $('#cEditorStatus').textContent='먼저 같은 작업의 저장 결과를 확인하십시오.';};
-  dlg.onclose=()=>{CAL.editor=null;calendarDrafts();};
-  async function preview(action){
-    if(d.pending)return applyPending();
-    const rev=d.revision;$('#cSave').disabled=true;
-    try {const payload={action,kind,...(d.id?{id:d.id,expected_revision:d.expected_revision}:{}),...(action==='delete'?{}:{payload:d.payload}),...(action==='update'&&d.rebind?.length?{rebind_project_ids:d.rebind}:{}),...(!d.id&&d.destination?{destination:{calendar_id:d.destination}}:{})};
-      const plan=await api('POST','/api/v2/calendar/plan',payload);
-      if(CAL.editor!==key || rev!==d.revision)return;
-      d.plan=plan;$('#cPreview').innerHTML=`<div class="panel"><b>${action==='delete'?(d.googleLink?'이 화면에서 숨깁니다. Google 원본은 유지합니다.':'이 기록을 로컬에서 삭제합니다.'):(d.destination||d.googleLink?'이 내용을 저장하고 Google에 반영합니다.':'이 내용을 로컬에 저장합니다.')}</b><p>${esc(plan.item.payload.title||plan.item.payload.body)}</p><p>${esc(plan.item.payload.date||plan.item.payload.start_date||plan.item.payload.start_at)} ${esc(plan.item.payload.end_date||plan.item.payload.end_at||'')}</p><button type="button" id="cApply" class="${action==='delete'?'danger':'primary'}">${action==='delete'?(d.googleLink?'화면에서 숨김':'로컬에서 삭제'):(d.destination||d.googleLink?'저장·Google 반영':'로컬에 저장')}</button></div>`;
-      const changes=(plan.item.link_updates||[]).map(c=>`${({add:'연결 추가',remove:'연결 해제',rebind:'현재 프로젝트로 명시 재연결'})[c.action]}: ${(state.projects.find(p=>p.id===c.project_id)||{}).alias||c.project_id}${c.identity?.status==='legacy_path'?' (UID 미설정 · 폴더 경계 기준)':''}`);
-      if(changes.length)$('#cApply').insertAdjacentHTML('beforebegin',`<p class="warn">${changes.map(esc).join('<br>')}</p>`);
-      $('#cApply').onclick=()=>{d.pending={plan,revision:rev};applyPending();};
-    }catch(e){if(d.revision===rev)showError(e);}finally{if(CAL.editor===key)$('#cSave').disabled=false;}
-  }
-  function showError(e){if(CAL.editor!==key)return;const box=$('#cEditorStatus');box.innerHTML=`<p class="bad">${esc(e.message)} — 입력은 초안에 보존됩니다.</p>`;
-    if(e.data?.current){box.innerHTML+=`<details><summary>현재 저장본</summary><p style="white-space:pre-wrap">${esc(e.data.current.title||'')}\n${esc(e.data.current.body||'')}</p></details><button type="button" id="cRebase">현재 버전을 기준으로 다시 확인</button>`;
-      $('#cRebase').textContent=e.data.current.deleted?'입력 내용을 새 기록으로 확인':'현재 버전을 기준으로 다시 확인';
-      $('#cRebase').onclick=()=>{d.id=e.data.current.deleted?null:d.id;d.expected_revision=e.data.current.deleted?null:e.data.current.revision;d.plan=null;d.pending=null;box.textContent='현재 저장본과 비교해 내용을 조정한 뒤 저장 내용을 다시 확인하십시오.';};}
-  }
-  async function applyPending(){
-    const pending=d.pending;if(!pending||d.applying)return;d.applying=true;
-    if(CAL.editor===key){$('#cSave').disabled=true;$('#cApply')?.setAttribute('disabled','');}
-    try {const result=await api('POST','/api/v2/calendar/apply',{plan_id:pending.plan.plan_id,operation_id:pending.plan.operation_id});
-      d.pending=null;d.plan=null;
-      if(d.revision===pending.revision){CAL.drafts.delete(key);if(CAL.editor===key)dlg.close();}
-      else {d.id=result.record.deleted?null:result.record.id;d.expected_revision=result.record.deleted?null:result.record.revision;if(CAL.editor===key){$('#cPreview').innerHTML='';$('#cEditorStatus').textContent='저장 뒤 추가한 입력은 미저장 초안으로 남아 있습니다.';}}
-      toast(result.google_operation_id?'일정을 저장했습니다. Google 전송 상태를 확인하십시오.':'로컬 기록을 저장했습니다');if(result.google_operation_id||d.googleLink)await refreshGoogle();if(calendarVisible())await loadCalendar();
-    }catch(e){if(e.status && e.status<500)d.pending=null;showError(e);}
-    finally{d.applying=false;if(CAL.editor===key){$('#cSave').disabled=false;$('#cSave').textContent=d.pending?'같은 작업의 저장 결과 확인':'저장 내용 확인';}calendarDrafts();}
-  }
-  $('#calendarEditor').onsubmit=e=>{e.preventDefault();preview(d.id?'update':'create');};
-  if($('#cDelete'))$('#cDelete').onclick=()=>preview('delete');
-  if(!dlg.open)dlg.showModal();
-}
-window.addEventListener('beforeunload',e=>{if([...CAL.drafts.values()].some(d=>d.dirty||d.pending)){e.preventDefault();e.returnValue='';}});
-</script>
-<script>
-// ------------------------------------------------------------- Jira (S5)
-// 메모는 유일하게 재생성 불가능한 원본이다(INV-1). 화면도 그 책임을 진다 —
-// 열 때 받은 sha 를 그대로 돌려보내고, 서버가 409 를 주면 덮지 않고 사람에게 보인다.
-const jiraState = new Map();   // 프로젝트 id → 화면 상태 (jiraFor)
-let jiraYmd = null;            // 현재 선택. 초안·응답은 별도 문서 키에 결부한다.
-let jiraRenderRevision = 0;
-function jiraDoc(p) {
-  const parent = jiraFor(jiraState, p.id);
-  return jiraFor(jiraState, p.id, parent.ymd || jiraYmd || ymdToday(), (parent.info || {}).wf_home || p.path);
-}
-function jiraVisible(p, J) {
-  const body = $("#jBody");
-  return state.current === p.id && state.tab === "jira" && body && body.dataset.doc === J.documentKey;
-}
-
-function renderSaveState(J) {
-  if (J.documentKey && (!$("#jBody") || $("#jBody").dataset.doc !== J.documentKey)) return;
-  const el = $("#jSaveState"); if (!el) return;
-  el.innerHTML = J.pendingMemo ? '<span class="warn">저장 결과 확인 필요 · 같은 작업 ID로 확인합니다</span>' : J.dirty ? '<span class="warn">● 수정됨 — 저장되지 않음</span>'
-    : J.savedAt ? `<span class="ok">저장됨 ${esc(J.savedAt)}</span>` : "";
-  const pl = $("#jPlan"); if (pl && !pl.disabled) pl.textContent = J.dirty ? "저장하고 마감 초안" : "마감 초안";
-}
-// 저장하지 않은 메모가 있으면 묻는다. true 면 계속 진행해도 된다.
-async function guardUnsaved(p) {
-  const docs = unsavedDocuments(jiraState, p ? p.id : null);
-  if (!docs.length) return true;
-  const names = docs.map(({ id, J }) => (state.projects.find(x => x.id === id) || { alias: id }).alias + (J.ymd ? " / " + J.ymd : "")).join(", ");
-  const v = await ask({
-    title: "저장하지 않은 메모가 있습니다",
-    body: `<p><b>${esc(names)}</b> 의 진행 메모에 저장하지 않은 입력이 있습니다. 계속하면 지금 입력한 내용이 사라집니다.</p>`,
-    buttons: [{ label: "취소", value: "cancel" }, { label: "버리고 계속", value: "discard", kind: "danger" },
-              { label: "저장하고 계속", value: "save", kind: "primary" }],
-  });
-  if (v === "save") {
-    for (const { id, J } of docs) { if (!await saveMemo(state.projects.find(x => x.id === id), J)) return false; }
-    return true;
-  }
-  if (v === "discard") { docs.forEach(({ J }) => { J.dirty = false; J.draft = null; J.editRevision++; }); return true; }
-  return false;
-}
-window.addEventListener("beforeunload", e => { if (unsavedIds(jiraState).length) { e.preventDefault(); e.returnValue = ""; } });
-
-async function renderJira(body, p) {
-  const ticket = ++jiraRenderRevision, parent = jiraFor(jiraState, p.id);
-  parent.ymd = parent.ymd || ymdToday(); jiraYmd = parent.ymd;
-  const info = await api("GET", `/api/projects/${p.id}/jira`);
-  if (ticket !== jiraRenderRevision || state.current !== p.id || state.tab !== "jira") return;
-  parent.info = info;
-  const J = jiraDoc(p); J.info = info;
-  const warn = [];
-  if (info.enabled && info.schema_ok === false) warn.push(info.reason);
-  if (info.gitignore_ok === false) warn.push("이 저장소의 .gitignore 가 업무 데이터를 제외하지 않습니다 — .workflow/ · daily/ · weekly/ · state.json · jira_project_key_id.txt 를 추가하십시오. 없으면 업무 기록이 커밋됩니다.");
-  const sc = info.scope || {};
-  // 자격은 서버가 값 없이 상태만 준다(D-007). 없으면 조회 전에 여기서 보인다 — 412 toast 로 알 일이 아니다(UX-06).
-  const cred = await api("GET", `/api/jira/status${info.site_url ? "?site=" + encodeURIComponent(info.site_url) : ""}`).catch(e => ({ configured: false, error: e.message }));
-  if (ticket !== jiraRenderRevision || state.current !== p.id || state.tab !== "jira") return;
-  const credLine = cred.configured
-    ? `<span class="ok">● Jira 자격 있음</span> <span class="muted">${esc(cred.email || "")}${cred.source ? " · " + esc(cred.source === "env" ? "환경변수" : "credentials.json") : ""}${cred.warning ? " · " + esc(cred.warning) : ""}</span>`
-    : `<span class="bad">○ Jira 자격 없음</span> <span class="muted">${esc(cred.error || "")}${cred.path ? ` — 파일 위치 <code>${esc(cred.path)}</code>${cred.path_exists ? " (파일은 있음: 키 이름을 확인)" : " (파일 없음)"}` : ""}</span>`;
-  body.innerHTML = `
-    <p><label><input type="checkbox" id="jiraOn" ${info.enabled ? "checked disabled" : ""}>
-      Jira 워크플로 사용</label>
-      ${info.enabled ? '<span class="chip">설정 파일이 있어 항상 켜집니다</span>' : `<span class="muted">${esc(info.reason)}</span>`}
-      <button id="jInit">${info.enabled ? "설정 수정" : "설정 작성"}</button></p>
-    <p id="jCred">${credLine}</p>
-    <div id="jInitBox"></div>
-    ${info.migration_available ? '<div class="box"><button id="jMigratePlan">보존형 설정 전환 미리보기</button><div id="jMigrateResult" role="status"></div></div>' : ''}
-    ${info.enabled ? `<p class="muted">${esc(info.wf_home)} · 프로젝트 ${esc(sc.project_key || "?")}${sc.csc_value ? " · CSC " + esc(sc.csc_value) : ""}${(sc.epic_keys || []).length ? ` · 에픽 ${sc.epic_keys.length}개` : ""}</p>` : ""}
-    ${warn.map(w => `<p class="warn">${esc(w)}</p>`).join("")}
-    ${info.enabled ? `
-      <p><label>날짜 <input id="jYmd" size="8" value="${esc(jiraYmd)}" title="YYMMDD"></label>
-         <button id="jLoad">${J.view ? "다시 조회" : "조회"}</button>
-         <span class="muted" id="jLoadedAt">${J.loadedAt ? `마지막 조회 ${esc(J.loadedAt)} · ` : ""}조회는 Jira 를 읽기만 합니다.</span></p>
-      <div class="box"><button id="jBatch" ${parent.batchRunning?'disabled':''}>오늘 일일 갱신</button> <button id="jBatchStatus">배치 기록 확인</button>
-        <span class="muted">Jira 계정 날짜로 조회·집계·일지·검사를 실행합니다. 검사 성공 후 watermark를 확정합니다. Jira에는 쓰지 않습니다.</span><div id="jBatchResult" role="status">${parent.batchResult?batchReceipt(parent.batchResult):''}</div></div>
-      <div id="jBody" data-doc="${esc(J.documentKey)}">${J.view ? "" : '<p class="muted">이 폴더가 맡은 태스크와 메모를 불러옵니다…</p>'}</div>` : ""}`;
-  $("#jInit").onclick = () => initPanel(p, info);
-  if ($('#jMigratePlan')) {
-    $('#jMigratePlan').onclick=()=>previewJiraMigration(p);
-    if(parent.migration)drawJiraMigration(p);
-  }
-  // 꺼진 상태에서 체크하면 설정 작성으로 간다(D-004). 설정 파일이 생겨야 켜지므로 체크 표시는 유지하지 않는다.
-  $("#jiraOn").onchange = e => { if (!info.enabled) { e.target.checked = false; initPanel(p, info); } };
-  if (!info.enabled) return;
-  $('#jBatch').onclick=()=>runJiraBatch(p);
-  if(info.schema_ok === false)$('#jBatch').disabled=true;
-  $('#jBatchStatus').onclick=()=>showJiraBatch(p);
-  $("#jYmd").onchange = async e => {
-    const next = e.target.value.trim();
-    if (!await guardUnsaved(p)) { e.target.value = jiraYmd; return; }   // 날짜를 바꾸면 메모가 바뀐다
-    parent.ymd = next; jiraYmd = next;
-    renderJira(body, p);
-  };
-  $("#jLoad").onclick = async () => { if (await guardUnsaved(p)) loadJira(p); };
-  if (J.view) drawJira(p);
-  // 첫 진입이면 바로 읽는다 — 읽기 전용이고, 매번 「조회」를 누르게 하는 것은 클릭만 늘린다(UX-09).
-  // 자격이 없으면 자동으로 부르지 않는다 — 위의 자격 줄이 이미 이유를 말하고 있다.
-  else if (cred.configured) loadJira(p);
-  else $("#jBody").innerHTML = '<p class="warn">Jira 자격이 없어 조회하지 않았습니다 — 위 안내대로 자격을 설정한 뒤 「조회」를 누르십시오.</p>';
-}
-
-function drawJiraMigration(p) {
-  const box=$('#jMigrateResult'), parent=jiraFor(jiraState,p.id), plan=parent.migration;
-  if(!box||!plan)return;
-  box.innerHTML=`<p>설정 버전 ${esc(plan.from_schema)} → ${esc(plan.to_schema)}. 나머지 ${esc(plan.preserved_fields.length)}개 필드와 업무 파일을 보존하고 원본 bytes를 백업합니다.</p><button id="jMigrateApply">백업 후 버전만 전환</button> <button id="jMigrateCheck">전환 결과 확인</button><p id="jMigrateStatus" role="status"></p>`;
-  $('#jMigrateApply').onclick=async()=>{
-    const button=$('#jMigrateApply'),msg=$('#jMigrateStatus');button.disabled=true;
-    try{
-      if(!await guardUnsaved(p))return;
-      const r=await api('POST',`/api/projects/${p.id}/jira/migration/apply`,{plan_id:plan.plan_id,operation_id:plan.operation_id});
-      parent.migration=null;
-      if(state.current===p.id&&state.tab==='jira')await renderJira($('#tabBody'),p);
-      toast('설정 버전을 전환했습니다. 원본 백업: '+r.backup);
-    }catch(e){if(msg.isConnected)msg.textContent='전환 응답을 확인하지 못했습니다. 같은 계획의 결과를 확인하십시오. '+e.message;}
-    finally{if(button.isConnected)button.disabled=false;}
-  };
-  $('#jMigrateCheck').onclick=async()=>{
-    const msg=$('#jMigrateStatus');
-    try{
-      const r=await api('GET',`/api/projects/${p.id}/jira/migration?plan_id=${encodeURIComponent(plan.plan_id)}&operation_id=${encodeURIComponent(plan.operation_id)}`);
-      if(msg.isConnected)msg.textContent=r.committed?'원본 백업과 전환된 설정을 확인했습니다. 새로고침해 현재 설정을 확인하십시오.':r.source_unchanged?'원본 설정이 유지됩니다. 동일 계획으로 다시 적용할 수 있습니다.':'설정이 변경되었거나 결과가 불확실합니다. 새 미리보기 전에 원본과 백업을 확인하십시오.';
-    }catch(e){if(msg.isConnected)msg.textContent=e.message;}
-  };
-}
-async function previewJiraMigration(p) {
-  const box=$('#jMigrateResult');
-  try{
-    const plan=await api('POST',`/api/projects/${p.id}/jira/migration/plan`,{});
-    jiraFor(jiraState,p.id).migration=plan;
-    if(box.isConnected&&state.current===p.id&&state.tab==='jira')drawJiraMigration(p);
-  }catch(e){if(box.isConnected)box.textContent=e.message;}
-}
-
-async function loadJira(p) {
-  const J = jiraDoc(p), b = $("#jBody"), ticket = ++J.requestRevision, ymd = J.ymd;
-  if (!jiraVisible(p, J)) return;
-  b.innerHTML = '<p class="muted">Jira 조회 중…</p>';
-  try {
-    const [view, memo] = await Promise.all([
-      api("GET", `/api/projects/${p.id}/jira/tasks`),
-      api("GET", `/api/projects/${p.id}/jira/memo?ymd=${encodeURIComponent(ymd)}`),
-    ]);
-    if (!acceptJiraResponse(J, ticket, view, memo)) return;
-    if (!J.pendingMemo && memo.common_writes?.length) J.pendingMemo = memo.common_writes[0];
-    J.loadedAt = new Date().toTimeString().slice(0, 5);
-    if (!jiraVisible(p, J)) return;
-    const at = $("#jLoadedAt"); if (at) at.textContent = `마지막 조회 ${J.loadedAt} · 조회는 Jira 를 읽기만 합니다.`;
-    const lb = $("#jLoad"); if (lb) lb.textContent = "다시 조회";
-    drawJira(p);
-  } catch (e) { if (jiraVisible(p, J) && ticket === J.requestRevision) { b.innerHTML = `<p class="warn">${esc(e.message)}</p>`; fail(e); } }
-}
-
-function batchReceipt(result) {
-  if(!result)return '<p class="muted">실행 기록 없음 · watermark 미확인</p>';
-  return `<p class="${result.status==='succeeded'?'ok':'warn'}">${esc(result.status)} · ${esc(result.date||'날짜 미확정')} · ${esc(result.run_id)}</p>
-    <p>watermark ${esc(result.watermark_in||'?')} → ${esc(result.committed?result.watermark_out:'보존 · 전진하지 않음')}</p>
-    <p>${(result.stages||[]).map(s=>esc(s.stage)+' ✓').join(' → ')}</p>
-    ${result.error?`<p class="warn">${esc(result.failed_stage||'')} · ${esc(result.error)}</p>`:''}
-    ${(result.support?.warnings||[]).map(w=>`<p class="warn">${esc(w)}</p>`).join('')}
-    <p class="muted" style="overflow-wrap:anywhere">증거: ${esc(result.run_dir||'')}</p>`;
-}
-async function showJiraBatch(p) {
-  const box=$('#jBatchResult');if(!box)return;
-  try {const r=await api('GET',`/api/projects/${p.id}/jira/batch`);if(!box.isConnected||state.current!==p.id)return;
-    box.innerHTML=batchReceipt(r.latest)+`<p>확정 watermark: ${esc(r.watermark||'미확인')}</p>`+(r.warnings||[]).map(w=>`<p class="warn">${esc(w)}</p>`).join('');if(r.support?.error)box.insertAdjacentHTML('beforeend',`<p class="warn">${esc(r.support.error)}</p>`);
-  }catch(e){if(box.isConnected)box.textContent=e.message;}
-}
-async function runJiraBatch(p) {
-  const parent=jiraFor(jiraState,p.id);if(parent.batchRunning)return;
-  parent.batchRunning=true;const button=$('#jBatch'),box=$('#jBatchResult');button.disabled=true;
-  try {
-    if(!await guardUnsaved(p))return;
-    if(!box.isConnected)return;
-    box.textContent='일일 갱신 중…';
-    const r=await api('POST',`/api/projects/${p.id}/jira/batch/run`,{});parent.batchResult=r;
-    if(!box.isConnected||state.current!==p.id||state.tab!=='jira')return;
-    box.innerHTML=batchReceipt(r);
-    if(r.status==='succeeded')await loadJira(p);
-  }catch(e){if(box.isConnected)box.textContent='응답을 확인하지 못했습니다. 배치 기록 확인으로 최종 state marker를 확인하십시오. '+e.message;}
-  finally{parent.batchRunning=false;if(button.isConnected)button.disabled=false;}
-}
-
-function badge(label, n, hint) {
-  if (!n) return "";
-  return `<span class="chip" title="${esc(hint)}">${esc(label)} ${n}</span>`;
-}
-
-function drawJira(p) {
-  const J = jiraDoc(p), v = J.view, c = v.counts, split = splitMemo(memoTextFor(J));
-  if (!jiraVisible(p, J)) return;
-  const unpushed = v.tasks.reduce((a, t) => a + (t.children_unpushed || []).length, 0);
-  const rows = v.tasks.map(t => `
-    <tr><td><code>${esc(t.key)}</code>${t.root_id ? ` <span class="muted">${esc(t.root_id)}</span>` : ""}</td>
-        <td>${esc(t.summary)}</td>
-        <td>${esc(t.status)}</td>
-        <td>${esc(t.parent_summary || "")}</td>
-        <td><textarea data-key="${esc(t.key)}" rows="2" style="width:100%">${esc((split.by[t.key] || []).join("\n"))}</textarea></td></tr>`).join("");
-
-  $("#jBody").innerHTML = `
-    <p>
-      ${badge("맡은 태스크", c.tasks, "이 폴더 범위 안의 미완료")}
-      ${badge("목록 밖 CSU", c.epic_unlisted, "PM 이 새 에픽을 만들었을 수 있습니다 — 맡을 것이면 state.json 의 epic_keys 에 추가")}
-      ${badge("제목 필터로 빠짐", c.title_filtered, "어느 폴더도 안 맡을 수 있습니다 — 제목 규약 확인")}
-      ${badge("CSC 미지정", c.orphans, "CSC 는 에픽에서 상속되지 않습니다 — 지정하지 않으면 다음 조회에서 사라집니다")}
-      ${badge("범위 밖", c.out_of_scope, "조회가 이 폴더 범위를 넘었습니다")}
-      ${badge("안 올라간 파생", unpushed, "승인됐는데 아직 Jira 에 만들어지지 않았습니다")}
-    </p>
-    <div class="tblwrap"><table><tr><th>키</th><th>제목</th><th>상태</th><th>에픽</th><th style="min-width:16rem">${esc(jiraYmd)} 메모</th></tr>${rows || '<tr><td colspan="5" class="muted">맡은 미완료 태스크가 없습니다</td></tr>'}</table></div>
-    <p style="margin-top:.8rem">그 밖의 메모 <span class="muted">(<code>- [신규] …</code> · <code>- [파생] …</code> · <code>- [BUG] …</code> 는 티켓 후보, <code>- [출처] …</code> 는 로컬에만 남습니다)</span></p>
-    <textarea id="jRest" rows="4" style="width:100%">${esc(split.rest)}</textarea>
-    <p><button id="jSave">메모 저장</button> <button id="jPlan">마감 초안</button>
-       <span id="jSaveState"></span> <span class="muted" id="jMsg"></span></p>
-    <div id="jClose"></div>
-    <div id="jNew" class="panel" style="margin-top:.8rem"></div><div id="jOperations"></div>`;
-
-  // 입력 즉시 초안으로 잡아 둔다 — 다시 그려도(탭·프로젝트 전환) 타이핑이 살아남는다(UX-01).
-  if(v.complete===false || v.warnings?.length)$('#jBody').insertAdjacentHTML('afterbegin',`<p id="${v.complete===false?'jIncomplete':'jScopeNotice'}" class="warn">${(v.warnings||['Jira 조회 불완전 — 일부 결과입니다.']).map(esc).join('<br>')}</p>`);
-  $("#jBody").querySelectorAll("textarea").forEach(t => t.oninput = () => {
-    J.draft = collectMemo(J, t); J.dirty = true; J.editRevision++; J.plan = null;
-    const oldPlan = $("#jClose"); if (oldPlan) oldPlan.innerHTML = '';
-    renderSaveState(J);
-  });
-  renderSaveState(J);
-  $("#jSave").onclick = () => busy($("#jSave"), () => saveMemo(p), "저장 중…");
-  // 초안은 서버가 **파일**을 읽어 만든다. 저장하지 않은 입력이 있으면 먼저 저장한다 — 안 그러면
-  // 옛 문장이 승인 표에 올라간다(UX-04).
-  $("#jPlan").onclick = async () => { await busy($("#jPlan"), async () => { if (J.dirty && !await saveMemo(p)) return; await planClose(p); }, "초안 만드는 중…"); renderSaveState(J); };
-  newTaskPanel(p);
-  if (J.info.schema_ok === false) ['#jSave', '#jPlan', '#nPlan'].forEach(s => { const el = $(s); if (el) el.disabled = true; });
-  if (J.plan) drawClose(p);
-  drawOperations(p, J);
-}
-
-function collectMemo(J, changed) {
-  const text = memoTextFor(J), edits = {};
-  if (changed.dataset.key) edits[changed.dataset.key] = changed.value.split("\n").map(x => x.trim()).filter(Boolean);
-  return patchMemo(text, edits, changed.dataset.key ? splitMemo(text).rest : changed.value);
-}
-
-// 저장 성공이면 true. 화면에 없는 프로젝트(guardUnsaved 경유)도 draft 로 저장할 수 있다.
-async function saveMemo(p, J = jiraDoc(p)) {
-  if (!J.dirty && !J.pendingMemo) return true;
-  if (!J.memo) return false;
-  const text = J.draft, revision = J.editRevision, memo = J.memo, ymd = J.ymd;
-  try {
-    const base = `/api/v1/projects/${p.id}/writes/memo`;
-    let saved, submitted;
-    if (J.pendingMemo) {
-      submitted = J.pendingMemo;
-      const checked = await api('POST', `${base}/operations/${encodeURIComponent(submitted.operation_id)}`, {});
-      if (checked.status === 'failed') J.pendingMemo = null;
-      if (checked.status !== 'succeeded') throw new Error(`저장 결과 ${checked.status} · ${submitted.operation_id}. 재전송하지 않고 결과를 확인하십시오.`);
-      saved = checked.result;
-    } else {
-      const plan = await api('POST', `${base}/plan`, {action:'save',payload:{ymd,text,sha:memo.sha,document_id:memo.document_id}});
-      if (J.editRevision !== revision || J.draft !== text) return false;
-      submitted = J.pendingMemo = {...plan, text, revision};
-      saved = await api('POST', `${base}/apply`, {plan_id:plan.plan_id,operation_id:plan.operation_id});
-      if (saved.status !== 'succeeded') {
-        if (saved.status === 'failed') J.pendingMemo = null;
-        throw new Error(`저장 결과 ${saved.status} · ${plan.operation_id}`);
-      }
-    }
-    if (saved.document_id !== memo.document_id || saved.ymd !== ymd) throw new Error('저장 응답의 문서가 다릅니다');
-    J.memo = { ...memo, ...saved };
-    J.pendingMemo = null;
-    if (J.editRevision === submitted.revision && J.draft === submitted.text) { J.dirty = false; J.draft = null; }
-    J.savedAt = new Date().toTimeString().slice(0, 5);
-    renderSaveState(J);
-    const m = jiraVisible(p, J) && $("#jMsg"); if (m) m.textContent = "";
-    return !J.dirty;
-  } catch (e) {
-    if (jiraVisible(p, J) && e.data && e.data.current_text !== undefined) {
-      J.pendingMemo = null;
-      // 덮지 않았다. 사람이 보고 고른다.
-      const m = $("#jMsg"); if (m) m.innerHTML = '<span class="warn">메모가 다른 곳에서 바뀌어 저장하지 않았습니다.</span>';
-      const c = $("#jClose"); if (c) {
-        c.innerHTML = `<p class="warn">현재 파일의 메모입니다. 필요한 내용을 위 칸에 옮긴 뒤 다시 저장하십시오.</p>
-          <textarea rows="6" style="width:100%" readonly>${esc(e.data.current_text)}</textarea>
-          <p><button id="jReload">파일 내용으로 다시 열기 (입력한 내용은 버립니다)</button></p>`;
-        $("#jReload").onclick = () => { J.dirty = false; J.draft = null; loadJira(p); };
-      }
-      return false;
-    }
-    renderSaveState(J); fail(e); return false;
-  }
-}
-
-async function planClose(p) {
-  const J = jiraDoc(p), revision = J.editRevision;
-  try {
-    const plan = await api("POST", `/api/projects/${p.id}/jira/close/plan`, { ymd: J.ymd });
-    if (revision !== J.editRevision || J.dirty || plan.memo_sha !== J.memo.sha) return;
-    J.plan = plan;
-    if (jiraVisible(p, J)) drawClose(p);
-  } catch (e) { fail(e); }
-}
-
-function drawClose(p) {
-  const J = jiraDoc(p), pl = J.plan;
-  const row = (it, i) => `<tr>
-      <td><input type="checkbox" class="jPick" data-i="${i}" aria-label="${esc(it.target)} 승인"></td>
-      <td><code>${esc(it.target)}</code></td>
-      <td>${esc(it.payload.text)}</td>
-      <td>${(it.lint || []).map(l => `<div class="warn">${esc(l.hint)}</div>`).join("") || '<span class="muted">—</span>'}</td></tr>`;
-  $("#jClose").innerHTML = `
-    <h3>마감 초안 — 체크해서 승인한 것만 올라갑니다</h3>
-    ${pl.items.length ? `<table><tr><th style="width:2rem"></th><th>대상</th><th>코멘트</th><th>검사</th></tr>
-      ${pl.items.map((it, i) => row(it, i)).join("")}</table>
-      ${pl.items.some(it => it.lint.length) ? '<p><label><input type="checkbox" id="jAckLint">선택 항목의 검사 경고를 확인했습니다</label></p>' : ''}
-      <p><button id="jPickAll">전체 선택</button> <button id="jApply" class="danger" disabled>승인하고 올리기</button>
-         <span class="muted">Jira 에 코멘트를 씁니다 — 되돌릴 수 없습니다. 완료(Done) 전이는 하지 않습니다.</span></p>`
-      : '<p class="muted">올릴 코멘트가 없습니다.</p>'}
-    ${pl.unknown_keys.length ? `<p class="warn">원본에 없는 키: ${pl.unknown_keys.map(i => esc(i.target)).join(", ")} — 오타이거나 이 폴더 범위 밖입니다. 올리지 않습니다.</p>` : ""}
-    ${pl.deferred.length ? `<p class="warn">티켓 후보 ${pl.deferred.length}건 (${pl.deferred.map(d => esc(d.mark)).join(" ")}) — 아래 「새 태스크 · 파생」에서 만들 수 있습니다. 메모에는 그대로 남아 있습니다.</p>` : ""}
-    ${pl.pending.length ? `<details class="warn"><summary>승인됐는데 아직 안 올라간 항목 ${pl.pending.length}건</summary>
-      <table>${pl.pending.map(x => `<tr><td><code>${esc(x.target)}</code></td><td>${esc(x.kind)}</td><td class="muted">${esc(x.approved_at || "")}</td></tr>`).join("")}</table>
-      <p class="muted">결과 미확인 항목은 새 승인으로 재전송하지 않습니다. 아래 작업 상태에서 원격 ID로 대조하십시오.</p></details>` : ""}
-    <div id="jResult"></div>`;
-  const picks = () => [...document.querySelectorAll(".jPick")];
-  const sync = () => { const b = $("#jApply"), selected = picks().filter(x => x.checked); if (b) b.disabled = !selected.length || (selected.some(x => pl.items[+x.dataset.i].lint.length) && !$("#jAckLint").checked); };
-  picks().forEach(x => x.onchange = sync);
-  const all = $("#jPickAll"); if (all) all.onclick = () => { picks().forEach(x => x.checked = true); sync(); };
-  const btn = $("#jApply");
-  const ack = $("#jAckLint"); if (ack) ack.onchange = sync;
-  if (btn) btn.onclick = () => applyClose(p, picks().filter(x => x.checked).map(x => pl.items[+x.dataset.i]), btn, pl, !!(ack && ack.checked));
-}
-
-// 올린 결과는 toast 가 아니라 표로 남긴다 — 무엇이 올라갔고 무엇이 실패했는지, 실패는 바로 다시 시도(UX-18).
-async function applyClose(p, items, btn, plan, ackLint = false) {
-  const J = jiraDoc(p);
-  if (!items.length) return toast("올릴 항목을 고르십시오");
-  await busy(btn, async () => {
-    try {
-      const r = await api("POST", `/api/projects/${p.id}/jira/close/apply`, { ymd: J.ymd, plan_id: plan.plan_id,
-        operation_ids: items.map(it => it.operation_id), ack_lint: ackLint });
-      if (!jiraVisible(p, J)) return;
-      const failed = new Map(r.failed.map(f => [f.target, f]));
-      const res = $("#jResult") || $("#jClose");
-      res.innerHTML = `<h3>올린 결과 — 성공 ${r.done.length} · 실패 ${r.failed.length}</h3>
-        <table><tr><th>대상</th><th>결과</th></tr>
-        ${items.map(it => failed.has(it.target)
-          ? `<tr><td><code>${esc(it.target)}</code></td><td class="bad">${esc(failed.get(it.target).status)} — ${esc(failed.get(it.target).error)}</td></tr>`
-          : `<tr><td><code>${esc(it.target)}</code></td><td class="ok">올림</td></tr>`).join("")}</table>
-        ${r.failed.some(f => f.retry_allowed) ? '<p><button id="jRetry" class="danger">명시적으로 거절된 항목만 다시 시도</button></p>' : ""}
-        ${r.failed.some(f => !f.retry_allowed) ? '<p class="warn">결과 미확인 항목은 재전송하지 않습니다. 작업 상태에서 원격 결과를 대조하십시오.</p>' : ''}`;
-      const retry = $("#jRetry");
-      const retryItems = items.filter(it => failed.has(it.target) && failed.get(it.target).retry_allowed);
-      if (retry) retry.onclick = () => applyClose(p, retryItems, retry, plan, ackLint);
-      toast(`올림 ${r.done.length}건${r.failed.length ? ` · 실패 ${r.failed.length}건 (아래 표 참조)` : ""}`);
-      // 승인 표는 치우되 결과 표는 남긴다. 태스크 표는 다시 읽는다(안 올라간 파생·배지 갱신).
-      J.plan = null;
-      const keep = res.innerHTML;
-      await loadJira(p);
-      if (!jiraVisible(p, J)) return;
-      const slot = $("#jClose"); if (slot) slot.innerHTML = keep;
-      const rt = $("#jRetry"); if (rt) rt.onclick = () => applyClose(p, retryItems, rt, plan, ackLint);
-    } catch (e) { fail(e); }
-  }, "올리는 중…");
-}
-
-async function drawOperations(p, J) {
-  try {
-    const response = await api('GET', `/api/projects/${p.id}/jira/operations`);
-    if (!jiraVisible(p, J)) return;
-    const box = $('#jOperations'); if (!box) return;
-    const pending = response.operations.filter(op => ['executing', 'uncertain', 'failed'].includes(op.status) || (op.status === 'succeeded' && (!op.receipt_exported || (op.kind === 'create_issue' && !op.local_recorded))));
-    box.innerHTML = pending.length ? `<h3>확인이 필요한 작업</h3>${pending.map((op, i) => `<div class="panel"><p><code>${esc(op.target)}</code> · ${esc(op.status)} <small>${esc(op.operation_id)}</small></p>
-      ${['executing', 'uncertain'].includes(op.status) ? `<label>Jira에서 확인한 원격 ${op.kind === 'comment' ? '코멘트 ID' : '티켓 키'} <input data-remote="${i}"></label><button data-reconcile="${i}">원격 결과 대조</button>` : op.status === 'succeeded' ? `<button data-repair="${i}">성공한 작업의 로컬 기록 복구</button>` : '<p class="muted">다시 미리보기하여 명시적으로 거절된 작업을 승인하십시오.</p>'}</div>`).join('')}` : '';
-    box.querySelectorAll('[data-repair]').forEach(button => button.onclick = () => busy(button, async () => {
-      try { await api('POST', `/api/projects/${p.id}/jira/operations/${encodeURIComponent(pending[+button.dataset.repair].operation_id)}/repair`, {}); toast('로컬 기록을 복구했습니다'); drawOperations(p, J); }
-      catch (e) { fail(e); }
-    }, '복구 중…'));
-    box.querySelectorAll('[data-reconcile]').forEach(button => button.onclick = () => busy(button, async () => {
-      const i = +button.dataset.reconcile, remoteId = box.querySelector(`[data-remote="${i}"]`).value.trim();
-      try { await api('POST', `/api/projects/${p.id}/jira/operations/${encodeURIComponent(pending[i].operation_id)}/reconcile`, { remote_id: remoteId }); toast('원격 결과를 확인했습니다'); drawOperations(p, J); }
-      catch (e) { fail(e); }
-    }, '대조 중…'));
-    if (J.info.schema_ok === false) box.querySelectorAll('button').forEach(button => button.disabled = true);
-    const local=(response.common_writes||[]).filter(op=>op.status!=='planned');
-    if(local.length)box.insertAdjacentHTML('beforeend',`<h3>로컬 메모 작업</h3>${local.map((op,i)=>`<p>${esc(op.ymd)} · ${esc(op.status)} <code>${esc(op.operation_id)}</code> <button data-memo-check="${i}">저장 결과 확인</button></p>`).join('')}`);
-    box.querySelectorAll('[data-memo-check]').forEach(button=>button.onclick=()=>busy(button,async()=>{
-      const op=local[+button.dataset.memoCheck];
-      if(op.ymd===J.ymd){if(!J.pendingMemo)J.pendingMemo=op;await saveMemo(p,J);}
-      else{try{const r=await api('POST',`/api/v1/projects/${p.id}/writes/memo/operations/${encodeURIComponent(op.operation_id)}`,{});toast(`${op.ymd}: ${r.status}`);}catch(e){fail(e);}}
-      if(jiraVisible(p,J))drawOperations(p,J);
-    },'확인 중…'));
-    const legacy = response.legacy_pending.filter(op => op.status === 'legacy_uncertain');
-    if (legacy.length) box.insertAdjacentHTML('beforeend', `<h3>구형 승인 — 수동 확인 필요</h3><p class="warn">이 로그만으로 과거 전송 여부를 확정할 수 없습니다. Jira 기록과 원래 승인 내역을 직접 확인해야 합니다. 자동 재전송과 작업 UUID 대조를 제공하지 않습니다.</p><ul>${legacy.map(op => `<li><code>${esc(op.target)}</code> · ${esc(op.kind)} · ${esc(op.id)}</li>`).join('')}</ul>`);
-  } catch (e) { if (jiraVisible(p, J)) { const box = $('#jOperations'); if (box) box.textContent = '작업 상태를 확인하지 못했습니다: ' + e.message; } }
-}
-
-// ------------------------------------------------------------- 설정 작성 (S5b)
-// 사이트 공통값은 다시 묻지 않는다 — 같은 값을 두 번 입력받으면 언젠가 어긋나고,
-// 어긋난 쪽이 조용히 낡는다. 폴더마다 다른 것만 묻는다.
-async function initPanel(p, info) {
-  const box = $("#jInitBox"), J = jiraFor(jiraState, p.id);   // 설정 초안도 프로젝트마다 (UX-02)
-  const sc = info.scope || {};
-  J.cfg = J.cfg || {
-    project_key: sc.project_key || "", csc_field: sc.csc_field || "", csc_value: sc.csc_value || "",
-    epic_keys: (sc.epic_keys || []).join(","), title_include: (sc.title_include || []).join(","),
-    title_exclude: (sc.title_exclude || []).join(","), title_prefix: "",
-    site_url: info.site_url || "",
-  };
-  const c = J.cfg;
-  let donors = [];
-  try { donors = (await api("GET", `/api/projects/${p.id}/jira/init/donors`)).donors; } catch (e) { /* 없어도 된다 */ }
-  const gi = await api("GET", `/api/projects/${p.id}/jira/gitignore`);
-
-  box.innerHTML = `
-    <div class="panel" style="margin-top:.6rem">
-      <h3>${info.enabled ? "설정 수정" : "설정 작성"} <span class="muted">watermark 와 roots 는 건드리지 않습니다</span></h3>
-      ${donors.length ? `<p><label>사이트 공통값 가져오기
-        <select id="iDonor"><option value="">— 고르지 않음 —</option>
-        ${donors.map((d, i) => `<option value="${i}">${esc(d.project_key || "?")} · ${esc(d.site_url)}</option>`).join("")}</select></label>
-        <span class="muted">site_url · csc_field · issue_type_map 을 그대로 씁니다</span></p>` : ""}
-      <p><label>사이트 URL <input id="iSite" size="40" value="${esc(c.site_url)}"></label>
-         <label>프로젝트 키 <input id="iKey" size="8" value="${esc(c.project_key)}"></label>
-         <button id="iDisc" title="Jira 에서 이슈 타입·CSC 필드 후보·에픽 목록을 읽어 옵니다 (읽기 전용)">Jira 에서 후보 가져오기</button></p>
-      <div id="iDiscBox"></div>
-      <p><label>CSC 필드 <input id="iCscField" size="22" value="${esc(c.csc_field)}"></label>
-         <label>CSC 값 <input id="iCscValue" size="28" value="${esc(c.csc_value)}"></label></p>
-      <p><label>에픽(CSU) 키 <input id="iEpics" size="40" value="${esc(c.epic_keys)}" placeholder="쉼표로 구분 · 비우면 CSC 전체"></label></p>
-      <p><label>제목 포함 <input id="iInc" size="20" value="${esc(c.title_include)}"></label>
-         <label>제외 <input id="iExc" size="20" value="${esc(c.title_exclude)}"></label>
-         <label>접두사 <input id="iPrefix" size="10" value="${esc(c.title_prefix)}"></label>
-         <span class="muted">정규식 · 쉼표로 구분. JQL 에는 들어가지 않습니다</span></p>
-      ${gi.applicable && gi.missing.length ? `<p class="warn">이 저장소의 .gitignore 에 ${gi.missing.map(esc).join(" · ")} 가 없습니다 — 그대로 두면 업무 기록이 커밋됩니다.
-         <label><input type="checkbox" id="iFixGi" checked> 적용할 때 함께 추가</label></p>` : ""}
-      <p><button id="iPrev" class="primary">미리보기</button> <button id="iApply" disabled title="미리보기로 바뀌는 항목을 확인한 뒤 적용할 수 있습니다">적용</button>
-         <span class="muted" id="iMsg">미리보기 → 적용 순서입니다. watermark·roots 는 보존됩니다.</span></p>
-      <div id="iPrevBox"></div>
-    </div>`;
-
-  const d = $("#iDonor");
-  if (d) d.onchange = () => {
-    const pick = donors[+d.value];
-    if (!pick) return;
-    $("#iSite").value = pick.site_url;
-    if (pick.defaults.csc_field) $("#iCscField").value = pick.defaults.csc_field;
-    J.cfg.issue_type_map = pick.defaults.issue_type_map;
-    $("#iMsg").textContent = "사이트 공통값을 가져왔습니다";
-  };
-  $("#iDisc").onclick = () => busy($("#iDisc"), () => discover(p), "가져오는 중…");
-  $("#iPrev").onclick = () => busy($("#iPrev"), () => initSubmit(p, "preview"));
-  $("#iApply").onclick = () => busy($("#iApply"), () => initSubmit(p, "apply"), "저장 중…");
-  // 값이 바뀌면 미리보기가 낡는다 — 다시 보기 전에는 적용을 막는다(배포와 같은 규칙, UX-37).
-  box.querySelectorAll("input, select").forEach(el => el.addEventListener("input", () => { const a = $("#iApply"); if (a) a.disabled = true; $("#iPrevBox").innerHTML = ""; }));
-}
-
-function initCfg(J) {
-  const list = v => v.split(",").map(x => x.trim()).filter(Boolean);
-  const cfg = {
-    project_key: $("#iKey").value.trim(),
-    csc_field: $("#iCscField").value.trim() || null,
-    csc_value: $("#iCscValue").value.trim() || null,
-    epic_keys: list($("#iEpics").value),
-    title_include: list($("#iInc").value),
-    title_exclude: list($("#iExc").value),
-    title_prefix: $("#iPrefix").value.trim() || null,
-    issue_type_map: Object.assign({}, J.cfg.issue_type_map || {}, { site_url: $("#iSite").value.trim() }),
-  };
-  return cfg;
-}
-
-async function discover(p) {
-  const box = $("#iDiscBox"), J = jiraFor(jiraState, p.id);
-  box.innerHTML = '<p class="muted">조회 중…</p>';
-  try {
-    const r = J.disc = await api("POST", `/api/projects/${p.id}/jira/init/discover`,
-      { site: $("#iSite").value.trim(), project_key: $("#iKey").value.trim() || null });
-    const errs = r.errors ? Object.entries(r.errors).map(([k, v]) => `<div class="warn">${esc(k)}: ${esc(v)}</div>`).join("") : "";
-    box.innerHTML = errs + `
-      ${(r.csc_candidates || []).length ? `<p>CSC 후보 ${(r.csc_candidates || []).map((x, i) =>
-        `<button data-csc="${i}">${esc(x.field)} · ${esc(x.name || "")}</button>`).join(" ")}</p>` : ""}
-      ${(r.epics || []).length ? `<p>에픽 ${r.epics.length}개
-        <button id="iAllEpics">전부 넣기</button>
-        <span class="muted">${r.epics.slice(0, 6).map(e => esc(e.key)).join(" ")}${r.epics.length > 6 ? " …" : ""}</span></p>` : ""}`;
-    box.querySelectorAll("[data-csc]").forEach(b => b.onclick = () => {
-      const x = r.csc_candidates[+b.dataset.csc];
-      $("#iCscField").value = x.field;
-      toast(x.why);
-    });
-    const ae = $("#iAllEpics");
-    if (ae) ae.onclick = () => { $("#iEpics").value = r.epics.map(e => e.key).join(","); };
-  } catch (e) {
-    box.innerHTML = `<p class="warn">${esc(e.message)}</p><p class="muted">조회는 편의일 뿐입니다 — 값을 직접 넣어도 됩니다.</p>`;
-  }
-}
-
-async function initSubmit(p, which) {
-  const J = jiraFor(jiraState, p.id);
-  if (which === "apply" && !await guardUnsaved(p)) return;   // 적용하면 화면을 새로 그린다
-  try {
-    const r = await api("POST", `/api/projects/${p.id}/jira/init/${which}`,
-      { cfg: initCfg(J), fix_gitignore: !!($("#iFixGi") && $("#iFixGi").checked) });
-    if (which === "preview") {
-      const ch = Object.entries(r.preview.changed);
-      $("#iPrevBox").innerHTML = `
-        <table><tr><th>항목</th><th>현재</th><th>바뀔 값</th></tr>
-        ${ch.length ? ch.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(JSON.stringify(v.before))}</td><td>${esc(JSON.stringify(v.after))}</td></tr>`).join("")
-          : '<tr><td colspan="3" class="muted">바뀌는 항목이 없습니다</td></tr>'}</table>
-        <p class="muted">보존: watermark ${esc(r.preview.preserved.watermark)} · roots ${r.preview.preserved.roots}개</p>`;
-      const a = $("#iApply"); if (a) { a.disabled = false; a.className = ch.length ? "primary" : ""; }
-      $("#iMsg").textContent = ch.length ? "위 변경을 확인했으면 적용하십시오." : "바뀌는 항목이 없습니다.";
-      return;
-    }
-    toast("설정을 저장했습니다");
-    J.cfg = null; J.view = null; J.memo = null; J.plan = null; J.dirty = false; J.draft = null;
-    for (const doc of J.documents.values()) { doc.requestRevision++; doc.view = null; doc.plan = null; if (!doc.dirty) doc.memo = null; }
-    renderProject();
-  } catch (e) {
-    if (e.data && e.data.gitignore) {
-      $("#iMsg").innerHTML = '<span class="warn">.gitignore 추가에 동의하거나 직접 넣은 뒤 다시 시도하십시오 — 저장하지 않았습니다.</span>';
-      return;
-    }
-    fail(e);
-  }
-}
-
-// ------------------------------------------------------------- 새 태스크 (S6)
-async function newTaskPanel(p) {
-  const J = jiraDoc(p), v = J.view, sc = (J.info.scope || {});
-  const epics = [...new Set(v.tasks.map(t => t.parent_key).filter(Boolean).concat(sc.epic_keys || []))];
-  $("#jNew").innerHTML = `
-    <h3>새 태스크 · 파생</h3>
-    <p><label>제목 <input id="nSum" size="46"></label>
-       <label>종류 <select id="nKind"><option value="task">메인 태스크</option><option value="subtask">파생</option><option value="bug">문제(BUG)</option></select></label></p>
-    <p><label>부모 에픽 <select id="nEpic"><option value="">${(sc.epic_keys || []).length === 1 ? esc(sc.epic_keys[0]) + " (자동)" : "— 고르지 않음 —"}</option>
-        ${epics.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("")}</select></label>
-       <label>부모 태스크 <select id="nParent"><option value="">— 파생일 때만 —</option>
-        ${v.tasks.map(t => `<option value="${esc(t.key)}">${esc(t.key)} · ${esc(t.summary.slice(0, 30))}</option>`).join("")}</select></label>
-       <button id="nPlan">확인</button></p>
-    <div id="nBox"><p class="muted">확인을 누르면 제목이 이 폴더 범위에 들어오는지, CSC 가 붙는지 먼저 검사합니다. 아직 만들지 않습니다.</p></div>`;
-  $("#nPlan").onclick = () => planNew(p);
-  ['#nSum', '#nKind', '#nEpic', '#nParent'].forEach(s => $(s).oninput = () => { J.newRevision = (J.newRevision || 0) + 1; const box = $('#nBox'); if (box) box.textContent = '내용이 바뀌었습니다 — 다시 확인하십시오.'; });
-}
-
-async function planNew(p) {
-  const box = $("#nBox"), epic = $("#nEpic").value || null, J = jiraDoc(p);
-  const revision = J.newRevision = (J.newRevision || 0) + 1;
-  const sibs = (J.view.tasks || []).filter(t => !epic || t.parent_key === epic).map(t => t.summary);
-  try {
-    const it = await api("POST", `/api/projects/${p.id}/jira/new/plan`, {
-      summary: $("#nSum").value, kind: $("#nKind").value,
-      epic_key: epic, parent_key: $("#nParent").value || null, epic_summaries: sibs,
-    });
-    if (!jiraVisible(p, J) || revision !== J.newRevision) return;
-    box.innerHTML = `
-      <p>확정된 제목 <b>${esc(it.title)}</b></p>
-      ${(it.warnings || []).map(w => `<p class="warn">${esc(w)}</p>`).join("")}
-      <pre style="white-space:pre-wrap;font-size:.8rem">${esc(JSON.stringify(it.payload.fields, null, 1))}</pre>
-      <p><button id="nGo" class="danger" ${it.ready_to_create===false?'disabled':''}>승인하고 만들기</button> <span class="muted">Jira 에 티켓을 만듭니다 — 되돌릴 수 없습니다. 만든 뒤 완료로 옮기지 않습니다.</span></p>`;
-    $("#nGo").onclick = async () => {
-      $("#nGo").disabled = true;
-      try {
-        const r = await api("POST", `/api/projects/${p.id}/jira/new/create`, { plan_id: it.plan_id, operation_id: it.operation_id });
-        toast(`만들었습니다: ${r.key}`);
-        if (jiraVisible(p, J)) {await loadJira(p);if(jiraVisible(p,J)&&r.visibility&&r.visibility.state!=='visible')$('#jNew').innerHTML=`<p class="warn">${esc(r.key)} 생성 성공 · 가시성 ${esc(r.visibility.state)}<br>${(r.visibility.warnings||[]).map(esc).join('<br>')}</p>`;}
-      } catch (e) { fail(e); if (jiraVisible(p, J)) { const go = $("#nGo"); if (go) go.disabled = !!(e.data && e.data.retry_allowed === false); drawOperations(p, J); } }
-    };
-  } catch (e) {
-    // 만들기 전에 멈춘다 — 만든 뒤에는 되돌리기가 가장 비싸다.
-    if (!jiraVisible(p, J) || revision !== J.newRevision) return;
-    box.innerHTML = `<p class="warn">${esc(e.message)}</p>`;
-  }
-}
 
 // ------------------------------------------------------------- 로드
 async function loadAll() {
+  await refreshModuleState();
+  await loadBuiltinUI();
   const cfg = await api("GET", "/api/config");
   state.roots = cfg.roots;
   const sel = $("#rootSel"); sel.innerHTML = state.roots.map(r => `<option value="${esc(r.path)}">${esc(r.path)}</option>`).join("") || `<option value="">(루트 없음)</option>`;
@@ -1152,10 +449,11 @@ async function loadAll() {
   state.projects = p.projects;
   renderList();
   // Jira 신호는 목록 요약 API 에 없다(계약 유지). 프로젝트별 연동 상태를 따로 읽어 배지에 얹는다 — 로컬 파일 검사뿐이다.
-  await Promise.all(state.projects.map(async x => { try { state.jira[x.id] = await api("GET", `/api/projects/${x.id}/jira`); } catch (e) { state.jira[x.id] = null; } }));
+  for(const entry of window.wsflowUI.entries())if(entry.refreshProjects)await entry.refreshProjects(state.projects);
   renderList();
-  if (state.view === "dashboard") renderDashboard();
-  else if (state.view === "calendar") renderCalendar();
+  if (state.view === 'modules') await renderModules();
+  else if (state.view === "dashboard") renderDashboard();
+  else if(state.view==='calendar')await window.wsflowUI.invoke('work-calendar','calendar');
   else if (state.current && !state.projects.find(x => x.id === state.current)) { state.current = null; $("#content").innerHTML = '<p class="muted">프로젝트를 고르세요.</p>'; }
   // 첫 화면: 등록된 프로젝트가 있으면 대시보드로 시작한다 — 빈 안내문보다 "오늘 주의할 것"이 먼저다(UX-29).
   else if (!state.current && state.projects.length && !state.landed) { state.landed = true; renderDashboard(); }
@@ -1165,30 +463,16 @@ async function loadAll() {
 // 배지 = 상태 + 그 상태를 다룰 탭. 클릭하면 그 탭으로 간다(UX-27).
 // 색은 심각도다: bad = 즉시 조치(lock·손상·경로 없음) / warn = 할 일(변경·↑·↓·remote 없음) / 기본 = 정보.
 function badges(p) {
-  const b = [], chip = (cls, text, tab, hint) => b.push(`<span class="chip ${cls}" ${tab ? `data-tab="${tab}" role="link" tabindex="0"` : ""} title="${esc(hint || "")}">${text}</span>`);
-  if (!p.exists) chip("bad", "경로 없음", null, "폴더가 사라졌습니다");
-  else if (p.git === "none") chip("", "git 없음", "rules", "git 저장소가 아닙니다 — 규칙 탭만 쓸 수 있습니다");
-  else if (p.git === "broken") chip("bad", ".git 손상", "rules", ".git 이 비었거나 손상됐습니다");
-  else {
-    if (!p.has_remote) chip("warn", "remote 없음", "remotes", "원격 백업이 없습니다 — remote 탭에서 추가");
-    if (p.dirty) chip("warn", `변경 ${p.dirty}`, "status", "커밋되지 않은 변경 — 상태 탭");
-    if (p.ahead) chip("warn", `↑${p.ahead} push 대기`, "status", "원격에 없는 커밋 — push 하십시오");
-    if (p.behind) chip("warn", `↓${p.behind}`, "status", "원격이 앞서 있습니다 (마지막 fetch 기준) — 상태 탭에서 ff-only pull");
-  }
-  if (p.locks) chip("bad", `lock ${p.locks}`, "rules", "잔류 .git/*.lock — 규칙 탭에서 정리");
-  if (p.parked) chip("", "PARKED", null, "_PARKED.txt 표식");
-  const j = state.jira[p.id];
-  if (j && j.enabled) chip(j.schema_ok === false || j.gitignore_ok === false ? "warn" : "ok", "Jira" + (j.schema_ok === false ? " schema!" : j.gitignore_ok === false ? " .gitignore!" : ""), "jira",
-                           j.schema_ok === false ? j.reason : j.gitignore_ok === false ? "업무 데이터가 .gitignore 로 제외되지 않았습니다" : `Jira 연동 켜짐 · ${(j.scope || {}).project_key || ""}`);
-  const flow=state.workflow?.projects?.find(x=>x.id===p.id);
-  if(flow?.enabled)chip(flow.complete?'':'warn',flow.complete?'일일 집계 확인':'업무 상태 확인 필요','jira',flow.warnings.join(' · '));
-  return b.join("");
+  const values=[],chip=(cls,text,tab,hint)=>values.push(`<span class="chip ${cls}" ${tab?`data-tab="${tab}" role="link" tabindex="0"`:''} title="${esc(hint||'')}">${text}</span>`);
+  if(!p.exists)chip('bad','경로 없음',null,'폴더가 사라졌습니다');
+  for(const entry of window.wsflowUI.entries())if(entry.badges)entry.badges(p,chip);
+  return values.join('');
 }
 
 function renderList() {
   $("#list").innerHTML = state.projects.map(p => `
     <div class="card ${p.id === state.current ? "active" : ""}" data-id="${esc(p.id)}">
-      <div class="row"><span class="name">${esc(p.alias)}</span><span class="muted" style="font-size:.78rem">${esc(p.branch || "")}</span><button class="x" title="목록에서 제거" aria-label="${esc(p.alias)} 목록에서 제거" data-rm="${esc(p.id)}">✕</button></div>
+      <div class="row"><span class="name">${esc(p.alias)}</span><span class="muted" style="font-size:.78rem">${esc(p.branch || "")}</span>${moduleActive('workspace-operations')?`<button class="x" title="목록에서 제거" aria-label="${esc(p.alias)} 목록에서 제거" data-rm="${esc(p.id)}">✕</button>`:''}</div>
       <div class="path" title="${esc(p.path)}">${esc(p.path)}</div>
       <div>${badges(p)}</div>
     </div>`).join("") || '<p class="muted" style="padding:1rem">등록된 프로젝트가 없습니다.</p>';
@@ -1196,9 +480,9 @@ function renderList() {
   $("#list").querySelectorAll(".chip[data-tab]").forEach(ch => ch.onkeydown = e => { if (e.key === "Enter") ch.click(); });
   $("#list").querySelectorAll("[data-rm]").forEach(b => b.onclick = async e => {
     e.stopPropagation(); const p = state.projects.find(x => x.id === b.dataset.rm);
-    if (!await guardUnsaved(p)) return;
+    if (!await window.wsflowUI.guardUnsaved(p)) return;
     if (!await confirmDanger("관리 목록에서 제거", [["프로젝트", `<b>${esc(p.alias)}</b>`], ["경로", `<code>${esc(p.path)}</code>`], ["되돌리기", "폴더는 삭제되지 않습니다 — 다시 등록하면 됩니다"]], "제거")) return;
-    try { await api("DELETE", `/api/projects/${b.dataset.rm}`); jiraState.delete(b.dataset.rm); if (state.current === b.dataset.rm) state.current = null; await loadAll(); } catch (er) { fail(er); }
+    try { await api("DELETE", `/api/projects/${b.dataset.rm}`); window.wsflowUI.clearProject(b.dataset.rm); if (state.current === b.dataset.rm) state.current = null; await loadAll(); } catch (er) { fail(er); }
   });
 }
 
@@ -1213,498 +497,31 @@ async function select(id, tab) {
 function cur() { return state.projects.find(p => p.id === state.current); }
 
 async function renderProject() {
-  const p = cur(); if (!p) return;
-  const tabs = ["status", "log", "remotes", "rules", "jira"], names = { status: "상태 / 커밋 / push", log: "로그", remotes: "remote", rules: "규칙", jira: "Jira" };
-  const gitOnly = ["status", "log", "remotes"];   // git 이 아니면 눌러도 같은 안내만 나오던 탭 — 비활성으로 (UX-30)
-  $("#content").innerHTML = `
-    <h2 style="margin:.2rem 0 .1rem">${esc(p.alias)} <span class="muted" style="font-size:.8rem;font-weight:400">${esc(p.path)}</span></h2>
-    <div id="projBadges">${badges(p)}</div>
-    <div class="tabs" style="margin-top:.6rem">${tabs.map(t => `<button class="${state.tab === t ? "on" : ""}" data-tab="${t}" ${gitOnly.includes(t) && p.git !== "repo" ? 'disabled title="git 저장소가 아닙니다"' : ""}>${names[t]}</button>`).join("")}</div>
-    <div id="tabBody"><p class="muted">불러오는 중…</p></div>`;
-  $("#content").querySelectorAll(".tabs [data-tab], #projBadges [data-tab]").forEach(b => b.onclick = () => { state.tab = b.dataset.tab; renderProject(); });
-  if (gitOnly.includes(state.tab) && p.git !== "repo") { state.tab = "rules"; return renderProject(); }
-  const body = $("#tabBody");
-  try {
-    if (state.tab === "jira") return renderJira(body, p);
-    if (state.tab === "rules") return renderRules(body, p);
-    if (p.git !== "repo") { body.innerHTML = `<div class="box"><b>${p.git === "broken" ? ".git 이 손상되었습니다 (빈 디렉터리 등)." : "git 저장소가 아닙니다."}</b><p class="muted">규칙 탭은 사용할 수 있습니다. git init 은 wsFlow 범위 밖이므로 터미널에서 수행하세요.</p></div>`; return; }
-    if (state.tab === "status") return renderStatus(body, p);
-    if (state.tab === "log") return renderLog(body, p);
-    if (state.tab === "remotes") return renderRemotes(body, p);
-  } catch (e) { body.innerHTML = `<pre class="bad">${esc(e.message)}\n${esc(e.data?.stderr || "")}</pre>`; }
+  const project=cur();if(!project)return;
+  const tabs=window.wsflowUI.tabs();
+  let selected=tabs.find(tab=>tab.id===state.tab)||tabs[0];
+  if(selected?.gitOnly&&project.git!=='repo')selected=tabs.find(tab=>!tab.gitOnly);
+  state.tab=selected?.id||null;
+  $('#content').innerHTML=`<h2 style="margin:.2rem 0 .1rem">${esc(project.alias)} <span class="muted" style="font-size:.8rem;font-weight:400">${esc(project.path)}</span></h2><div id="projBadges">${badges(project)}</div><div class="tabs" style="margin-top:.6rem">${tabs.map(tab=>`<button class="${state.tab===tab.id?'on':''}" data-tab="${esc(tab.id)}" ${tab.gitOnly&&project.git!=='repo'?'disabled title="git 저장소가 아닙니다"':''}>${esc(tab.label)}</button>`).join('')}</div><div id="tabBody"><p class="muted">불러오는 중…</p></div>`;
+  $('#content').querySelectorAll('.tabs [data-tab], #projBadges [data-tab]').forEach(button=>button.onclick=()=>{state.tab=button.dataset.tab;renderProject();});
+  if(!selected){$('#tabBody').innerHTML='<p>활성 기능 모듈이 없습니다. 모듈 관리에서 기능을 추가하세요.</p>';return;}
+  try{await selected.render($('#tabBody'),project);}catch(error){$('#tabBody').innerHTML=`<pre class="bad">${esc(error.message)}\n${esc(error.data?.stderr||'')}</pre>`;}
 }
 
-function fileRows(list, name) {
-  if (!list.length) return '<span class="muted">없음</span>';
-  return `<div class="filelist">${list.map(f => { const path = f.path ?? f, code = f.code ?? "?"; return `<label><input type="checkbox" name="${name}" value="${esc(path)}"> <span class="code">${esc(code)}</span>${esc(path)}</label>`; }).join("")}</div>`;
-}
-
-async function renderStatus(body, p) {
-  const [st, rem] = await Promise.all([api("GET", `/api/projects/${p.id}/status`), api("GET", `/api/projects/${p.id}/remotes`)]);
-  if(!body.isConnected||state.current!==p.id||state.tab!=='status')return;
-  const remotes = rem.remotes;
-  body.innerHTML = `
-    <div class="box"><h3>브랜치</h3>
-      <b>${esc(st.branch || "(detached)")}</b> ${st.upstream ? `→ ${esc(st.upstream)} <span class="chip ${st.ahead ? "ok" : ""}">↑${st.ahead}</span><span class="chip ${st.behind ? "warn" : ""}">↓${st.behind}</span>` : '<span class="chip warn">upstream 없음</span>'}
-      ${st.stashes ? `<span class="chip">stash ${st.stashes}</span>` : ""} ${st.clean ? '<span class="chip ok">clean</span>' : ""}
-      ${st.conflicted.length ? `<div class="bad">충돌: ${st.conflicted.map(esc).join(", ")}</div>` : ""}
-      <p id="gitFetchTime" class="muted">마지막 성공 fetch: ${esc(st.sync?.last_fetch_at||'미확인')} · ↑/↓는 마지막 fetch의 로컬 추적 ref 기준입니다.</p>
-      <div class="actions"><button id="btnFetch">fetch</button><button id="btnPull">ff-only pull</button><span class="muted">변경 파일·분기·충돌은 직접 확인합니다.</span></div>
-    </div>
-    <div class="grid2">
-      <div class="box"><h3>스테이징됨 (${st.staged.length})</h3>${fileRows(st.staged, "staged")}</div>
-      <div class="box"><h3>변경 / 미추적 (${st.unstaged.length + st.untracked.length})</h3>${fileRows([...st.unstaged, ...st.untracked.map(u => ({ code: "?", path: u }))], "unstaged")}
-        <div class="actions"><button id="btnAddSel">선택 스테이징</button><button id="btnAddAll">전부 스테이징 (add -A)</button></div></div>
-    </div>
-    <div class="box"><h3>커밋</h3>
-      <textarea id="msg" placeholder="커밋 메시지 (한글 그대로 — UTF-8 파일로 전달됩니다)"></textarea>
-      <div class="actions"><label><input type="checkbox" id="addAll"> 커밋 전 add -A</label><button class="primary" id="btnCommit">커밋</button></div></div>
-    <div class="box"><h3>push</h3>
-      <div class="actions">
-        <select id="pushRemote">${remotes.map(r => `<option>${esc(r.name)}</option>`).join("") || "<option value=''>(remote 없음)</option>"}</select>
-        <input type="text" id="pushBranch" value="${esc(st.branch || "")}" placeholder="브랜치">
-        <label><input type="checkbox" id="setUp" ${st.upstream ? "" : "checked"}> -u (upstream 설정)</label>
-        <button class="danger" id="btnPush" ${remotes.length ? "" : "disabled"} title="원격에 씁니다 — 확인 창이 뜹니다">push</button>
-        ${remotes.length ? "" : '<span class="muted">remote 탭에서 먼저 remote 를 추가하세요.</span>'}
-      </div></div>
-    <div id="gitOperations"></div><pre id="out" class="muted" hidden></pre>`;
-  const out = r => { const o = $("#out"); o.hidden = false; o.textContent = typeof r === "string" ? r : [r.command, r.stdout, r.stderr].filter(Boolean).join("\n"); };
-  for(const [id,action] of [['btnFetch','fetch'],['btnPull','pull']])$('#'+id).onclick=async()=>{
-    const button=$('#'+id);await busy(button,async()=>{try{const r=await gitWrite(p,action,{});
-      if(!body.isConnected||state.current!==p.id)return;
-      const message=[r.ok?'성공':'실행 중단: '+({dirty:'미저장/미추적 파일 있음',non_ff:'분기됨 · 자동 병합하지 않음',conflict:'충돌 확인 필요',detached:'detached HEAD',no_upstream:'upstream 없음',no_remote:'remote 없음',fetch_failed:'fetch 실패',pull_failed:'ff-only pull 실패'}[r.reason]||r.reason||'실패'),r.command,r.stdout,r.stderr].filter(Boolean).join('\n');
-      await loadAll();
-      if(!body.isConnected||state.current!==p.id)return;
-      await renderStatus(body,cur()||p);out(message);
-    }catch(e){if(body.isConnected)out(e.message);}},action+' 중…');};
-  drawGitOperations(body,p);
-  const checked = n => [...body.querySelectorAll(`input[name=${n}]:checked`)].map(i => i.value);
-  $("#btnAddSel").onclick = async () => { const paths = checked("unstaged"); if (!paths.length) return toast("선택된 파일이 없습니다"); try { await gitWrite(p,"add",{paths}); await refreshCurrent(); } catch (e) { fail(e); } };
-  $("#btnAddAll").onclick = async () => { try { await gitWrite(p,"add",{all:true}); await refreshCurrent(); } catch (e) { fail(e); } };
-  $("#btnCommit").onclick = async () => {
-    const message = $("#msg").value; if (!message.trim()) return toast("커밋 메시지를 입력하세요");
-    try { const r = await gitWrite(p,"commit",{message,add_all:$("#addAll").checked}); toast("커밋 완료 " + r.hash.slice(0, 8)); await refreshCurrent(); } catch (e) { fail(e); }
-  };
-  $("#btnPush").onclick = async () => {
-    const remote = $("#pushRemote").value, branch = $("#pushBranch").value.trim(), set_upstream = $("#setUp").checked;
-    if (!await confirmDanger("원격에 push", [["명령", `<code>git push ${set_upstream ? "-u " : ""}${esc(remote)} ${esc(branch)}</code>`], ["대상", `<code>${esc((remotes.find(r => r.name === remote) || {}).fetch || remote)}</code>`], ["되돌리기", "push 된 커밋은 원격에 남습니다"]], "push")) return;
-    $("#btnPush").disabled = true; out("push 중…");
-    try { const r = await gitWrite(p,"push",{remote,branch,set_upstream}); out(r); toast(r.ok ? "push 성공" : "push 실패 (아래 출력 확인)"); if (r.ok) await loadAll(); }
-    catch (e) { fail(e); out(e.data || e.message); } finally { const b = $("#btnPush"); if (b) b.disabled = false; }
-  };
-}
 async function refreshCurrent() { await loadAll(); await renderProject(); }
-
-const gitPending = new Map();
-async function gitWrite(p, action, payload) {
-  const key=JSON.stringify([p.id,p.path]),base=`/api/v1/projects/${p.id}/writes/git`,requested=JSON.stringify(payload);
-  let pending=gitPending.get(key);
-  if(pending){
-    const checked=await api('POST',`${base}/operations/${encodeURIComponent(pending.operation_id)}`,{});
-    if(['succeeded','failed'].includes(checked.status))gitPending.delete(key);
-    if(checked.status!=='succeeded')throw new Error(`작업 ${pending.operation_id}: ${checked.status}. 재전송 없이 결과를 확인하십시오.`);
-    if(pending.action!==action||pending.requested!==requested)throw new Error('이전 작업의 완료를 확인했습니다. 새 입력은 유지했습니다. 새 작업을 다시 요청하십시오.');
-    return checked.result;
-  }
-  const plan=await api('POST',`${base}/plan`,{action,payload});
-  pending={...plan,requested};gitPending.set(key,pending);
-  let result;
-  try{result=await api('POST',`${base}/apply`,{plan_id:plan.plan_id,operation_id:plan.operation_id});}
-  catch(e){throw new Error(`작업 ${plan.operation_id} 결과 확인 필요: ${e.message}`);}
-  if(['succeeded','failed'].includes(result.status))gitPending.delete(key);
-  if(result.status==='uncertain')throw new Error(`작업 ${plan.operation_id}의 결과 확인이 필요합니다. 자동 재전송하지 않습니다.`);
-  return result;
-}
-async function drawGitOperations(body,p){
-  try{
-    const response=await api('GET',`/api/v1/projects/${p.id}/writes/git/operations`);
-    if(!body.isConnected||state.current!==p.id)return;
-    const rows=response.operations.filter(op=>op.status!=='planned').slice(-10),box=$('#gitOperations',body);
-    if(!box)return;
-    box.innerHTML=rows.length?`<p>최근 Git 작업</p>${rows.map((op,i)=>`<p><code>${esc(op.operation_id)}</code> ${esc(op.action)} · ${esc(op.status)} <button data-git-check="${i}">결과 확인</button></p>`).join('')}`:'';
-    const active=rows.find(op=>['executing','uncertain'].includes(op.status)),key=JSON.stringify([p.id,p.path]);
-    if(active&&!gitPending.has(key))gitPending.set(key,active);
-    box.querySelectorAll('[data-git-check]').forEach(button=>button.onclick=()=>busy(button,async()=>{
-      try{const op=rows[+button.dataset.gitCheck],r=await api('POST',`/api/v1/projects/${p.id}/writes/git/operations/${encodeURIComponent(op.operation_id)}`,{});
-        if(['succeeded','failed'].includes(r.status)&&gitPending.get(key)?.operation_id===op.operation_id)gitPending.delete(key);
-        if(body.isConnected){const out=$('#out',body);out.hidden=false;out.textContent=JSON.stringify(r,null,2);drawGitOperations(body,p);}
-      }catch(e){fail(e);}
-    },'확인 중…'));
-  }catch(e){if(body.isConnected){const box=$('#gitOperations',body);if(box)box.textContent='Git 작업 조회 실패: '+e.message;}}
-}
-
-async function renderLog(body, p) {
-  const n = 100;
-  const r = await api("GET", `/api/projects/${p.id}/log?n=${n}`);
-  if (!r.commits.length) { body.innerHTML = '<p class="muted">커밋이 없습니다.</p>'; return; }
-  body.innerHTML = `<div class="tblwrap"><table><tr><th>해시</th><th>일시</th><th>작성자</th><th>제목</th><th>ref</th></tr>
-    ${r.commits.map(c => `<tr class="click" data-h="${c.hash}"><td><code>${c.short}</code></td><td>${esc(c.date.replace("T", " ").slice(0, 16))}</td><td>${esc(c.author)}</td><td>${esc(c.subject)}</td><td>${c.refs.map(x => `<span class="chip">${esc(x)}</span>`).join("")}</td></tr>`).join("")}</table></div>
-    <div id="commitDetail"></div>`;
-  body.querySelectorAll("tr.click").forEach(tr => tr.onclick = async () => {
-    try { const d = await api("GET", `/api/projects/${p.id}/commit/${tr.dataset.h}`);
-      $("#commitDetail").innerHTML = `<div class="box" style="margin-top:1rem"><h3><code>${d.hash.slice(0, 12)}</code> · ${esc(d.author)} · ${esc(d.date)}</h3><pre>${esc(d.message)}</pre><b>변경 파일 (${d.files.length})</b><pre>${esc(d.files.join("\n"))}</pre></div>`;
-      $("#commitDetail").scrollIntoView({ behavior: "smooth" }); } catch (e) { fail(e); }
-  });
-}
-
-async function renderRemotes(body, p) {
-  const r = await api("GET", `/api/projects/${p.id}/remotes`);
-  body.innerHTML = `<div class="box"><h3>remote (${r.remotes.length})</h3>
-    ${r.remotes.length ? `<table><tr><th>이름</th><th>fetch</th><th>push</th><th></th></tr>${r.remotes.map(x => `<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.fetch)}</td><td>${esc(x.push)}</td>
-      <td><button data-edit="${esc(x.name)}" data-url="${esc(x.fetch)}">URL 변경</button> <button class="danger" data-del="${esc(x.name)}">제거</button></td></tr>`).join("")}</table>` : '<p class="warn">remote 가 없습니다 — 이 저장소는 원격 백업이 없습니다.</p>'}
-    </div>
-    <div class="box"><h3>remote 추가</h3><div class="actions"><input type="text" id="rName" value="origin" style="min-width:8rem"><input type="text" id="rUrl" placeholder="https://github.com/user/repo.git" style="min-width:26rem"><button class="primary" id="btnRemAdd">추가</button></div></div>`;
-  $("#btnRemAdd").onclick = async () => { try { await gitWrite(p,"remote_add",{name:$("#rName").value.trim(),url:$("#rUrl").value.trim()}); await refreshCurrent(); } catch (e) { fail(e); } };
-  body.querySelectorAll("[data-edit]").forEach(b => b.onclick = async () => {
-    const ok = await ask({ title: `remote '${b.dataset.edit}' 의 URL 변경`,
-      body: `<p class="muted">push·fetch 대상이 바뀝니다. 로컬 설정만 바뀌며 원격에는 영향이 없습니다.</p><input type="text" id="askUrl" value="${esc(b.dataset.url)}" style="width:100%">`,
-      buttons: [{ label: "취소", value: false }, { label: "변경", value: true, kind: "primary" }] });
-    const url = ($("#askUrl") || {}).value; if (!ok || !url || url === b.dataset.url) return;
-    try { await gitWrite(p,"remote_set",{name:b.dataset.edit,url:url.trim()}); toast(`remote '${b.dataset.edit}' URL 변경`); await refreshCurrent(); } catch (e) { fail(e); } });
-  body.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
-    if (!await confirmDanger("remote 제거", [["remote", `<b>${esc(b.dataset.del)}</b>`], ["되돌리기", "로컬 설정만 바뀝니다 — 같은 URL 로 다시 추가하면 됩니다"]], "제거")) return;
-    try { await gitWrite(p,"remote_remove",{name:b.dataset.del}); toast(`remote '${b.dataset.del}' 제거`); await refreshCurrent(); } catch (e) { fail(e); } });
-}
-
-// ------------------------------------------------------------- 규칙
-const yn = (v, good = true) => v ? `<span class="${good ? "ok" : "bad"}" role="img" aria-label="있음" title="있음">●</span>` : `<span class="${good ? "bad" : "muted"}" role="img" aria-label="없음" title="없음">○</span>`;
-function ledgerCell(l) {
-  if (!l.exists) return '<span class="muted">없음</span>';
-  const c = l.counts, inv = Object.keys(l.invalid_status || {});
-  return `open <b class="${c.open ? "warn" : ""}">${c.open || 0}</b> · fixed ${c.fixed || 0} · verified <b class="ok">${c.verified || 0}</b>` + (Object.entries(c).filter(([k]) => !["open", "fixed", "verified"].includes(k)).map(([k, v]) => ` · ${k} ${v}`).join("")) + (inv.length ? ` <span class="chip bad">비허용 상태값: ${inv.map(esc).join(",")}</span>` : "");
-}
-function worklogCell(w) {
-  if (!w.files_jsonl && !w.prompts_jsonl) return '<span class="muted">jsonl 없음</span>';
-  return `${w.last_req_id ? `<b>${esc(w.last_req_id)}</b>` : "P-없음"} · prompts ${w.prompts} · files ${w.files}` + (w.uncommitted ? ` · <span class="warn">미커밋 ${w.uncommitted}</span>` : "") + (w.unverified ? ` · <span class="muted">검증 없음 ${w.unverified}</span>` : "") + (w.bad_lines ? ` · <span class="bad">파싱 실패 ${w.bad_lines}</span>` : "");
-}
-function driftCell(d) {
-  return d.map(x => { if (!x.exists) return `<span class="chip">${esc(x.file.split("/").pop())} 없음</span>`; if (x.match === null) return `<span class="chip">${esc(x.file.split("/").pop())} ?</span>`; return `<span class="chip ${x.match ? "ok" : "warn"}" title="${x.size}B vs 템플릿 ${x.template_size}B">${esc(x.file.split("/").pop())} ${x.match ? "=" : "≠"}</span>`; }).join(" ");
-}
-function markersCell(m, r) {
-  const b = [];
-  if (m.parked) b.push('<span class="chip bad">PARKED</span>'); if (m.to_delete) b.push('<span class="chip">_to_delete</span>');
-  if (m.jira) b.push('<span class="chip">jira</span>'); if (m.daily) b.push('<span class="chip">daily</span>'); if (m.evidence_pack) b.push('<span class="chip">evidence_pack</span>');
-  if (m.claude_skills) b.push('<span class="chip">.claude/skills</span>');
-  if (r.nested_repos?.length) b.push(`<span class="chip warn" title="${esc(r.nested_repos.join(", "))}">중첩 repo ${r.nested_repos.length}</span>`);
-  if (r.locks?.length) b.push(`<span class="chip bad">lock ${r.locks.length}</span>`);
-  if (r.logs_xlsx) b.push('<span class="chip">xlsx 로그</span>');
-  return b.join(" ");
-}
-
-async function renderRules(body, p) {
-  const r = await api("GET", `/api/projects/${p.id}/rules`);
-  body.innerHTML = `
-    <div class="box"><h3>규칙 준수 (템플릿 기준: ${esc(r.template || "루트에 0.PROJECT_TEMPLATE 없음 — 드리프트 비교 불가")})</h3>
-      <div class="tblwrap"><table>
-        <tr><th style="width:12rem">git</th><td>${r.git === "repo" ? yn(true) + " 저장소" : r.git === "broken" ? '<span class="bad">● .git 손상</span>' : '<span class="bad">○ 없음</span>'} ${r.remotes.length ? r.remotes.map(x => `<span class="chip ok">${esc(x.name)}: ${esc(x.fetch)}</span>`).join(" ") : (r.git === "repo" ? '<span class="chip warn">remote 없음</span>' : "")}</td></tr>
-        <tr><th>GLOBAL_RULES / PROJECT_RULES</th><td>${yn(r.global_rules)} GLOBAL_RULES.md &nbsp; ${yn(r.project_rules)} PROJECT_RULES.md &nbsp; ${yn(r.checks_config)} graph/checks_config.json</td></tr>
-        <tr><th>대장 (graph/edges.csv)</th><td>${ledgerCell(r.ledger)}</td></tr>
-        <tr><th>작업 로그 (logs/*.jsonl)</th><td>${worklogCell(r.worklog)}</td></tr>
-        <tr><th>템플릿 드리프트</th><td>${driftCell(r.drift)}</td></tr>
-        <tr><th>표식</th><td>${markersCell(r.markers, r) || '<span class="muted">없음</span>'}</td></tr>
-      </table></div>
-      <div class="actions" style="margin-top:.6rem">
-        <button data-run="validate_worklog">validate_worklog.py 실행</button>
-        <button data-run="graph_checks">graph_checks.py 실행</button>
-        ${r.locks.length ? `<button id="btnCleanLock">lock ${r.locks.length}개 정리</button>` : ""}
-      </div>
-      <pre id="toolOut" hidden></pre>
-    </div><div class="box"><h3>개발 환경 준비</h3><p>ROOT·프로젝트 지침과 선택 스킬을 보존형 계획으로 준비합니다. 파일 연결 확인과 실제 도구 인식은 별도입니다.</p><button id="ctxOpen">개발 환경 준비…</button> <button id="ssOpen">세션 준비·관측…</button></div>`;
-  $("#ctxOpen").onclick = () => contextSetupDialog(p).catch(fail);
-  $("#ssOpen").onclick = () => sessionDialog(p).catch(fail);
-  body.querySelectorAll("[data-run]").forEach(b => b.onclick = async () => {
-    const o = $("#toolOut"); o.hidden = false; o.textContent = "실행 중…";
-    try { const res = await api("POST", `/api/projects/${p.id}/rules/run`, { tool: b.dataset.run }); o.textContent = `${res.command || ""}\nEXIT=${res.returncode ?? "-"}\n${res.stdout || ""}${res.stderr || ""}${res.error || ""}`; o.className = res.ok ? "ok" : "bad"; } catch (e) { fail(e); }
-  });
-  const cl = $("#btnCleanLock"); if (cl) cl.onclick = async () => { try { const res = await gitWrite(p,"clean_locks",{}); toast(`제거 ${res.removed.length} / 건너뜀 ${res.skipped.length} ${res.reason}`); await refreshCurrent(); } catch (e) { fail(e); } };
-}
 
 // ------------------------------------------------------------- 대시보드
 // 「주의」 요약 — 목록 요약(git)과 Jira 연동 상태만으로 셀 수 있는 것. 칩을 누르면 해당 프로젝트로 간다.
-function attentionRow() {
-  const items = [];
-  const add = (label, ps, tab, cls = "warn") => { if (ps.length) items.push(`<span class="chip ${cls}" style="font-size:.85rem;padding:.15rem .6rem">${label} ${ps.length}</span> ${ps.map(x => `<button class="linkish" data-go="${esc(x.id)}" data-tab="${tab}">${esc(x.alias)}</button>`).join(" ")}`); };
-  const P = state.projects;
-  add("lock 잔류", P.filter(x => x.locks), "rules", "bad");
-  add(".git 손상/경로 없음", P.filter(x => x.exists === false || x.git === "broken"), "rules", "bad");
-  add("뒤처짐 ↓", P.filter(x => x.behind), "status");
-  add("push 대기 ↑", P.filter(x => x.ahead), "status");
-  add("미커밋 변경", P.filter(x => x.dirty), "status");
-  add("remote 없음", P.filter(x => x.git === "repo" && !x.has_remote), "remotes");
-  add("Jira 설정 문제", P.filter(x => state.jira[x.id] && state.jira[x.id].enabled && (state.jira[x.id].schema_ok === false || state.jira[x.id].gitignore_ok === false)), "jira");
-  add('fetch 시각 미확인',P.filter(x=>x.git==='repo'&&x.has_remote&&!x.sync?.last_fetch_at),'status');
-  return items.length ? `<div class="box" style="padding:.6rem .9rem"><b>주의</b><div style="display:flex;flex-direction:column;gap:.25rem;margin-top:.3rem">${items.map(i => `<div>${i}</div>`).join("")}</div></div>`
-                      : '<p class="ok">● 주의할 항목이 없습니다 — 모든 저장소가 깨끗하고 원격과 맞습니다(마지막 fetch 기준).</p>';
-}
-
 async function renderDashboard() {
   $('#btnCalendar').classList.remove('on');
-  state.view = "dashboard"; state.current = null; renderList(); $("#btnDash").classList.add("on");
-  const c = $("#content");
-  const generation=state.dashboardGeneration=(state.dashboardGeneration||0)+1;
-  const contextPromise=api('GET','/api/v1/context/dashboard').catch(e=>({error:e.message}));
-  c.innerHTML = `<h2 style="margin:.2rem 0 .6rem">대시보드 <span class="muted" style="font-size:.8rem;font-weight:400">등록 ${state.projects.length}개</span></h2>${attentionRow()}<h3 style="margin:.9rem 0 .3rem">규칙 준수</h3><p class="muted">불러오는 중…</p>`;
-  c.querySelectorAll("[data-go]").forEach(b => b.onclick = () => select(b.dataset.go, b.dataset.tab));
-  const rows = await Promise.all(state.projects.map(async p => { try { return { p, r: await api("GET", `/api/projects/${p.id}/rules`) }; } catch (e) { return { p, err: e.message }; } }));
-  if(state.view !== 'dashboard')return;
-  const context=await contextPromise;
-  if(state.view !== 'dashboard' || generation!==state.dashboardGeneration)return;
-  c.querySelector("p").remove();
-  c.insertAdjacentHTML("beforeend", `<div style="overflow:auto"><table>
-    <tr><th>프로젝트</th><th>git</th><th>RULES</th><th>대장</th><th>작업 로그</th><th>드리프트</th><th>표식</th></tr>
-    ${rows.map(({ p, r, err }) => err ? `<tr><td>${esc(p.alias)}</td><td colspan="6" class="bad">${esc(err)}</td></tr>` : `<tr class="click" data-id="${esc(p.id)}">
-      <td><b>${esc(p.alias)}</b><br><span class="muted" style="font-size:.75rem">${esc(p.branch || "")}</span></td>
-      <td>${r.git === "repo" ? (r.remotes.length ? '<span class="ok">● remote</span>' : '<span class="warn">● 로컬 전용</span>') : r.git === "broken" ? '<span class="bad">손상</span>' : '<span class="bad">없음</span>'}${p.dirty ? `<br><span class="warn">변경 ${p.dirty}</span>` : ""}</td>
-      <td>${yn(r.global_rules)} G ${yn(r.project_rules)} P ${yn(r.checks_config)} C</td>
-      <td>${ledgerCell(r.ledger)}</td><td>${worklogCell(r.worklog)}</td><td>${driftCell(r.drift)}</td><td>${markersCell(r.markers, r)}</td></tr>`).join("")}
-  </table></div>
-  <p class="muted" style="font-size:.8rem">● 있음 / ○ 없음 · G=GLOBAL_RULES, P=PROJECT_RULES, C=checks_config · 드리프트 "="는 루트의 0.PROJECT_TEMPLATE 과 md5 일치</p>`);
-  c.querySelectorAll("tr.click").forEach(tr => tr.onclick = () => select(tr.dataset.id, "rules"));
-  c.insertAdjacentHTML('beforeend',contextDashboard(context));
-  state.workflow=context.workflow||null;
-  c.insertAdjacentHTML('beforeend',workflowDashboard(state.workflow));bindWorkflow(c);renderList();
-  c.querySelectorAll('[data-session-go]').forEach(b=>b.onclick=()=>{const p=state.projects.find(p=>p.id===b.dataset.sessionGo);if(p)sessionDialog(p,b.dataset.tool).catch(fail);});
-  const calendar=c.querySelector('[data-calendar-open]');if(calendar)calendar.onclick=()=>$('#btnCalendar').click();
-}
-
-const recognitionLabel = value => ({unknown:'실제 도구 인식 미확인',agent_reported:'에이전트 보고 · 수동 제출',tool_observed:'도구 출력 관측 · 수동 제출·진위 미검증',partial:'부분 관측 · 전체 인식 미확인'}[value]||'실제 도구 인식 미확인');
-function workflowDashboard(data) {
-  return `<section id="workflowDashboard" class="box"><h3>전체 업무 상태</h3><label>기록 날짜 <input type="date" id="wfDate" min="2000-01-01" max="2099-12-31" value="${esc(data?.date||calendarDateAt())}"></label> <button id="wfReload">상태 다시 읽기</button>
-    <p class="muted">저장된 배치 신호와 캘린더의 같은 원본 일지 기록입니다. 이 화면을 여는 것으로 Jira를 조회하거나 watermark를 변경하지 않습니다.</p><div id="wfRows">${workflowRows(data)}</div></section>`;
-}
-function workflowRows(data) {
-  if(!data?.projects)return '<p class="warn">업무 상태 미확인</p>';
-  return data.projects.map(p=>`<div data-workflow-project="${esc(p.id)}" style="border-top:1px solid #ddd;padding:.5rem 0;overflow-wrap:anywhere"><b>${esc(p.alias)}</b> · ${p.enabled?(p.complete?'당일 완전 배치 확인':'최신 완전 배치 미확인'):'Jira 미연결'}
-    ${p.enabled?`<p>신규 ${esc(p.signals?.new??'?')} · 이어서 ${esc(p.signals?.continuing??'?')} · 정체 ${esc(p.signals?.stalled??'?')} · 미등재 CSU ${esc(p.signals?.epic_unlisted??'?')} · 제목 제외 ${esc(p.signals?.title_filtered??'?')} · CSC 미지정 ${esc(p.signals?.csc_missing??'?')} · 미등록 파생 ${esc(p.pending_children??'?')}</p>
-      <p>최근 배치 ${esc(p.batch?.latest?.status||'없음')} · watermark ${esc(p.batch?.watermark||'미확인')} · 마감 누락 ${esc(({suspected:'의심',unknown:'미확인',no_record:'이전 날짜 기록 없음'})[p.missing_close]||'미확인')}</p>`:''}
-    <p>수행 업무 ${esc(p.date_records.task_count??'?')} · 메모 ${esc(p.date_records.memo_count??'?')} <button data-workflow-calendar="${esc(p.id)}" data-date="${esc(data.date)}">캘린더 상세</button>${p.enabled?` <button data-workflow-jira="${esc(p.id)}" data-date="${esc(data.date)}">일지에서 보기</button>`:''}</p>
-    ${(p.warnings||[]).map(w=>`<p class="warn">${esc(w)}</p>`).join('')}</div>`).join('')||'<p class="muted">등록 프로젝트가 없습니다.</p>';
-}
-function bindWorkflow(container) {
-  const refresh=async()=>{const date=$('#wfDate').value,box=$('#wfRows'),generation=state.workflowGeneration=(state.workflowGeneration||0)+1;
-    box.textContent='상태 읽는 중…';try{const r=await api('GET','/api/v1/workflow/status?date='+encodeURIComponent(date));if(!box.isConnected||generation!==state.workflowGeneration)return;state.workflow=r;box.innerHTML=workflowRows(r);links();renderList();}
-    catch(e){if(box.isConnected&&generation===state.workflowGeneration)box.textContent=e.message;}};
-  const links=()=>{
-    container.querySelectorAll('[data-workflow-calendar]').forEach(b=>b.onclick=()=>{CAL.selected=b.dataset.date;CAL.projectId=b.dataset.workflowCalendar;renderCalendar();});
-    container.querySelectorAll('[data-workflow-jira]').forEach(b=>b.onclick=()=>{jiraFor(jiraState,b.dataset.workflowJira).ymd=b.dataset.date.replaceAll('-','').slice(2);select(b.dataset.workflowJira,'jira');});
-  };
-  $('#wfDate').onchange=refresh;$('#wfReload').onclick=refresh;links();
-}
-function contextDashboard(data) {
-  if(data.error||!Array.isArray(data.projects)||!data.calendar)return `<section id="devContextDashboard" class="box"><h3>개발 환경</h3><p class="warn">상태 미확인: ${esc(data.error||'응답 형식을 확인할 수 없습니다')}</p></section>`;
-  return `<section id="devContextDashboard" class="box"><h3>개발 환경 · 세션 관측</h3><p class="muted">파일 연결 확인은 실제 도구 로딩·정책 준수의 증명이 아닙니다. 개인/플러그인 범위는 미확인입니다.</p>
-    ${data.projects.map(p=>`<div data-context-project="${esc(p.id)}" style="border-top:1px solid #ddd;padding:.6rem 0;overflow-wrap:anywhere"><b>${esc(p.alias)}</b>
-      ${Object.entries(p.tools).map(([tool,s])=>`<div data-context-tool="${esc(tool)}"><b>${esc(tool)}</b> · <span class="${s.files.ready?'ok':'warn'}">${s.files.ready?'파일 연결 확인':'파일 준비 차단'}</span> · <span>${recognitionLabel(s.recognition)}</span>
-        ${s.packet ? `<span class="muted">${esc(s.packet.profile.version)} / ${esc(s.packet.profile.surface)} · 버전 사용자 선언</span>` : ''}
-        ${s.latest_receipt ? `<p class="muted">세션 ${esc(s.latest_receipt.session_ref)} · 관측 ${esc(s.latest_receipt.captured_at)}${s.latest_receipt.stale_reasons.length?' · 오래된 기록: '+s.latest_receipt.stale_reasons.map(esc).join(', '):''}</p>` : ''}
-        ${s.files.blockers.length||s.files.warnings.length ? `<details><summary>파일 진단</summary><p>${[...s.files.blockers,...s.files.warnings].map(esc).join('<br>')}</p></details>`:''}
-        <button data-session-go="${esc(p.id)}" data-tool="${esc(tool)}">${esc(tool)} 준비·관측</button></div>`).join('')}
-      <p class="muted">공통 변경 영향: ${p.impact_project_ids.map(esc).join(', ')||'미확인'}</p></div>`).join('')}</section>
-    <section id="calendarHealth" class="box"><h3>캘린더 동기화</h3><p>${esc(({ok:'연결 상태 확인',attention:'확인 필요',unknown:'상태 미확인',disconnected:'Google 미연결'})[data.calendar.state]||'상태 미확인')}${data.calendar.last_sync?' · 마지막 수집 '+esc(data.calendar.last_sync):''}</p><p>${(data.calendar.warnings||[]).map(esc).join('<br>')}</p><button data-calendar-open>캘린더에서 확인</button></section>`;
-}
-
-async function sessionDialog(project,initialTool='codex') {
-  const dlg=$('#dlg'),pid=project.id;
-  let status=await api('GET',`/api/v1/projects/${encodeURIComponent(pid)}/session/status`),tool=initialTool,generation=0;
-  state.sessionDrafts=state.sessionDrafts||{};
-  const draft=()=>state.sessionDrafts[JSON.stringify([pid,tool])] ||= {version:status.tools[tool].packet?.profile.version||'',surface:status.tools[tool].packet?.profile.surface||'cli',text:'',kind:'agent_reported',attest:false,packet:status.tools[tool].packet};
-  const keep=()=>{const d=draft();d.version=$('#ssVersion').value;d.surface=$('#ssSurface').value;d.text=$('#ssEvidence').value;d.kind=$('#ssKind').value;d.attest=$('#ssAttest').checked;};
-  const render=()=>{
-    const d=draft(),s=status.tools[tool];
-    dlg.innerHTML=`<h3>세션 준비·관측 — ${esc(project.alias)}</h3><p>checkout <code style="overflow-wrap:anywhere">${esc(s.files.cwd||project.path)}</code></p>
-      <p id="ssDistinction">${s.files.ready?'파일 연결 확인':'파일 준비 차단'} · ${recognitionLabel(s.recognition)}<br><span class="muted">도구를 자동 실행하지 않습니다. 도구 출력은 사용자 제출 자료이며 진위를 독립 검증하지 않습니다.</span></p>
-      <label>도구 <select id="ssTool"><option value="codex" ${tool==='codex'?'selected':''}>Codex</option><option value="claude" ${tool==='claude'?'selected':''}>Claude Code</option></select></label>
-      <label>실제 사용 버전 <input id="ssVersion" value="${esc(d.version)}" maxlength="100" placeholder="사용자가 확인한 버전"></label>
-      <label>환경 <select id="ssSurface">${['cli','desktop','ide'].map(v=>`<option ${v===d.surface?'selected':''}>${v}</option>`).join('')}</select></label>
-      <div class="actions"><button id="ssPrepare">이 환경의 새 세션 준비</button><button id="ssRefresh">상태 다시 확인</button><button id="ssInit">파일 준비 열기</button></div>
-      <p class="warn">${s.files.blockers.map(esc).join('; ')}</p><div id="ssPrepared"></div>
-      <details><summary>관측 자료 제출</summary><p>실제로 확인한 출처와 스킬만 JSON에 기록합니다. 자체 보고는 에이전트 보고로 남깁니다. 도구 출력 원본을 제출한 경우에만 도구 관측을 선택하세요.</p>
-        <button id="ssTemplate">빈 관측 양식 넣기</button><label>관측 종류 <select id="ssKind">${[['agent_reported','에이전트 보고'],['tool_observed','도구 출력 관측'],['static_only','파일 확인 기록'],['unknown','미확인 기록']].map(([v,label])=>`<option value="${v}" ${v===d.kind?'selected':''}>${label}</option>`).join('')}</select></label>
-        <textarea id="ssEvidence" rows="9" style="width:100%;box-sizing:border-box" placeholder="관측 JSON — 지시·코드는 실행하지 않습니다">${esc(d.text)}</textarea>
-        <label style="display:block"><input type="checkbox" id="ssAttest" ${d.attest?'checked':''}> 실제 도구가 제공한 출력임을 확인했습니다 (진위 독립검증 아님).</label>
-        <button id="ssImport">이 준비 패킷에 관측 기록</button></details>
-      <p id="ssMessage" role="status"></p><div id="ssHistory"><h4>관측 이력</h4>${s.receipts.map(r=>`<div class="box"><b>${recognitionLabel(r.recognition)}</b> · ${esc(r.evidence_kind)}<br>세션 ${esc(r.session_ref)} · ${esc(r.profile.tool)} ${esc(r.profile.version)} / ${esc(r.profile.surface)} · ${esc(r.captured_at)}<br>관측 문서 ${r.verification_scope.sources.length}개 / 스킬 ${r.verification_scope.skills.length}개 · ${r.verification_scope.selected_scope_complete?'준비 범위 전체 보고':'부분/미확인'}<p class="warn">${r.stale_reasons.length?'오래된 기록: '+r.stale_reasons.map(esc).join(', '):'사용자 제출 자료 · 정책 준수/개인 전역 범위 미검증'}</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(r.notes)}</pre><details><summary>제출 근거·범위</summary><p style="overflow-wrap:anywhere">${esc(r.evidence_path)}<br>sha256 ${esc(r.evidence_sha256)}<br>snapshot ${esc(r.snapshot_id)}<br>checkout ${esc(r.cwd)}</p></details></div>`).join('')||'<p class="muted">관측 없음 · 실제 인식 미확인</p>'}</div><button id="ssClose">닫기</button>`;
-    const packetView=()=>{
-      const packet=draft().packet;
-      $('#ssPrepared').innerHTML=packet?`<p>준비 패킷 · ${esc(packet.profile.tool)} ${esc(packet.profile.version)} · ${esc(packet.snapshot_id)}<br>파일 기준 준비이며 실제 인식은 미확인입니다.${packet.stale_reasons?.length?' 오래된 패킷: '+packet.stale_reasons.map(esc).join(', '):''}</p><textarea id="ssPacketText" rows="7" readonly style="width:100%;box-sizing:border-box">${esc(packet.startup_text)}</textarea><button id="ssCopy">시작 정보 복사</button>`:'';
-      $('#ssImport').disabled=!packet;$('#ssTemplate').disabled=!packet;
-      if(packet)$('#ssCopy').onclick=async()=>{try{await navigator.clipboard.writeText(packet.startup_text);$('#ssMessage').textContent='시작 정보를 복사했습니다. 해당 checkout에서 새 세션을 여세요.';}catch{$('#ssPacketText').select();$('#ssMessage').textContent='시작 정보를 선택했습니다. 복사해 사용하세요.';}};
-    };
-    packetView();
-    const invalidate=()=>{keep();generation++;draft().packet=null;packetView();$('#ssDistinction').textContent='선택 환경 변경 · 새 준비 필요 · 실제 도구 인식 미확인';$('#ssMessage').textContent='환경이 바뀌었습니다. 새 준비 패킷을 만드세요.';};
-    $('#ssVersion').oninput=invalidate;$('#ssSurface').onchange=invalidate;
-    $('#ssEvidence').oninput=keep;$('#ssKind').onchange=keep;$('#ssAttest').onchange=keep;
-    $('#ssTool').onchange=()=>{keep();generation++;tool=$('#ssTool').value;render();};
-    $('#ssPrepare').onclick=async()=>{keep();const d=draft(),captured=++generation,body={tool,version:d.version,surface:d.surface};$('#ssPrepare').disabled=true;$('#ssMessage').textContent='새 세션 준비 중…';
-      try{const p=await api('POST',`/api/v1/projects/${encodeURIComponent(pid)}/session/prepare`,body);if(captured!==generation||!dlg.open)return;
-        if(!p.ready){$('#ssMessage').textContent='준비 차단: '+p.blockers.join('; ');return;}
-        d.packet=p;packetView();$('#ssDistinction').textContent='파일 기준 새 세션 준비 · 실제 도구 인식 미확인';$('#ssHistory').textContent='새 패킷의 관측은 없습니다. 이전 이력을 다시 확인하는 중입니다.';
-        const next=await api('GET',`/api/v1/projects/${encodeURIComponent(pid)}/session/status`);if(captured!==generation||!dlg.open)return;status=next;render();$('#ssMessage').textContent='파일 기준 세션 준비 완료 · 실제 도구 인식 미확인';
-      }catch(e){if(captured===generation)$('#ssMessage').textContent=e.message;}finally{if(dlg.open&&$('#ssPrepare'))$('#ssPrepare').disabled=false;}};
-    $('#ssTemplate').onclick=()=>{keep();const d=draft(),p=d.packet;if(d.text.trim()){$('#ssMessage').textContent='기존 입력을 보존했습니다. 새 양식은 입력을 비운 뒤 넣으세요.';return;}
-      d.text=JSON.stringify(p.observation_template||{schema_version:1,origin:'agent_report',session_ref:'실제 세션 식별자',captured_at:new Date().toISOString(),snapshot_id:p.snapshot_id,profile_id:p.profile.profile_id,cwd:p.cwd,observed_sources:[],observed_skills:[],notes:'실제로 확인한 항목만 기록하세요.'},null,2);$('#ssEvidence').value=d.text;};
-    $('#ssImport').onclick=async()=>{keep();const d=draft(),packet=d.packet,captured=++generation;if(!packet)return;const submitted={text:d.text,kind:d.kind,attest:d.attest};$('#ssImport').disabled=true;$('#ssMessage').textContent='관측 기록 중…';
-      try{const e=await api('POST',`/api/v1/projects/${encodeURIComponent(pid)}/session/evidence`,{content:submitted.text});
-        if(captured!==generation||!dlg.open)return;
-        const r=await api('POST',`/api/v1/projects/${encodeURIComponent(pid)}/session/observations`,{packet_id:packet.packet_id,evidence_id:e.evidence_id,evidence_kind:submitted.kind,attest_tool_output:submitted.attest});
-        if(captured!==generation||!dlg.open)return;status=await api('GET',`/api/v1/projects/${encodeURIComponent(pid)}/session/status`);if(captured!==generation||!dlg.open)return;render();$('#ssMessage').textContent='관측 기록: '+recognitionLabel(r.recognition)+(r.stale_reasons.length?' · 오래된 기록: '+r.stale_reasons.join(', '):'');
-      }catch(e){if(captured===generation&&dlg.open){$('#ssMessage').textContent=e.message;$('#ssImport').disabled=false;}}};
-    $('#ssRefresh').onclick=async()=>{keep();const captured=++generation;try{const next=await api('GET',`/api/v1/projects/${encodeURIComponent(pid)}/session/status`);if(captured!==generation||!dlg.open)return;status=next;const p=status.tools[tool].packet;draft().packet=p&&p.profile.version===draft().version&&p.profile.surface===draft().surface?p:null;render();}catch(e){if(captured===generation)$('#ssMessage').textContent=e.message;}};
-    $('#ssInit').onclick=()=>{keep();generation++;dlg.close();contextSetupDialog(project).catch(fail);};
-    $('#ssClose').onclick=()=>{keep();generation++;dlg.close();};
-  };
-  render();dlg.showModal();
-}
-
-// ------------------------------------------------------------- 스캔 / lock 대화상자
-async function scanDialog() {
-  const root = $("#rootSel").value; if (!root) return toast("먼저 루트를 추가하세요");
-  const dlg = $("#dlg"); dlg.innerHTML = "<p>스캔 중…</p>"; dlg.showModal();
-  try {
-    const r = await api("GET", `/api/scan?root=${encodeURIComponent(root)}`);
-    dlg.innerHTML = `<h3 style="margin-top:0">${esc(root)} — 폴더 ${r.items.length}개</h3>
-      <div style="max-height:55vh;overflow:auto"><table><tr><th></th><th>폴더</th><th>git</th><th>규칙</th><th>로그</th><th></th></tr>
-      ${r.items.map(i => `<tr><td><input type="checkbox" value="${esc(i.path)}" ${i.registered ? "disabled" : (i.git === "repo" || i.project_rules ? "checked" : "")}></td><td>${esc(i.name)}${i.parked ? ' <span class="chip bad">PARKED</span>' : ""}</td>
-        <td>${i.git === "repo" ? '<span class="ok">●</span>' : i.git === "broken" ? '<span class="bad">손상</span>' : '<span class="muted">○</span>'}</td>
-        <td>${i.global_rules ? "G" : ""} ${i.project_rules ? "P" : ""} ${i.ledger ? "L" : ""}</td><td>${i.logs_jsonl ? "jsonl" : ""} ${i.logs_xlsx ? "xlsx" : ""}</td><td>${i.registered ? '<span class="muted">등록됨</span>' : ""}</td></tr>`).join("")}</table></div>
-      <div class="actions" style="justify-content:flex-end;margin-top:.6rem"><button id="dlgAll">전체 선택</button><button id="dlgClose">닫기</button><button class="primary" id="dlgReg">선택 등록</button></div>`;
-    $("#dlgAll").onclick = () => dlg.querySelectorAll("input[type=checkbox]:not(:disabled)").forEach(c => c.checked = true);
-    $("#dlgClose").onclick = () => dlg.close();
-    $("#dlgReg").onclick = async () => {
-      const paths = [...dlg.querySelectorAll("input[type=checkbox]:checked:not(:disabled)")].map(c => c.value);
-      let ok = 0; for (const path of paths) { try { await api("POST", "/api/projects", { path }); ok++; } catch (e) { toast(e.message); } }
-      dlg.close(); toast(`${ok}개 등록`); await loadAll();
-    };
-  } catch (e) { dlg.innerHTML = `<p class="bad">${esc(e.message)}</p><button onclick="this.closest('dialog').close()">닫기</button>`; }
-}
-
-// ------------------------------------------------------------- 보존형 개발 환경 준비 (I5)
-async function contextSetupDialog(project) {
-  const pid = project.id, dlg = $("#dlg");
-  const data = await api("GET", `/api/v1/projects/${encodeURIComponent(pid)}/context/setup`);
-  let plan = null, generation = 0;
-  dlg.innerHTML = `<h3>개발 환경 준비 — ${esc(project.alias)}</h3>
-    <p>ROOT: <code>${esc(data.root_path)}</code><br>checkout: <code>${esc(data.checkout_path)}</code></p>
-    <p id="ctxObservation" class="muted">파일 기준 조사 · 실제 Codex/Claude 인식: 미검증. 기존 .codex/.claude와 스킬 원본은 보존합니다.</p>
-    <p>${data.root_initialized ? 'ROOT 프로필이 있습니다.' : '먼저 ROOT 초기화 계획을 확인하고 적용하세요.'} 공통 변경 영향은 ROOT 계획에서 표시됩니다.</p>
-    <label>노출 방식 <select id="ctxBackend"><option value="">선택하세요</option><option value="managed-copy">관리 사본 (원본과 별개, 변경 감지)</option></select></label>
-    <div style="max-height:24vh;overflow:auto">${data.catalog.map((s,i) => `<label style="display:block"><input type="checkbox" data-ctx-skill="${i}" value="${esc(s.skill_id)}" ${data.project_profile?.selected_skills?.includes(s.skill_id) ? 'checked' : ''}> ${esc(s.skill_id)} · 전체 ${s.file_count}파일 <code>${esc(s.tree_hash.slice(0,12))}</code></label>`).join('') || '<p class="muted">ROOT/skills와 프로젝트/skills에 등록된 패키지가 없습니다. 기존 도구별 패키지는 자동 이관하지 않습니다.</p>'}</div>
-    <label style="display:block;margin:.6rem 0"><input type="checkbox" id="ctxAdopt"> 기존 진입점에 관리 블록 추가·유효 프로필 채택을 허용합니다 (원문 보존).</label>
-    <details><summary>기존 경로·진단</summary><pre style="white-space:pre-wrap">${esc([...data.diagnostics.map(d=>d.path+' — '+d.policy),...data.blockers].join('\n'))}</pre></details>
-    <div class="actions"><button id="ctxRootPreview">ROOT 초기화 미리보기</button><button id="ctxPreview">프로젝트 준비 미리보기</button></div>
-    <div id="ctxPlan" style="max-height:32vh;overflow:auto;overflow-wrap:anywhere"></div><p id="ctxStatus" role="status"></p>
-    <div class="actions"><button id="ctxApply" class="primary" disabled>이 계획 적용</button><button id="ctxRetry" hidden>같은 승인 확인</button><button id="ctxClose">닫기</button></div>
-    <div id="ctxOperations">${data.operations.filter(o=>['planned','executing','uncertain'].includes(o.status)).map((o,i)=>`<p><code>${esc(o.operation_id)}</code> ${esc(o.status)} <button data-ctx-op="${i}">계획·복구 확인</button></p>`).join('')}</div>`;
-  const active = data.operations.filter(o=>['planned','executing','uncertain'].includes(o.status));
-  const invalidate = () => { generation++; plan=null; $("#ctxApply").disabled=true; $("#ctxRetry").hidden=true; $("#ctxPlan").textContent='선택이 바뀌었습니다. 다시 미리보기하세요.'; };
-  dlg.querySelectorAll('input,select').forEach(el=>el.onchange=invalidate);
-  const show = (p, op=null) => {
-    plan={...p, operation_id:op?.operation_id||p.operation_id, recover:op && ['executing','uncertain'].includes(op.status)};
-    $("#ctxPlan").innerHTML=`<p><b>${esc(p.kind)}</b> · 대상 ${esc(p.owner)}<br>영향 프로젝트: ${esc(p.impact_project_ids.join(', '))}</p>
-      ${p.blockers.length ? `<p class="bad">차단: ${p.blockers.map(esc).join('; ')}</p>` : ''}
-      <p>변경 ${p.actions.length}개 항목 · 파일별 백업/저널 · 실제 도구 인식 미검증</p>${p.actions.map(a=>`<details><summary>${a.directory ? '디렉터리 준비' : a.data===null ? '소유 파일 제거' : '생성/갱신'}: ${esc(a.rel)}</summary>${a.diff ? `<p>이전</p><pre style="white-space:pre-wrap">${esc(a.diff.before)}</pre><p>적용 후</p><pre style="white-space:pre-wrap">${esc(a.diff.after)}</pre>` : '전체 패키지 해시로 검증하는 항목입니다.'}</details>`).join('')}`;
-    $("#ctxApply").textContent=plan.recover ? '이 작업 명시 복구' : '이 계획 적용';
-    $("#ctxApply").disabled=p.blockers.length>0 || !p.plan_id;
-    $("#ctxRetry").hidden=true;
-  };
-  const preview = async kind => {
-    const captured=++generation;plan=null;$("#ctxApply").disabled=true;$("#ctxRetry").hidden=true;
-    const body={kind,backend:$("#ctxBackend").value,selected_skills:[...dlg.querySelectorAll('[data-ctx-skill]:checked')].map(x=>x.value),adopt_existing:$("#ctxAdopt").checked};
-    try {
-      const p=await api('POST',kind==='root_init' ? '/api/v1/roots/context/plan' : `/api/v1/projects/${encodeURIComponent(pid)}/context/plan`,kind==='root_init' ? {...body,project_id:pid} : body);
-      if(captured!==generation || !dlg.open)return;
-      show(p);$("#ctxStatus").textContent='미리보기만 수행했습니다. 적용할 내용을 확인하세요.';
-    } catch(e) { if(captured===generation)$("#ctxStatus").textContent=e.message; }
-  };
-  const apply = async () => {
-    if(!plan)return;const saved=plan;$("#ctxApply").disabled=true;$("#ctxRetry").hidden=true;
-    try {
-      const r=await api('POST',`/api/v1/context/operations/${encodeURIComponent(saved.operation_id)}/${saved.recover ? 'recover' : 'apply'}`,{plan_id:saved.plan_id,project_id:pid});
-      if(r.status==='succeeded') { dlg.close();toast('개발 환경 파일 준비 완료 · 실제 도구 인식 미검증');await contextSetupDialog(project); }
-      else { $("#ctxStatus").textContent='일부 적용 후 중단: '+(r.error||'결과 확인 필요')+' — 같은 작업의 복구 계획을 확인하세요.';saved.recover=true;$("#ctxApply").textContent='이 작업 명시 복구';$("#ctxApply").disabled=false; }
-    } catch(e) { $("#ctxStatus").textContent='응답을 확인하지 못했습니다: '+e.message+' — 같은 승인 ID로 확인할 수 있습니다.';$("#ctxRetry").hidden=false; }
-  };
-  $("#ctxRootPreview").onclick=()=>preview('root_init');$("#ctxPreview").onclick=()=>preview('project_init');$("#ctxApply").onclick=apply;$("#ctxRetry").onclick=apply;
-  dlg.querySelectorAll('[data-ctx-op]').forEach(b=>b.onclick=async()=>{try {const op=await api('GET',`/api/v1/context/operations/${encodeURIComponent(active[+b.dataset.ctxOp].operation_id)}?project_id=${encodeURIComponent(pid)}`);show(op.plan,op);}catch(e){$("#ctxStatus").textContent=e.message;}});
-  $("#ctxClose").onclick=()=>{generation++;dlg.close();};
-  dlg.showModal();
-}
-
-// ------------------------------------------------------------- 새 프로젝트 (D-010: 빈 폴더 + 등록만)
-function newProjectDialog() {
-  const root = $("#rootSel").value; if (!root) return toast("먼저 루트를 추가하세요");
-  const dlg = $("#dlg");
-  dlg.innerHTML = `<h3 style="margin-top:0">새 프로젝트 폴더</h3>
-    <p class="muted" style="font-size:.85rem">위치: <code>${esc(root)}</code> 아래. 빈 폴더를 만들고 등록합니다 — 템플릿 파일은 "배포"로 넣으세요.</p>
-    <input type="text" id="npName" placeholder="폴더 이름" style="width:100%">
-    <div class="actions" style="justify-content:flex-end;margin-top:.6rem"><button id="dlgClose">닫기</button><button class="primary" id="npCreate">생성 + 등록</button></div>`;
-  dlg.showModal(); $("#npName").focus();
-  $("#dlgClose").onclick = () => dlg.close();
-  const go = async () => { const name = $("#npName").value.trim(); if (!name) return;
-    try { const p = await api("POST", "/api/projects/new", { root, name }); dlg.close(); toast(`생성: ${p.path}`); await loadAll(); select(p.id); } catch (e) { fail(e); } };
-  $("#npCreate").onclick = go; $("#npName").onkeydown = e => { if (e.key === "Enter") go(); };
-}
-
-// ------------------------------------------------------------- 배포 (D-011: 항상 덮어쓰기, 백업 없음, 실행 전 미리보기)
-state.deploy = { sources: [] };
-async function deployDialog() {
-  const dlg = $("#dlg"); const d = state.deploy;
-  const render = () => {
-    dlg.innerHTML = `<h3 style="margin-top:0">배포 — 폴더/파일을 프로젝트들에 복사</h3>
-      <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap"><b>원본</b>
-        <button id="dpAddDir">폴더 추가…</button><button id="dpAddFiles">파일 추가…</button><button id="dpClear">비우기</button>
-        <span class="muted" style="font-size:.8rem">루트의 0.PROJECT_TEMPLATE 아래 원본은 같은 상대경로로, 그 외는 아래 하위경로로 복사</span></div>
-      <ul id="dpSrc" style="margin:.4rem 0;max-height:18vh;overflow:auto;font-size:.85rem">${d.sources.map((s, i) => `<li><code>${esc(s)}</code> <a href="#" data-i="${i}" class="dpRm">✕</a></li>`).join("") || '<li class="muted">원본 없음</li>'}</ul>
-      <input type="text" id="dpDest" placeholder="템플릿 밖 원본의 대상 하위경로 (비우면 프로젝트 루트)" style="width:100%" value="${esc(d.dest_rel || "")}">
-      <div style="margin-top:.6rem"><b>대상 프로젝트</b> <button id="dpAll">전체</button> <button id="dpNone">해제</button></div>
-      <div style="max-height:22vh;overflow:auto;columns:2;font-size:.85rem">${state.projects.filter(p => p.exists).map(p => `<label style="display:block"><input type="checkbox" value="${esc(p.id)}" ${d.checked?.includes(p.id) ? "checked" : ""}> ${esc(p.alias)}${p.git === "none" ? ' <span class="muted">(git 없음)</span>' : ""}</label>`).join("")}</div>
-      <div id="dpPlan" style="margin-top:.6rem"></div>
-      <div class="actions" style="justify-content:flex-end;margin-top:.6rem"><button id="dlgClose">닫기</button><button id="dpPreview" class="primary">미리보기</button><button class="danger" id="dpApply" disabled title="미리보기 뒤에 실행할 수 있습니다">배포</button></div>`;
-    $("#dlgClose").onclick = () => { d.checked = checked(); d.dest_rel = $("#dpDest").value; dlg.close(); };
-    const checked = () => [...dlg.querySelectorAll("input[type=checkbox]:checked")].map(c => c.value);
-    $("#dpAll").onclick = () => dlg.querySelectorAll("input[type=checkbox]").forEach(c => c.checked = true);
-    $("#dpNone").onclick = () => dlg.querySelectorAll("input[type=checkbox]").forEach(c => c.checked = false);
-    dlg.querySelectorAll(".dpRm").forEach(a => a.onclick = e => { e.preventDefault(); d.sources.splice(+a.dataset.i, 1); keep(); render(); });
-    const keep = () => { d.checked = checked(); d.dest_rel = $("#dpDest").value; };
-    $("#dpClear").onclick = () => { d.sources = []; keep(); render(); };
-    $("#dpAddDir").onclick = async () => { keep(); try { const r = await api("POST", "/api/pick-folder", { initial: $("#rootSel").value || "" }); if (!r.cancelled && !d.sources.includes(r.path)) d.sources.push(r.path); render(); } catch (e) { fail(e); } };
-    $("#dpAddFiles").onclick = async () => { keep(); try { const r = await api("POST", "/api/pick-files", { initial: $("#rootSel").value || "" }); for (const p of r.paths) if (!d.sources.includes(p)) d.sources.push(p); render(); } catch (e) { fail(e); } };
-    const body = () => ({ sources: d.sources, ids: checked(), dest_rel: $("#dpDest").value.trim() });
-    $("#dpPreview").onclick = async () => {
-      try { const r = await api("POST", "/api/deploy/plan", body()); showPlan(r); $("#dpApply").disabled = !(r.total.new + r.total.changed); } catch (e) { fail(e); }
-    };
-    $("#dpApply").onclick = async () => {
-      const b = body(); const r0 = await api("POST", "/api/deploy/plan", b).catch(fail); if (!r0) return;
-      keep();
-      // 확인 대화상자가 같은 <dialog> 를 쓰므로, 답을 받은 뒤 배포 창을 다시 그려 연다.
-      const ok = await confirmDanger("배포 — 파일을 덮어씁니다", [["대상", `${b.ids.length}개 프로젝트`], ["신규", `${r0.total.new} 파일`], ["덮어쓰기", `<b class="bad">${r0.total.changed} 파일</b>`], ["되돌리기", "백업을 만들지 않습니다 — git 에 커밋된 파일만 되돌릴 수 있습니다"]], "배포");
-      render(); dlg.showModal(); if (!ok) { showPlan(r0); $("#dpApply").disabled = !(r0.total.new + r0.total.changed); return; }
-      try { const r = await api("POST", "/api/deploy/apply", b); toast(`복사 ${r.copied_total}건` + (r.results.some(x => x.failed.length) ? " (실패 있음 — 아래 참조)" : ""));
-        $("#dpPlan").innerHTML = `<table><tr><th>프로젝트</th><th>복사</th><th>동일(건너뜀)</th><th>실패/오류</th></tr>${r.results.map(x => `<tr><td>${esc(x.alias)}</td><td>${x.copied.length}</td><td>${x.skipped_same}</td><td class="${x.failed.length || x.errors.length ? "bad" : ""}">${esc([...x.failed.map(f => f.rel + ": " + f.error), ...x.errors].join("; "))}</td></tr>`).join("")}</table>`;
-        $("#dpApply").disabled = true; await loadAll(); } catch (e) { fail(e); }
-    };
-  };
-  const showPlan = r => {
-    $("#dpPlan").innerHTML = `<table><tr><th>프로젝트</th><th class="ok">신규</th><th>변경(덮어쓰기)</th><th class="muted">동일</th><th>오류</th></tr>
-      ${r.projects.map(p => `<tr><td>${esc(p.alias)}</td><td>${p.counts.new}</td><td>${p.counts.changed}</td><td class="muted">${p.counts.same}</td><td class="bad">${esc(p.errors.join("; "))}</td></tr>
-        ${p.items.some(i => i.status !== "same") ? `<tr><td colspan="5"><details><summary class="muted" style="font-size:.8rem">파일 보기</summary><div style="font-size:.8rem;max-height:14vh;overflow:auto">${p.items.filter(i => i.status !== "same").map(i => `<div><span class="${i.status === "new" ? "ok" : ""}">${i.status === "new" ? "＋" : "↻"}</span> <code>${esc(i.rel)}</code></div>`).join("")}</div></details></td></tr>` : ""}`).join("")}
-      <tr><th>합계</th><th>${r.total.new}</th><th>${r.total.changed}</th><th class="muted">${r.total.same}</th><th></th></tr></table>`;
-  };
-  render(); dlg.showModal();
-}
-
-async function locksDialog() {
-  const dlg = $("#dlg"); dlg.innerHTML = "<p>검사 중…</p>"; dlg.showModal();
-  try {
-    const r = await api("GET", "/api/locks");
-    const hit = r.locks.filter(x => x.locks.length);
-    dlg.innerHTML = `<h3 style="margin-top:0">.git lock 잔류 검사 — 저장소 ${r.locks.length}개 중 ${hit.length}개</h3>
-      ${hit.length ? `<table><tr><th>프로젝트</th><th>lock 파일</th><th>경과</th></tr>${hit.flatMap(x => x.locks.map(l => `<tr><td>${esc(x.alias)}</td><td><code>${esc(l.path)}</code></td><td>${l.age_sec}s</td></tr>`)).join("")}</table>
-        <p class="muted" style="font-size:.85rem">git 프로세스가 실행 중이 아니고 5초 이상 지난 lock 만 삭제합니다. (에이전트 세션이 삭제 권한 없이 git 을 돌릴 때 남는 파일입니다.)</p>` : '<p class="ok">잔류 lock 이 없습니다.</p>'}
-      <div class="actions" style="justify-content:flex-end"><button id="dlgClose">닫기</button>${hit.length ? '<button class="primary" id="dlgClean">전부 정리</button>' : ""}</div>`;
-    $("#dlgClose").onclick = () => dlg.close();
-    const b = $("#dlgClean"); if (b) b.onclick = async () => { try { const res = await api("POST", "/api/locks/clean", { ids: hit.map(x => x.id) }); const rm = res.results.reduce((n, x) => n + x.removed.length, 0), sk = res.results.reduce((n, x) => n + x.skipped.length, 0); toast(`제거 ${rm} / 건너뜀 ${sk}` + (res.results.find(x => x.reason)?.reason ? "\n" + res.results.find(x => x.reason).reason : "")); dlg.close(); await loadAll(); } catch (e) { fail(e); } };
-  } catch (e) { dlg.innerHTML = `<p class="bad">${esc(e.message)}</p><button onclick="this.closest('dialog').close()">닫기</button>`; }
+  state.view='dashboard';state.current=null;renderList();$('#btnDash').classList.add('on');
+  const content=$('#content'), workspaceUI=window.wsflowUI.get('workspace-operations');
+  if(workspaceUI)return workspaceUI.dashboard(content);
+  const workspaceStatus=moduleActive('workspace-operations')?'워크스페이스 운영 화면 미준비':'워크스페이스 운영 모듈 비활성';
+  content.innerHTML=`<h2>대시보드</h2><p>등록된 프로젝트 ${state.projects.length}개 · ${workspaceStatus}</p><button id="dashboardModuleManager">모듈 관리</button><div id="moduleWorkflow"></div>`;
+  $('#dashboardModuleManager').onclick=()=>renderModules().catch(fail);
+  const workUI=window.wsflowUI.get('work-calendar');
+  if(workUI){try{const data=await api('GET','/api/v1/workflow/status');if($('#moduleWorkflow')){$('#moduleWorkflow').innerHTML=workUI.workflowDashboard(data);workUI.bindWorkflow(content);}}catch(error){if($('#moduleWorkflow'))$('#moduleWorkflow').textContent=error.message;}}
 }
 
 // ------------------------------------------------------------- 헤더
@@ -1714,27 +531,12 @@ document.addEventListener("click", e => {
 const closeMenus = () => document.querySelectorAll("details.menu[open]").forEach(m => m.removeAttribute("open"));
 // 대화상자를 여는 버튼은 메뉴를 닫는다. 입력을 받는 버튼(추가·등록·찾아보기)은 성공했을 때 닫는다.
 ["btnScan", "btnNewProj", "btnDeploy", "btnLocks", "btnDelRoot"].forEach(id => $("#" + id).addEventListener("click", () => setTimeout(closeMenus, 0)));
-$("#btnAddRoot").onclick = async () => { const path = $("#rootInput").value.trim(); if (!path) return; try { await api("POST", "/api/roots", { path }); $("#rootInput").value = ""; closeMenus(); toast(`루트 추가: ${path}`); await loadAll(); $("#rootSel").value = [...$("#rootSel").options].map(o => o.value).find(v => v.toLowerCase().replace(/\\/g, "/").includes(path.toLowerCase().replace(/\\/g, "/").replace(/\/$/, ""))) || $("#rootSel").value; } catch (e) { fail(e); } };
-$("#btnDelRoot").onclick = async () => { const path = $("#rootSel").value; if (!path) return toast("선택된 루트가 없습니다");
-  if (!await confirmDanger("루트 제거", [["루트", `<code>${esc(path)}</code>`], ["되돌리기", "목록에서만 빠집니다 — 등록된 프로젝트와 폴더는 그대로입니다"]], "제거")) return;
-  try { await api("DELETE", "/api/roots", { path }); toast(`루트 제거: ${path}`); await loadAll(); } catch (e) { fail(e); } };
-$("#btnAddProj").onclick = async () => { const path = $("#projInput").value.trim(); if (!path) return; try { const p = await api("POST", "/api/projects", { path }); $("#projInput").value = ""; closeMenus(); toast(`등록: ${p.alias}`); await loadAll(); select(p.id); } catch (e) { fail(e); } };
-// 폴더 선택 창은 서버(로컬 PC)가 띄운다 — 브라우저는 선택 폴더의 전체 경로를 주지 않기 때문.
-async function pickInto(inputSel, addBtnSel, initialSel) {
-  try {
-    const r = await api("POST", "/api/pick-folder", { initial: $(initialSel)?.value || "" });
-    if (r.cancelled) return;
-    $(inputSel).value = r.path;
-    $(addBtnSel).click();
-  } catch (e) { fail(e); }
-}
-$("#rootInput").onkeydown = e => { if (e.key === "Enter") $("#btnAddRoot").click(); };
-$("#projInput").onkeydown = e => { if (e.key === "Enter") $("#btnAddProj").click(); };
-$("#btnPickRoot").onclick = () => pickInto("#rootInput", "#btnAddRoot", "#rootSel");
-$("#btnPickProj").onclick = () => pickInto("#projInput", "#btnAddProj", "#rootSel");
-$("#btnScan").onclick = scanDialog; $("#btnLocks").onclick = locksDialog; $("#btnDash").onclick = renderDashboard; $("#btnNotices").onclick = noticesDialog;
-$('#btnCalendar').onclick=renderCalendar;
-$("#btnNewProj").onclick = newProjectDialog; $("#btnDeploy").onclick = deployDialog;
+$('#btnScan').onclick=()=>window.wsflowUI.invoke('workspace-operations','scan').catch(fail);
+$('#btnLocks').onclick=()=>window.wsflowUI.invoke('workspace-operations','locks').catch(fail);
+$('#btnDash').onclick=()=>renderDashboard().catch(fail);$('#btnNotices').onclick=noticesDialog;
+$('#btnCalendar').onclick=()=>window.wsflowUI.invoke('work-calendar','calendar').catch(fail);
+$('#btnModules').onclick=()=>renderModules().catch(fail);
+$('#btnNewProj').onclick=()=>window.wsflowUI.invoke('workspace-operations','newProject').catch(fail);$('#btnDeploy').onclick=()=>window.wsflowUI.invoke('workspace-operations','deploy').catch(fail);
 $("#btnRefresh").onclick = async () => { await loadAll(); if (state.current) renderProject(); };
 loadAll().catch(e => e.status === 403 ? showBlocked(e) : fail(e));
 </script>

@@ -91,7 +91,7 @@
       "name": "disable memo optimistic concurrency",
       "edits": [
         {
-          "file": "wsflow/wfhome.py",
+          "file": "wsflow/modules/work_calendar/wfhome.py",
           "old": "if expected_sha != cur:",
           "new": "if False:"
         }
@@ -102,7 +102,7 @@
       "name": "ignore external file edits",
       "edits": [
         {
-          "file": "wsflow/wfhome.py",
+          "file": "wsflow/modules/work_calendar/wfhome.py",
           "old": "if p.read_bytes() != original:",
           "new": "if False:"
         }
@@ -124,7 +124,7 @@
       "name": "classify lost reply as safely failed",
       "edits": [
         {
-          "file": "wsflow/jirawrite.py",
+          "file": "wsflow/modules/work_calendar/jirawrite.py",
           "old": "status = 'failed' if known_rejection else 'uncertain'",
           "new": "status = 'failed'"
         }
@@ -135,7 +135,7 @@
       "name": "confirm identical content from unrelated operation",
       "edits": [
         {
-          "file": "wsflow/jirawrite.py",
+          "file": "wsflow/modules/work_calendar/jirawrite.py",
           "old": "if receipt.get('value') != remote_receipt(op):",
           "new": "if False:"
         }
@@ -157,7 +157,7 @@
       "name": "ignore source and policy version",
       "edits": [
         {
-          "file": "wsflow/writeplans.py",
+          "file": "wsflow/modules/work_calendar/writeplans.py",
           "old": "if plan['state_hash'] != state_hash(home) or plan['policy_hash'] != policy_hash():",
           "new": "if False:"
         }
@@ -168,7 +168,7 @@
       "name": "ignore expired plans",
       "edits": [
         {
-          "file": "wsflow/writeplans.py",
+          "file": "wsflow/modules/work_calendar/writeplans.py",
           "old": "if time.time() > plan['expires_at']:",
           "new": "if False:"
         }
@@ -179,13 +179,13 @@
       "name": "allow unsupported business schema through legacy and common adapters",
       "edits": [
         {
-          "file": "wsflow/server.py",
+          "file": "wsflow/modules/work_calendar/routes.py",
           "old": "if (m != 'GET' or rest == ['jira', 'memo']) and state.get('schema_version') != wfhome.SCHEMA_VERSION:",
           "new": "if False:"
         },
         {
           "file": "wsflow/common_writes.py",
-          "old": "if wfhome.read_state(self.home).get('schema_version')!=wfhome.SCHEMA_VERSION:",
+          "old": "if self.memo.read_state(self.home).get('schema_version')!=self.memo.SCHEMA_VERSION:",
           "new": "if False:",
           "func": "Service._memo_source"
         }
@@ -196,7 +196,7 @@
       "name": "omit approval timestamp in created local receipt",
       "edits": [
         {
-          "file": "wsflow/newtask.py",
+          "file": "wsflow/modules/work_calendar/newtask.py",
           "old": "receipt = {'approved_at': approved_at, 'approval_id': operation_id,",
           "new": "receipt = {'approved_at': None, 'approval_id': operation_id,"
         }
@@ -218,9 +218,9 @@
       "name": "reuse recovery site read before lock",
       "edits": [
         {
-          "file": "wsflow/server.py",
-          "old": "with fileio.locked(home):\n                    state = wfhome.read_state(home)\n                    if state.get('schema_version') != wfhome.SCHEMA_VERSION:",
-          "new": "with fileio.locked(home):\n                    if state.get('schema_version') != wfhome.SCHEMA_VERSION:"
+          "file": "wsflow/modules/work_calendar/routes.py",
+          "old": "with fileio.locked(home):\n                state = wfhome.read_state(home)\n                if state.get('schema_version') != wfhome.SCHEMA_VERSION:",
+          "new": "with fileio.locked(home):\n                if state.get('schema_version') != wfhome.SCHEMA_VERSION:"
         }
       ]
     }

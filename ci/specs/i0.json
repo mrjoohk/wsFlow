@@ -70,7 +70,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/calendar_query.py",
+          "file": "wsflow/modules/work_calendar/calendar_query.py",
           "func": "query",
           "old": "task_id = fingerprint([site or str(home), key])",
           "new": "task_id = fingerprint([str(home), key])"
@@ -96,7 +96,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/calendar_query.py",
+          "file": "wsflow/modules/work_calendar/calendar_query.py",
           "func": "query",
           "old": "'snapshot_id': fingerprint([query_scope, reader.sources, days])",
           "new": "'snapshot_id': fingerprint(query_scope)"
@@ -122,7 +122,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/calendar_query.py",
+          "file": "wsflow/modules/work_calendar/calendar_query.py",
           "func": "query",
           "old": "if raw is None:\n                continue",
           "new": "if raw is None:\n                __import__('wsflow.wfhome', fromlist=['read_memo']).read_memo(home, f'{day:%y%m%d}')\n                continue"

@@ -25,7 +25,7 @@
       "name": "REBIND_CHECKBOX",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "d.unavailable.filter(id=>state.projects.some(p=>p.id===id)).map",
           "new": "d.unavailable.filter(()=>false).map"
         }
@@ -36,7 +36,7 @@
       "name": "REBIND_REQUEST",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "...(action==='update'&&d.rebind?.length?{rebind_project_ids:d.rebind}:{}),",
           "new": "...{},"
         }
@@ -47,7 +47,7 @@
       "name": "UNAVAILABLE_WARNING",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "if(unavailable.size)",
           "new": "if(false)"
         }

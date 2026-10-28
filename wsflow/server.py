@@ -10,6 +10,9 @@ API
   GET    /api/v1/projects/<id>/writes/<git|memo>/operations[/<id>]  읽기 전용 목록·상태
   POST   /api/v1/projects/<id>/writes/<git|memo>/operations/<id> {}  명시 결과 대조·미실행 종료
   GET    /api/config                         루트 목록
+  GET    /api/v1/modules                     모듈의 현재/재기동 적용 대기 구성
+  POST   /api/v1/modules/plan                 모듈 구성 변경 미리보기
+  POST   /api/v1/modules/apply {plan_id}      다음 기동에 적용할 구성 저장
   GET    /api/v1/projects/<id>/context        I0 읽기 전용 정책·스킬 출처 진단
   GET    /api/v1/projects/<id>/context/setup  I5 카탈로그·보존 진단·작업 상태
   POST   /api/v1/projects/<id>/context/plan   I5 프로젝트 준비 불변 계획
@@ -67,790 +70,268 @@ API
   POST   /api/projects/<id>/jira/init/apply    {cfg, fix_gitignore?}  설정 쓰기
   POST   /api/projects/<id>/jira/new/plan   {summary, kind, epic_key?, parent_key?}  만들 내용 확정
   POST   /api/projects/<id>/jira/new/create {plan_id,operation_id}  서버 계획 승인 후 생성 (D-006)
+
+Business HTTP handlers and worker lifecycles are owned by separately versioned
+packages; this core owns authentication, transport, registry and dispatch.
 """
 from __future__ import annotations
 
 import json
-import re
 import secrets
-import sqlite3
 import sys
 import threading
-import time
-from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import (__version__, auth, calendar_query, calendar_store, calendar_view, closeflow, context_inventory, context_projection, session_prep,
-               deploy, fileio, gitops, google_calendar, calendar_sync, jiraapi, jirawrite, newtask, operations,
-               pickdir, scanner, wfhome, wfinit, writeplans, workflow, wf_migrate, common_writes)
+from . import __version__, fileio, operations, pickdir
+from .builtin_modules import route_owner, WORK_CALENDAR
+from .module_host import ModuleError, ModuleHost
+from .module_services import ApiError, ModuleServices
 from .store import Store
 
-STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+STATIC_DIR = Path(__file__).resolve().parent.parent / 'static'
 
 
-class ApiError(Exception):
-    def __init__(self, status: int, message: str, extra: dict | None = None):
-        super().__init__(message)
-        self.status, self.extra = status, extra or {}
+# Compatibility for callers that explicitly patched the former server imports.
+# A clean core import still loads no business implementation.
+def __getattr__(name):
+    legacy = {'auth','calendar_query','calendar_store','calendar_view','closeflow',
+              'context_inventory','context_projection','session_prep','deploy','gitops',
+              'google_calendar','calendar_sync','jiraapi','jirawrite','newtask','scanner',
+              'wfhome','wfinit','writeplans','workflow','wf_migrate','common_writes'}
+    if name in legacy:
+        import importlib
+        return importlib.import_module('wsflow.' + name)
+    raise AttributeError(name)
 
 
-def make_handler(store: Store, token: str, google=None, google_error=None, writer=None):
-    scope_cache = {}
-    scope_mutex = threading.Lock()
+class AssetResponse:
+    def __init__(self, body, content_type):
+        self.body, self.content_type = body, content_type
+
+
+def make_handler(store: Store, token: str, google=None, google_error=None, writer=None,
+                 modules=None, stopping=None):
+    supplied_runtime = modules is None and any(value is not None for value in (google, google_error, writer))
+    modules = modules if modules is not None else ModuleHost(store.file)
+    services = modules.services or ModuleServices(store, modules)
+    modules.bind_services(services)
+    if supplied_runtime and modules.builtin_active(WORK_CALENDAR):
+        backend = modules.backends.get(WORK_CALENDAR)
+        if backend is not None:
+            try:
+                dependencies = modules._active['modules'][WORK_CALENDAR].get('requires', [])
+                if any(services.feature(ident) is None for ident in dependencies):
+                    raise ModuleError('호출자 runtime 연결 전에 의존 모듈의 기동이 필요합니다')
+                attach = getattr(backend, 'use_runtime', None)
+                if not callable(attach):
+                    raise ModuleError('이 업무 패키지는 호출자 runtime 연결을 지원하지 않습니다')
+                attach(google, google_error, writer)
+                modules.started_backends.add(WORK_CALENDAR)
+            except Exception as exc:
+                modules.errors[WORK_CALENDAR] = 'supplied runtime failed: ' + str(exc)
+    stopping = stopping if stopping is not None else threading.Event()
 
     class Handler(BaseHTTPRequestHandler):
-        server_version = f"wsFlow/{__version__}"
+        server_version = f'wsFlow/{__version__}'
+        LOCAL_HOSTS = ('127.0.0.1', 'localhost', '::1', '[::1]')
 
-        # ---- helpers
         def _json(self, obj, status: int = 200):
-            body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
-            self.send_response(status)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(body)
+                    body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+                    self.send_response(status)
+                    self.send_header("Content-Type", "application/json; charset=utf-8")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(body)
+
+        def _asset(self, response: AssetResponse):
+                    self.send_response(200)
+                    self.send_header("Content-Type", response.content_type)
+                    self.send_header("Content-Length", str(len(response.body)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.end_headers()
+                    self.wfile.write(response.body)
 
         def _body(self) -> dict:
-            n = int(self.headers.get("Content-Length") or 0)
-            if n == 0:
-                return {}
-            try:
-                return json.loads(self.rfile.read(n).decode("utf-8") or "{}")
-            except json.JSONDecodeError:
-                raise ApiError(400, "본문이 JSON 이 아닙니다")
-
-        def _project(self, pid: str) -> dict:
-            pr = store.get(pid)
-            if not pr:
-                raise ApiError(404, f"등록되지 않은 프로젝트: {pid}")
-            if not Path(pr["path"]).is_dir():
-                raise ApiError(410, f"경로가 사라졌습니다: {pr['path']}")
-            return pr
-
-        def _repo(self, pid: str) -> str:
-            pr = self._project(pid)
-            kind = gitops.repo_kind(pr["path"])
-            if kind != "repo":
-                raise ApiError(409, "git 저장소가 아닙니다" if kind == "none" else ".git 이 손상되었습니다(빈 디렉터리 등)",
-                               {"git": kind})
-            return pr["path"]
+                    n = int(self.headers.get("Content-Length") or 0)
+                    if n == 0:
+                        return {}
+                    try:
+                        return json.loads(self.rfile.read(n).decode("utf-8") or "{}")
+                    except json.JSONDecodeError:
+                        raise ApiError(400, "본문이 JSON 이 아닙니다")
 
         def log_message(self, fmt, *args):  # 조용히
-            if "--verbose" in sys.argv:
-                super().log_message(fmt, *args)
+                    if "--verbose" in sys.argv:
+                        super().log_message(fmt, *args)
 
-        # ---- dispatch
         def do_GET(self):
-            self._dispatch("GET")
+                    self._dispatch("GET")
 
         def do_POST(self):
-            self._dispatch("POST")
+                    self._dispatch("POST")
 
         def do_PUT(self):
-            self._dispatch("PUT")
+                    self._dispatch("PUT")
 
         def do_PATCH(self):
-            self._dispatch("PATCH")
+                    self._dispatch("PATCH")
 
         def do_DELETE(self):
-            self._dispatch("DELETE")
-
-        # ---- F-004 가드
-        #
-        # 127.0.0.1 바인딩은 *외부에서 오는 연결*만 막는다. 사용자가 연 임의의
-        # 웹페이지에서 나가는 fetch 는 그대로 도달한다 — 브라우저가 응답을 못 읽을
-        # 뿐 요청은 실행된다. commit/push/배포, 나아가 Jira 쓰기가 그렇게 실행되면
-        # 되돌리기 비용이 크다. 그래서 세 겹으로 막는다.
-        LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1", "[::1]")
+                    self._dispatch("DELETE")
 
         def _guard(self, url):
-            # (1) Host — DNS 리바인딩 방어. 공격자 도메인이 127.0.0.1 로 해석돼도
-            #     Host 헤더에는 그 도메인이 남는다.
-            host = (self.headers.get("Host") or "").rsplit(":", 1)[0]
-            if host and host not in self.LOCAL_HOSTS:
-                raise ApiError(403, f"허용되지 않은 Host: {host}")
-            # (2) Origin — 있으면 반드시 자기 자신이어야 한다. 브라우저는 위조할 수
-            #     없고, 없는 경우(curl 등)는 (3) 이 막는다.
-            origin = self.headers.get("Origin")
-            if origin:
-                o = urlparse(origin).hostname
-                if o not in self.LOCAL_HOSTS:
-                    raise ApiError(403, f"허용되지 않은 Origin: {origin}")
-            # (3) 토큰 — 기동 시 난수. 다른 출처의 페이지는 이 값을 읽을 수 없다.
-            if url.path.startswith("/api/"):
-                got = self.headers.get("X-Auth-Token") or (parse_qs(url.query).get("t") or [""])[0]
-                if not secrets.compare_digest(got, token):
-                    raise ApiError(403, "토큰이 없거나 올바르지 않습니다 — 콘솔에 표시된 주소로 여십시오")
+                    # (1) Host — DNS 리바인딩 방어. 공격자 도메인이 127.0.0.1 로 해석돼도
+                    #     Host 헤더에는 그 도메인이 남는다.
+                    host = (self.headers.get("Host") or "").rsplit(":", 1)[0]
+                    if host and host not in self.LOCAL_HOSTS:
+                        raise ApiError(403, f"허용되지 않은 Host: {host}")
+                    # (2) Origin — 있으면 반드시 자기 자신이어야 한다. 브라우저는 위조할 수
+                    #     없고, 없는 경우(curl 등)는 (3) 이 막는다.
+                    origin = self.headers.get("Origin")
+                    if origin:
+                        o = urlparse(origin).hostname
+                        if o not in self.LOCAL_HOSTS:
+                            raise ApiError(403, f"허용되지 않은 Origin: {origin}")
+                    # (3) 토큰 — 기동 시 난수. 다른 출처의 페이지는 이 값을 읽을 수 없다.
+                    if url.path.startswith("/api/"):
+                        got = self.headers.get("X-Auth-Token") or (parse_qs(url.query).get("t") or [""])[0]
+                        if not secrets.compare_digest(got, token):
+                            raise ApiError(403, "토큰이 없거나 올바르지 않습니다 — 콘솔에 표시된 주소로 여십시오")
 
-        def _dispatch(self, method: str):
+        def _static(self, path: str):
+                    if path in ("/", "/index.html"):
+                        f = STATIC_DIR / "index.html"
+                        if not f.is_file():
+                            raise ApiError(404, "static/index.html 없음")
+                        body = f.read_bytes()
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/html; charset=utf-8")
+                        self.send_header("Content-Length", str(len(body)))
+                        self.end_headers()
+                        self.wfile.write(body)
+                        return
+                    raise ApiError(404, "not found")
+
+        def _modules_v1(self, method, rest, query, body):
+                    if not rest and method == "GET":
+                        return modules.snapshot()
+                    if stopping.is_set():
+                        raise ApiError(503, "서버가 종료 중입니다. 다음 기동 후 다시 시도하십시오")
+                    if rest == ["plan"] and method == "POST":
+                        if not isinstance(body, dict):
+                            raise ApiError(400, "모듈 계획은 JSON 객체입니다")
+                        return modules.plan(body)
+                    if rest == ["apply"] and method == "POST":
+                        if not isinstance(body, dict) or set(body) != {"plan_id"}:
+                            raise ApiError(400, "서버가 발행한 plan_id만 제출하십시오")
+                        return modules.apply(body["plan_id"])
+                    if len(rest) >= 2 and rest[1] == "api":
+                        return modules.extension_request(method, rest[0], rest[2:], query, body)
+                    if len(rest) >= 3 and rest[1] == "assets" and method == "GET":
+                        raw, content_type = modules.asset(rest[0], "/".join(rest[2:]))
+                        return AssetResponse(raw, content_type)
+                    raise ApiError(404, "지원하지 않는 모듈 API입니다")
+
+        def _project(self, project_id):
+            return services.project(project_id)
+
+        def _dispatch(self, method):
             url = urlparse(self.path)
             try:
                 self._guard(url)
-                if not url.path.startswith("/api/"):
+                if not url.path.startswith('/api/'):
                     return self._static(url.path)
                 result = self._route(method, url.path, parse_qs(url.query))
+                if isinstance(result, AssetResponse):
+                    return self._asset(result)
                 self._json(result)
-            except ApiError as e:
-                self._json({"error": str(e), **e.extra}, e.status)
-            except wfhome.MemoConflict as e:
-                self._json({'error':str(e),'current_text':e.current_text,'current_sha':e.current_sha},409)
-            except gitops.GitError as e:
-                self._json({**e.to_dict(),**({k:getattr(e,k) for k in ('plan_id','operation_id')} if hasattr(e,'operation_id') else {})}, 500)
-            except jirawrite.JiraError as e:
-                self._json(e.to_dict(), e.status if e.status and 400 <= e.status <= 599 else 502)
-            except (operations.StateConflict, fileio.LockBusy) as e:
-                self._json({'error': str(e)}, 409)
-            except newtask.NewTaskError as e:
-                self._json({'error': str(e)}, 422)
-            except (ValueError, KeyError) as e:
-                self._json({"error": str(e)}, 400)
-            except Exception as e:  # noqa: BLE001 — 로컬 도구, 원인을 그대로 보여준다
-                self._json({"error": f"{type(e).__name__}: {e}",**({k:getattr(e,k) for k in ('plan_id','operation_id')} if hasattr(e,'operation_id') else {})}, 500)
+            except ApiError as exc:
+                self._json({'error': str(exc), **exc.extra}, exc.status)
+            except ModuleError as exc:
+                self._json({'error': str(exc)}, exc.status)
+            except (operations.StateConflict, fileio.LockBusy) as exc:
+                self._json({'error': str(exc)}, 409)
+            except (ValueError, KeyError) as exc:
+                self._json({'error': str(exc)}, 400)
+            except Exception as exc:
+                self._json({'error': f'{type(exc).__name__}: {exc}',
+                            **{key:getattr(exc,key) for key in ('plan_id','operation_id') if hasattr(exc,key)}}, 500)
 
-        def _static(self, path: str):
-            if path in ("/", "/index.html"):
-                f = STATIC_DIR / "index.html"
-                if not f.is_file():
-                    raise ApiError(404, "static/index.html 없음")
-                body = f.read_bytes()
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-                return
-            raise ApiError(404, "not found")
-
-        # ---- routes
-        def _route(self, m: str, path: str, q: dict):
-            seg = [s for s in path.split("/") if s][1:]  # drop 'api'
-            body = self._body() if m in ("POST", "PUT", "PATCH", "DELETE") else {}
-            if seg[:2] == ['v2', 'calendar']:
-                return self._calendar_v2(m, seg[2:], q, body)
-            if seg[:1] == ["v1"]:
-                if len(seg)>=5 and seg[1]=='projects' and seg[3]=='writes':
-                    return self._common_v1(m,seg[1:],body)
-                if seg==['v1','workflow','status'] and m=='GET':
-                    from datetime import datetime
-                    return workflow.overview(store.snapshot()['projects'], (q.get('date') or [datetime.now().astimezone().date().isoformat()])[0])
-                if 'session' in seg or seg==['v1','context','dashboard']:
-                    return self._session_v1(m,seg[1:],body)
-                if 'context' in seg and (m=='POST' or seg[-1]=='setup' or 'operations' in seg):
-                    return self._context_v1(m,seg[1:],q,body)
-                return self._read_v1(m, seg[1:], q)
-            if seg[:2] == ["jira", "status"] and m == "GET":
-                return auth.status((q.get("site") or [None])[0])
-
-            if seg == ["config"] and m == "GET":
-                return {"version": __version__, "roots": store.roots(), "store": str(store.file)}
-
-            if seg == ["roots"]:
-                if m == "POST":
-                    return store.add_root(body.get("path", ""), body.get("template"))
-                if m == "DELETE":
-                    return {"removed": store.remove_root(body.get("path", ""))}
-
-            if seg == ["pick-folder"] and m == "POST":
+        def _route(self, method, path, query):
+            segments = [s for s in path.split('/') if s][1:]
+            body = self._body() if method in ('POST','PUT','PATCH','DELETE') else {}
+            if segments[:2] == ['v1','modules']:
+                return self._modules_v1(method, segments[2:], query, body)
+            owner = route_owner(method, path)
+            if owner is not None:
+                if stopping.is_set():
+                    raise ApiError(503, '서버가 종료 중입니다. 새 모듈 작업은 시작하지 않습니다', {'module_id':owner})
+                if owner in modules.errors:
+                    raise ApiError(503, '이 업무 패키지의 기동을 확인할 수 없습니다', {'module_id':owner})
+                if not modules.builtin_active(owner):
+                    raise ApiError(409, '이 통합 기능 모듈이 비활성화되었거나 제거되었습니다', {'module_id':owner,'module_state':'inactive'})
+                backend = services.feature(owner)
+                if backend is None:
+                    raise ApiError(503, '업무 패키지가 준비되지 않았습니다', {'module_id':owner})
+                return backend.dispatch(self, method, path, query, body)
+            if segments == ['config'] and method == 'GET':
+                return {'version':__version__, 'roots':store.roots(), 'store':str(store.file)}
+            if segments == ['projects'] and method == 'GET':
+                return {'projects':[services.summary(project) for project in store.projects()]}
+            if len(segments)==2 and segments[0]=='projects' and method=='GET':
+                return services.summary(self._project(segments[1]))
+            if segments == ['pick-folder'] and method == 'POST':
                 try:
-                    p = pickdir.pick_folder(body.get("initial") or None)
-                except RuntimeError as e:
-                    raise ApiError(500, str(e))
-                return {"path": p, "cancelled": p is None}
-
-            if seg == ["pick-files"] and m == "POST":
+                    selected = pickdir.pick_folder(body.get('initial') or None)
+                except RuntimeError as exc:
+                    raise ApiError(500, str(exc)) from exc
+                return {'path':selected, 'cancelled':selected is None}
+            if segments == ['pick-files'] and method == 'POST':
                 try:
-                    paths = pickdir.pick_files(body.get("initial") or None)
-                except RuntimeError as e:
-                    raise ApiError(500, str(e))
-                return {"paths": paths, "cancelled": not paths}
-
-            if seg == ["projects", "new"] and m == "POST":
-                return store.create_project(body.get("root", ""), body.get("name", ""))
-
-            if seg[:1] == ["deploy"] and len(seg) == 2 and m == "POST":
-                sources = [str(x) for x in (body.get("sources") or []) if str(x).strip()]
-                ids = body.get("ids") or []
-                if not sources:
-                    raise ApiError(400, "배포 원본이 없습니다")
-                if not ids:
-                    raise ApiError(400, "대상 프로젝트를 선택하세요")
-                targets = [self._project(i) for i in ids]
-                missing = [t["alias"] for t in targets if not Path(t["path"]).is_dir()]
-                if missing:
-                    raise ApiError(400, f"경로가 없는 프로젝트: {', '.join(missing)}")
-                fn = deploy.plan if seg[1] == "plan" else deploy.apply if seg[1] == "apply" else None
-                if fn is None:
-                    raise ApiError(404, f"no route: {m} {path}")
-                return fn(sources, targets, body.get("dest_rel") or "", store.template_dir_for)
-
-            if seg == ["scan"] and m == "GET":
-                root = (q.get("root") or [""])[0]
-                if not root or not Path(root).is_dir():
-                    raise ApiError(400, "root 가 디렉터리가 아닙니다")
-                registered = {p["path"] for p in store.projects()}
-                return {"root": root, "items": scanner.scan_root(root, registered)}
-
-            if seg == ["projects"]:
-                if m == "GET":
-                    return {"projects": [self._summary(p) for p in store.projects()]}
-                if m == "POST":
-                    return store.add_project(body.get("path", ""), body.get("alias"), body.get("tags"))
-
-            if seg == ["locks"] and m == "GET":
-                return {"locks": [{"id": p["id"], "alias": p["alias"], "locks": gitops.find_locks(p["path"])}
-                                  for p in store.projects() if Path(p["path"], ".git").exists()]}
-            if seg == ["locks", "clean"] and m == "POST":
-                ids = set(body.get("ids") or [])
-                out = []
-                for p in store.projects():
-                    if ids and p["id"] not in ids:
-                        continue
-                    if not Path(p["path"], ".git").exists():
-                        continue
-                    out.append({"id": p["id"], **common_writes.Service(p,'git').legacy('clean_locks',{})})
-                return {"results": out}
-
-            if len(seg) >= 2 and seg[0] == "projects":
-                pid, rest = seg[1], seg[2:]
-                if not rest:
-                    if m == "PATCH":
-                        self._project(pid)
-                        return store.update_project(pid, body.get("alias"), body.get("tags"))
-                    if m == "DELETE":
-                        return {"removed": store.remove_project(pid)}
-                    if m == "GET":
-                        return self._summary(self._project(pid))
-                return self._project_route(m, pid, rest, q, body)
-
-            raise ApiError(404, f"no route: {m} {path}")
-
-        def _calendar_v2(self, method, rest, q, body):
-            registry = store.snapshot()
-            local = calendar_store.Store(store.file)
-            if rest[:1] == ['google']:
-                if google is None:
-                    if method == 'GET' and rest[1:] == ['status']:
-                        return {'connected':False,'configured':False,'setup_error':google_error or 'Google 서비스를 사용할 수 없습니다',
-                                'selected_calendar_ids':[],'pending':False,'can_write':False}
-                    raise ApiError(503,google_error or 'Google 서비스를 사용할 수 없습니다')
-                try:
-                    action = rest[1:]
-                    if method == 'GET' and action == ['status']:
-                        return google.status()
-                    if method == 'GET' and action == ['calendars']:
-                        return google.calendars()
-                    if method == 'GET' and action == ['outbox']:
-                        return writer.status()
-                    if method == 'POST' and action == ['connect'] and isinstance(body,dict) and set(body)=={'write'}:
-                        return google.connect(write=body['write'])
-                    if method == 'POST' and action == ['write','plan']:
-                        return writer.preview(body,registry['projects'])
-                    if method == 'POST' and action == ['write','apply']:
-                        if not isinstance(body,dict) or set(body)!={'plan_id','operation_id'}:
-                            raise operations.StateConflict('서버 계획 ID와 작업 ID만 제출하십시오')
-                        result=writer.apply(body['plan_id'],body['operation_id'],registry['projects'])
-                        if result.get('google_operation_id'):
-                            result={**result,'google':writer.run(result['google_operation_id'])}
-                        return result
-                    if method == 'POST' and action in (['outbox','run'],['outbox','reconcile']):
-                        if not isinstance(body,dict) or set(body)!={'operation_id'}:
-                            raise operations.StateConflict('서버 Google 작업 ID만 제출하십시오')
-                        return writer.run(body['operation_id']) if action[-1]=='run' else writer.reconcile(body['operation_id'])
-                    if method == 'POST' and action == ['select'] and set(body) == {'calendar_ids'}:
-                        return google.select(body['calendar_ids'])
-                    if method == 'POST' and body == {}:
-                        if action == ['connect']: return google.connect()
-                        if action == ['disconnect']: return google.disconnect()
-                        if action == ['sync']: return google.sync()
-                    raise ApiError(400,'지원하지 않는 Google 요청입니다')
-                except google_calendar.GoogleError as exc:
-                    raise ApiError(502,str(exc)) from None
-            if method == 'POST' and rest in (['plan'], ['apply']):
-                try:
-                    if rest == ['plan']:
-                        if isinstance(body,dict) and 'destination' in body:
-                            dest=body['destination']
-                            if writer is None or not isinstance(dest,dict) or set(dest)!={'calendar_id'}:
-                                raise ValueError('Google 저장 대상을 선택하십시오')
-                            return local.preview({k:v for k,v in body.items() if k!='destination'},registry['projects'],
-                                                 google_target=writer.target(dest['calendar_id']))
-                        return local.preview(body, registry['projects'])
-                    if not isinstance(body, dict) or set(body) != {'plan_id','operation_id'}:
-                        raise operations.StateConflict('서버 계획 ID와 작업 ID만 제출하십시오')
-                    plan=local.plan(body['plan_id'])
-                    if plan.get('binding')!=local.registry or plan.get('kind')!='local_calendar' or len(plan['items'])!=1 or plan['items'][0]['operation_id']!=body['operation_id']:
-                        raise calendar_store.Conflict('이 캘린더 계획의 작업 ID가 아닙니다')
-                    item=plan['items'][0]
-                    op=local.get(body['operation_id'])
-                    if op['status']!='succeeded':
-                        if time.time()>plan['expires_at'] or op['status']!='planned':
-                            raise calendar_store.Conflict('만료됐거나 사용할 수 없는 계획입니다')
-                        local._verify_bindings(op,registry['projects'])
-                    if item.get('google_target') and op['status']!='succeeded':
-                        target=item['google_target']
-                        if writer is None:raise operations.StateConflict('Google 연결을 확인하십시오')
-                        with google.locked():writer._authorize(target['account_id'],target['calendar_id'])
-                    result=local.apply(body['plan_id'], body['operation_id'], registry['projects'])
-                    if writer is not None and result.get('google_operation_id'):
-                        result={**result,'google':writer.run(result['google_operation_id'])}
-                    return result
-                except calendar_store.Conflict as exc:
-                    raise ApiError(409, str(exc), {'current':exc.current}) from exc
-            if method == 'GET' and rest in (['range'], ['day']):
-                from datetime import timedelta
-                day = (q.get('date') or [None])[0]
-                start = (q.get('start') or [day])[0]
-                end = (q.get('end') or [None])[0]
-                if rest == ['day']:
-                    selected = calendar_query.iso_date(day)
-                    end = end or (selected + timedelta(days=1)).isoformat()
-                ids = q.get('project_id')
-                if ids and set(ids) - {p['id'] for p in registry['projects']}:
-                    raise ApiError(404, '등록되지 않은 프로젝트입니다')
-                zone = (q.get('timezone') or ['Asia/Seoul'])[0]
-                calendar_query.validate_query(start,end,zone)
-                remote = None
-                if ids and writer is not None and (not q.get('source') or 'google' in q['source']):
-                    remote=writer.scope()
-                if google is not None and not ids and (not q.get('source') or 'google' in q['source']):
-                    try:
-                        remote = google.range(start,end,zone)
-                    except (ValueError,OSError,sqlite3.Error):
-                        remote = {'events':[],'complete':False,'connected':True,
-                                  'sources':[{'source_id':'google','kind':'google','name':'Google',
-                                              'complete':False,'last_sync':None,'error':'Google 저장소/연결 확인 필요'}]}
-                result = calendar_view.query(registry['projects'], local, start, end,
-                                             zone, ids, q.get('source'), google_result=remote,google_links=writer.links() if writer else None)
-                expected = (q.get('snapshot_id') or [None])[0]
-                if expected is not None and expected != result['snapshot_id']:
-                    raise ApiError(409, '캘린더 원본이 바뀌었습니다 — 기간을 다시 조회하십시오', {'snapshot_id':result['snapshot_id']})
-                if rest == ['day']:
-                    match = next((d for d in result['days'] if d['date'] == day), None)
-                    if match is None:
-                        raise ApiError(400, '선택 날짜가 기간 밖입니다')
-                    return {k:v for k,v in result.items() if k != 'days'} | {'day':match}
-                return result
-            raise ApiError(404, '지원하지 않는 캘린더 API입니다')
-
-        def _session_v1(self, method, seg, body):
-            service=session_prep.Service(store)
-            if len(seg)==4 and seg[0]=='projects' and seg[2]=='session':
-                self._project(seg[1]);action=seg[3]
-                if action=='status' and method=='GET':return service.status(seg[1])
-                if action=='prepare' and method=='POST':return service.prepare(seg[1],body)
-                if action=='evidence' and method=='POST':
-                    if not isinstance(body,dict) or set(body)!={'content'}:raise ApiError(400,'파일 경로 대신 evidence content만 제출하십시오')
-                    return service.upload(body['content'])
-                if action=='observations' and method=='POST':return service.observe(seg[1],body)
-            if seg==['context','dashboard'] and method=='GET':
-                calendar={'state':'unknown','warnings':[],'outbox_counts':{},'last_sync':None}
-                try:
-                    if google is None:
-                        calendar['warnings']=[google_error or 'Google 상태를 확인할 수 없습니다']
-                    else:
-                        status=google.status()
-                        calendar.update(last_sync=status.get('last_sync'),state='ok' if status.get('connected') else 'disconnected')
-                        calendar['warnings']=[str(status[k]) for k in ('auth_error','background_error') if status.get(k)]
-                        if status.get('connected') and status.get('selected_calendar_ids') and not status.get('complete'):
-                            calendar['warnings'].append('Google 조회 동기화 확인 필요')
-                        if writer is not None:
-                            for op in writer.status()['operations']:
-                                state=op['state'];calendar['outbox_counts'][state]=calendar['outbox_counts'].get(state,0)+1
-                            if any(calendar['outbox_counts'].get(s) for s in ('error','uncertain','conflict')):
-                                calendar['warnings'].append('Google 연결 일정의 오류/충돌/결과 미확인 확인 필요')
-                        if calendar['warnings']:calendar['state']='attention'
-                except Exception:
-                    calendar.update(state='unknown',warnings=['캘린더 상태 조회 실패 — 캘린더에서 다시 확인하십시오'])
-                from datetime import datetime
-                result=service.dashboard(calendar=calendar)
-                result['workflow']=workflow.overview(store.snapshot()['projects'],datetime.now().astimezone().date().isoformat())
-                return result
-            raise ApiError(404,'지원하지 않는 session API입니다')
-
-        def _context_v1(self, method, seg, query, body):
-            service = context_projection.Service(store)
-            if len(seg)==4 and seg[0]=='projects' and seg[2]=='context':
-                self._project(seg[1])
-                if seg[3]=='setup' and method=='GET':return service.setup(seg[1])
-                if seg[3]=='plan' and method=='POST':
-                    if body.get('kind','project_init')!='project_init':raise ApiError(400,'ROOT 초기화는 ROOT 전용 경로를 사용하십시오')
-                    return service.preview(seg[1],body)
-            if seg==['roots','context','plan'] and method=='POST':
-                if body.get('kind')!='root_init':raise ApiError(400,'ROOT 초기화 kind를 명시하십시오')
-                pid=body.get('project_id');self._project(pid)
-                return service.preview(pid,{k:v for k,v in body.items() if k!='project_id'})
-            if len(seg) in (3,4) and seg[:2]==['context','operations']:
-                if len(seg)==3 and method=='GET':
-                    pid=(query.get('project_id') or [None])[0];self._project(pid)
-                    return service.status(pid,seg[2])
-                if len(seg)==4 and method=='POST' and seg[3] in ('apply','recover'):
-                    if set(body)!={'plan_id','project_id'}:raise operations.StateConflict('서버 plan ID와 project ID만 제출하십시오')
-                    self._project(body['project_id'])
-                    return service.apply(body['project_id'],body['plan_id'],seg[2],recover=seg[3]=='recover')
-            raise ApiError(404,'지원하지 않는 context API입니다')
-
-        def _common_v1(self,method,seg,body):
-            project=self._project(seg[1]);kind=seg[3]
-            if kind not in ('git','memo'):raise ApiError(400,'지원하지 않는 쓰기 종류입니다')
-            home=None
-            if kind=='memo':
-                info=wfhome.detect(project)
-                if not info['enabled']:raise ApiError(409,info['reason'])
-                home=info['wf_home']
-            service=common_writes.Service(project,kind,home)
-            rest=seg[4:]
-            if rest==['plan'] and method=='POST':
-                if not isinstance(body,dict) or set(body)!={'action','payload'}:raise ApiError(400,'action/payload만 제출하십시오')
-                return service.preview(body['action'],body['payload'])
-            if rest==['apply'] and method=='POST':
-                if not isinstance(body,dict) or set(body)!={'plan_id','operation_id'}:raise ApiError(400,'서버 계획·작업 ID만 제출하십시오')
-                return service.apply(body['plan_id'],body['operation_id'])
-            if rest==['operations'] and method=='GET':return {'operations':service.list()}
-            if len(rest)==2 and rest[0]=='operations':
-                if method=='GET':return service.status(rest[1])
-                if method=='POST' and body=={}:return service.check(rest[1])
-            raise ApiError(404,'지원하지 않는 공통 쓰기 API입니다')
-
-        def _read_v1(self, method: str, seg: list[str], q: dict):
-            if method != "GET":
-                raise ApiError(404, "읽기 전용 API입니다")
-            registry = store.snapshot()
-            if len(seg) == 3 and seg[0] == "projects" and seg[2] == "context":
-                project = next((p for p in registry['projects'] if p['id'] == seg[1]), None)
-                if project is None:
-                    raise ApiError(404, "등록되지 않은 프로젝트입니다")
-                return context_inventory.inspect(project, registry['roots'], registry['projects'])
-            if len(seg) == 2 and seg[0] == "calendar" and seg[1] in ("range", "day"):
-                from datetime import timedelta
-                ids = q.get("project_id")
-                by_id = {p['id']: p for p in registry['projects']}
-                projects = [by_id.get(pid) for pid in ids] if ids else registry['projects']
-                if any(p is None for p in projects):
-                    raise ApiError(404, "등록되지 않은 프로젝트입니다")
-                # Preserve missing projects as unknown sources rather than treating them as empty.
-                projects = list({p['id']: p for p in projects}.values())
-                day = (q.get("date") or [""])[0]
-                start = (q.get("start") or [day])[0]
-                end = (q.get("end") or [""])[0]
-                if seg[1] == "day":
-                    selected = calendar_query.iso_date(day)
-                    if not end:
-                        end = (selected + timedelta(days=1)).isoformat()
-                result = calendar_query.query(projects, start, end,
-                                              (q.get("timezone") or ["Asia/Seoul"])[0])
-                expected = (q.get("snapshot_id") or [None])[0]
-                if expected is not None and expected != result['snapshot_id']:
-                    raise ApiError(409, "날짜 기록이 바뀌었습니다 — 기간을 다시 조회하십시오",
-                                   {"snapshot_id": result['snapshot_id']})
-                if seg[1] == "day":
-                    match = next((d for d in result['days'] if d['date'] == day), None)
-                    if match is None:
-                        raise ApiError(400, "선택 날짜가 조회 기간 밖입니다")
-                    return {k: v for k, v in result.items() if k != 'days'} | {'day': match}
-                return result
-            raise ApiError(404, "no v1 route")
-
-        def _summary(self, pr: dict) -> dict:
-            exists = Path(pr["path"]).is_dir()
-            kind = gitops.repo_kind(pr["path"]) if exists else "missing"
-            out = {**pr, "exists": exists, "git": kind, "branch": None, "ahead": 0, "behind": 0, "dirty": 0,
-                   "has_remote": False, "locks": 0, "parked": exists and Path(pr["path"], "_PARKED.txt").is_file()}
-            if kind == "repo":
-                try:
-                    st = gitops.status(pr["path"])
-                    out.update(branch=st["branch"], ahead=st["ahead"], behind=st["behind"], upstream=st["upstream"],
-                               dirty=len(st["staged"]) + len(st["unstaged"]) + len(st["untracked"]))
-                    out["has_remote"] = bool(gitops.remotes(pr["path"]))
-                    out['sync'] = st['sync']
-                except gitops.GitError as e:
-                    out["error"] = str(e)
-            if kind in ("repo", "broken"):
-                out["locks"] = len(gitops.find_locks(pr["path"]))
-            return out
-
-        def _project_route(self, m: str, pid: str, rest: list[str], q: dict, body: dict):
-            r0 = rest[0]
-            if r0 == "rules":
-                pr = self._project(pid)
-                if len(rest) == 1 and m == "GET":
-                    return scanner.rules_report(pr["path"], store.template_dir_for(pr["path"]))
-                if rest == ["rules", "run"] and m == "POST":
-                    return scanner.run_tool(pr["path"], body.get("tool", ""))
-            if r0 == "locks":
-                pr = self._project(pid)
-                if len(rest) == 1 and m == "GET":
-                    return {"locks": gitops.find_locks(pr["path"])}
-                if rest == ["locks", "clean"] and m == "POST":
-                    return common_writes.Service(pr,'git').legacy('clean_locks',{})
-
-            if r0 == "jira":
-                return self._jira_route(m, self._project(pid), rest, q, body)
-
-            repo = self._repo(pid)
-            if r0 in ('fetch','pull') and len(rest)==1 and m=='POST':
-                if body != {}:raise ApiError(400,'Git 동기화는 옵션 없이 고정 명령으로 실행합니다')
-                return common_writes.Service(self._project(pid),'git').legacy(r0,{})
-            if r0 == "status" and m == "GET":
-                return gitops.status(repo)
-            if r0 == "log" and m == "GET":
-                n = min(int((q.get("n") or ["50"])[0]), 500)
-                ref = (q.get("ref") or [None])[0]
-                return {"commits": gitops.log(repo, n, ref)}
-            if r0 == "commit" and len(rest) == 2 and m == "GET":
-                if not re.fullmatch(r"[0-9a-fA-F]{4,40}", rest[1]):
-                    raise ApiError(400, "커밋 해시 형식이 아닙니다")
-                return gitops.show_files(repo, rest[1])
-            if r0 == "remotes":
-                if len(rest) == 1:
-                    if m == "GET":
-                        return {"remotes": gitops.remotes(repo)}
-                    if m == "POST":
-                        return common_writes.Service(self._project(pid),'git').legacy('remote_add',body)
-                elif len(rest) == 2:
-                    if m == "PUT":
-                        return common_writes.Service(self._project(pid),'git').legacy('remote_set',{**body,'name':rest[1]})
-                    if m == "DELETE":
-                        return common_writes.Service(self._project(pid),'git').legacy('remote_remove',{'name':rest[1]})
-            if r0 == "push" and m == "POST":
-                return common_writes.Service(self._project(pid),'git').legacy('push',body)
-            if r0 == "add" and m == "POST":
-                return common_writes.Service(self._project(pid),'git').legacy('add',body)
-            if r0 == "commit" and len(rest) == 1 and m == "POST":
-                if not body.get('message','').strip():raise gitops.GitError('커밋 메시지가 비어 있습니다')
-                return common_writes.Service(self._project(pid),'git').legacy('commit',body)
-            raise ApiError(404, f"no route: {m} /api/projects/{pid}/{'/'.join(rest)}")
-
-        # ---- Jira (D-002 · D-004 · D-006)
-        def _jira_route(self, m: str, pr: dict, rest: list[str], q: dict, body: dict):
-            info = wfhome.detect(pr)
-            if len(rest) == 1 and m == "GET":
-                return info
-
-            # 설정 작성과 .gitignore 검사는 **연동이 꺼진 상태에서도** 돼야 한다.
-            # 그 상태를 벗어나려고 부르는 경로이기 때문이다.
-            if rest[1:2] == ["gitignore"]:
-                if len(rest) == 2 and m == "GET":
-                    return wfinit.gitignore_report(wfinit.gitignore_target(info['wf_home']))
-                if rest[2:] == ["fix"] and m == "POST":
-                    return wfinit.gitignore_apply(wfinit.gitignore_target(info['wf_home']))
-            if rest[1:2] == ["init"]:
-                return self._jira_init(m, pr, info, rest, q, body)
-
-            if rest[1:2] == ['migration']:
-                home = info['wf_home']
-                if rest == ['jira', 'migration'] and m == 'GET':
-                    return wf_migrate.status(pr, home, q.get('plan_id', [''])[0], q.get('operation_id', [''])[0])
-                if rest == ['jira', 'migration', 'plan'] and m == 'POST':
-                    if body != {}:raise ApiError(400, '전환 대상과 변경값은 서버가 결정합니다')
-                    return wf_migrate.preview(pr, home)
-                if rest == ['jira', 'migration', 'apply'] and m == 'POST':
-                    if set(body) != {'plan_id', 'operation_id'} or any(not isinstance(v, str) or not v for v in body.values()):
-                        raise ApiError(400, '서버가 발급한 계획·작업 ID만 필요합니다')
-                    repository = wfinit.gitignore_target(home)
-                    gi = wfinit.gitignore_report(repository)
-                    if gi['applicable'] and gi['missing']:
-                        raise ApiError(409, '업무 데이터 제외 설정을 확인한 뒤 전환하십시오: '+str(repository), {'gitignore': gi})
-                    return wf_migrate.apply(pr, home, body['plan_id'], body['operation_id'])
-                raise ApiError(404, '지원하지 않는 전환 경로입니다')
-
-            if not info["enabled"]:
-                raise ApiError(409, info["reason"], {"jira": info})
-            home = info["wf_home"]
-            state = wfhome.read_state(home)
-            if (m != 'GET' or rest == ['jira', 'memo']) and state.get('schema_version') != wfhome.SCHEMA_VERSION:
-                raise ApiError(409, '업무 schema가 지원 버전이 아닙니다 — 설정 작성으로 복구하십시오')
-
-            if rest==['jira','batch'] and m=='GET':
-                return workflow.status(home)
-            if rest==['jira','batch','run'] and m=='POST':
-                if body != {}:raise ApiError(400,'배치 날짜·경로·cursor는 서버가 결정합니다')
-                return workflow.run(home,self._creds(info))
-
-            if rest == ['jira', 'operations'] and m == 'GET':
-                return {'operations': jirawrite.operation_status(home), 'legacy_pending': jirawrite.unpushed(home),
-                        'common_writes':common_writes.Service(pr,'memo',home).list()[-10:]}
-            if len(rest) == 4 and rest[:2] == ['jira', 'operations'] and rest[3] in ('reconcile', 'repair') and m == 'POST':
-                with fileio.locked(home):
-                    state = wfhome.read_state(home)
-                    if state.get('schema_version') != wfhome.SCHEMA_VERSION:
-                        raise operations.StateConflict('업무 schema가 바뀌었습니다 — 설정을 확인하십시오')
-                    pending = operations.Store(home).get(rest[2])
-                    if not pending or pending.get('kind') not in jirawrite.KINDS or not pending.get('plan_id'):
-                        raise operations.StateConflict('서버 발급 작업을 찾지 못했습니다')
-                    saved = operations.Store(home).plan(pending['plan_id'])
-                    if saved['binding'] != writeplans.binding(pr, home) or saved['site'] != jiraapi.site_url(state).rstrip('/'):
-                        raise operations.StateConflict('작업의 프로젝트 또는 사이트가 다릅니다')
-                    if rest[3] == 'reconcile':
-                        jirawrite.reconcile(home, self._creds(info), jiraapi.site_url(state), rest[2], body.get('remote_id'))
-                    result = jirawrite.repair(home, rest[2])
-                    return {'result': result, 'operation_id': rest[2], 'status': 'succeeded'}
-
-            if rest == ["jira", "memo"]:
-                ymd = (q.get("ymd") or [body.get("ymd")] or [None])[0] or body.get("ymd")
-                if not ymd:
-                    raise ApiError(400, "ymd 가 필요합니다")
-                if m == "GET":
-                    return {**wfhome.read_memo(home, ymd),'common_writes':[op for op in common_writes.Service(pr,'memo',home).list() if op.get('ymd')==ymd and op['status'] in ('executing','uncertain')]}
-                if m == "PUT":
-                    if body.get('document_id') != wfhome.memo_document_id(home, ymd):
-                        raise ApiError(409, '메모의 업무 폴더·날짜 식별이 다릅니다 — 다시 여십시오')
-                    try:
-                        return common_writes.Service(pr,'memo',home).legacy('save',{'ymd':ymd,'text':body.get('text',''),'sha':body.get('sha',''),'document_id':body['document_id']})
-                    except wfhome.MemoConflict as e:
-                        # 덮지 않는다. 양쪽을 돌려주고 사람이 고르게 한다(INV-1).
-                        raise ApiError(409, str(e), {"current_text": e.current_text,
-                                                     "current_sha": e.current_sha}) from e
-
-            # --- Jira 를 건드리지 않는 경로는 자격을 요구하지 않는다.
-            # 요구하면 "자격이 없다"와 "제목이 범위 밖이다"가 같은 실패로 보인다.
-            if rest == ["jira", "close", "plan"] and m == "POST":
-                with fileio.locked(home):
-                    view = self._scope(pr, home)
-                    return writeplans.preview_close(pr, home, body['ymd'], view['known_keys'])
-            if rest[1:3] == ["new", "plan"] and m == "POST":
-                try:
-                    with fileio.locked(home):
-                        state=wfhome.read_state(home)
-                        if body.get('kind','task') not in ('task','subtask','bug') or not isinstance(body.get('summary'),str) or not body['summary'].strip():
-                            raise newtask.NewTaskError('유효한 업무 종류와 비어 있지 않은 제목이 필요합니다')
-                        epic,_=newtask.choose_epic(state,body.get('epic_key')) if body.get('kind','task')=='task' else (None,'')
-                        try:creds=self._creds(info)
-                        except ApiError as exc:
-                            if exc.status!=412:raise
-                            preview=writeplans.preview_new(pr,home,state,body,self._scope(pr,home,required=False))
-                            preview['ready_to_create']=False
-                            preview['warnings'].append('오프라인 제목 미리보기입니다. 생성하려면 Jira 계정·에픽 전체 조회 후 다시 미리보기하십시오.')
-                            return preview
-                        creation=jiraapi.creation_context(state,creds,epic)
-                        return {**writeplans.preview_new(pr, home, state, body, self._scope(pr, home, required=False),creation=creation),'ready_to_create':True}
-                except newtask.NewTaskError as e:
-                    # 만들기 전에 멈춘다 — 만든 뒤에는 되돌리기가 가장 비싸다.
-                    raise ApiError(422, str(e)) from e
-
-            if rest == ['jira', 'close', 'apply'] and m == 'POST':
-                if set(body) - {'plan_id', 'operation_ids', 'ymd', 'ack_lint'} or not body.get('plan_id'):
-                    raise operations.StateConflict('서버 계획과 선택 작업 ID로 승인하십시오 — 다시 미리보기해야 합니다')
-                with fileio.locked(home):
-                    plan, chosen = writeplans.selected(pr, home, body['plan_id'], body.get('operation_ids'), 'close')
-                    if body.get('ymd') != plan['ymd']:
-                        raise operations.StateConflict('마감 날짜가 계획과 다릅니다')
-                    pending = any(i['status'] != 'succeeded' for i in chosen)
-                    creds = self._creds(info) if pending else {}
-                    fresh = self._fresh_scope(pr, home, creds) if pending else {'known_keys':[]}
-                    if fresh.get('complete') is False:raise operations.StateConflict('Jira 조회가 불완전합니다 — 다시 조회 후 승인하십시오')
-                    keys = fresh['known_keys']
-                    return writeplans.apply_close(pr, home, body['plan_id'], body['operation_ids'], creds, keys,
-                                                  body.get('ack_lint') is True)
-            if rest == ['jira', 'new', 'create'] and m == 'POST':
-                if set(body) != {'plan_id', 'operation_id'}:
-                    raise operations.StateConflict('발급한 계획 ID와 작업 ID가 필요합니다 — raw intent는 승인하지 않습니다')
-                with fileio.locked(home):
-                    saved, chosen = writeplans.selected(pr, home, body['plan_id'], [body['operation_id']], 'new')
-                    pending = chosen[0]['status'] != 'succeeded'
-                    if pending and not saved.get('creation'):raise operations.StateConflict('계정·에픽 전체 조회가 없는 오프라인 계획입니다 — 연결 후 다시 미리보기하십시오')
-                    creds = self._creds(info) if pending else {}
-                    fresh=self._fresh_scope(pr, home, creds) if pending and chosen[0].get('parent_key') else {'known_keys':[]}
-                    if fresh.get('complete') is False:raise operations.StateConflict('Jira 부모 업무 조회가 불완전합니다')
-                    keys = fresh['known_keys']
-                    return writeplans.apply_new(pr, home, body['plan_id'], body['operation_id'], creds, keys)
-
-            # --- 여기서부터는 Jira 를 읽는다.
-            creds = self._creds(info)
-            if rest == ["jira", "tasks"] and m == "GET":
-                return self._fresh_scope(pr, home, creds)
-            raise ApiError(404, f"no route: {m} {'/'.join(rest)}")
-
-        def _fresh_scope(self, project, home, creds):
-            with fileio.locked(home):
-                view = wfhome.live_tasks(wfhome.read_state(home), creds)
-                if view.get('complete') is False:
-                    with scope_mutex:scope_cache.pop((project['id'],str(Path(home).resolve())),None)
-                    return view
-                with scope_mutex:
-                    scope_cache[(project['id'], str(Path(home).resolve()))] = (writeplans.state_hash(home), view)
-                return view
-
-        def _scope(self, project, home, required=True):
-            with scope_mutex:
-                cached = scope_cache.get((project['id'], str(Path(home).resolve())))
-            if cached and cached[0] == writeplans.state_hash(home):
-                return cached[1]
-            if required:
-                raise operations.StateConflict('먼저 업무 목록을 다시 조회해야 합니다 — 클라이언트의 known_keys는 신뢰하지 않습니다')
-            return None
-
-        def _jira_init(self, m: str, pr: dict, info: dict, rest: list[str], q: dict, body: dict):
-            tail = rest[2:]
-            if tail == ["donors"] and m == "GET":
-                return {"donors": wfinit.donor_states(store.projects())}
-            if tail == ["discover"] and m == "POST":
-                site = (body.get("site") or info.get("site_url") or "").rstrip("/")
-                if not site:
-                    raise ApiError(400, "사이트 URL 이 필요합니다 — 기존 설정에서 가져오거나 직접 넣으십시오")
-                return wfinit.discover(self._creds({"site_url": site}), site, body.get("project_key"))
-            if tail in (["preview"], ["apply"]) and m == "POST":
-                cfg = dict(body.get("cfg") or {})
-                if not cfg.get("project_key"):
-                    raise ApiError(400, "project_key 가 필요합니다")
-                home = info["wf_home"]
-                existing = None
-                if wfhome.state_path(home).is_file():
-                    existing = wfhome.read_state(home)
-                new_state = wfinit.build_state(existing, **cfg)
-                pv = wfinit.preview(home, new_state)
-                repository = wfinit.gitignore_target(home)
-                gi = wfinit.gitignore_report(repository)
-                if tail == ["preview"]:
-                    return {"preview": pv, "state": new_state, "gitignore": gi}
-                # D-005 — 제외가 없으면 쓰기 전에 멈춘다. 고칠지는 사람이 정한다.
-                if gi["applicable"] and gi["missing"] and not body.get("fix_gitignore"):
-                    raise ApiError(409, "업무 데이터가 .gitignore 로 제외되지 않았습니다 — "
-                                        "추가에 동의하거나 직접 넣은 뒤 다시 시도하십시오",
-                                   {"gitignore": gi})
-                if gi["applicable"] and gi["missing"]:
-                    gi = wfinit.gitignore_apply(repository)
-                path = wfinit.write_state(home, new_state)
-                return {"written": path, "preview": pv, "gitignore": gi,
-                        "jira": wfhome.detect(pr)}
-            raise ApiError(404, f"no route: {m} {'/'.join(rest)}")
-
-        def _creds(self, info: dict):
-            try:
-                return auth.load(info.get("site_url"))
-            except auth.CredentialError as e:
-                raise ApiError(412, str(e), {"credentials": auth.status(info.get("site_url"))}) from e
+                    selected = pickdir.pick_files(body.get('initial') or None)
+                except RuntimeError as exc:
+                    raise ApiError(500, str(exc)) from exc
+                return {'paths':selected, 'cancelled':not selected}
+            raise ApiError(404, f'no route: {method} {path}')
 
     return Handler
 
 
-def serve(store_file: str | Path, host: str = "127.0.0.1", port: int = 8765, open_browser: bool = False,
-          token: str | None = None, google_transport=None) -> ThreadingHTTPServer:
+def serve(store_file: str | Path, host: str = '127.0.0.1', port: int = 8765,
+          open_browser: bool = False, token: str | None = None, google_transport=None) -> ThreadingHTTPServer:
     store = Store(store_file)
+    modules = ModuleHost(store.file)
+    services = ModuleServices(store, modules, google_transport)
+    modules.bind_services(services)
+    stopping = threading.Event()
     token = token or secrets.token_urlsafe(24)
-    google,google_error = None,None
-    try:
-        google = google_calendar.Service(store.file,transport=google_transport,projects=lambda:store.snapshot()['projects'])
-    except ValueError as exc:
-        google_error = str(exc)
+
     class Server(ThreadingHTTPServer):
         def server_close(self):
-            if google is not None:
-                google.close()
-            super().server_close()
-    writer=calendar_sync.Engine(calendar_store.Store(store.file),google) if google is not None else None
-    if writer is not None:google.after_sync=writer.after_sync
-    httpd = Server((host, port), make_handler(store, token, google, google_error,writer))
-    httpd.google_calendar = google
-    httpd.calendar_writer = writer
-    if google is not None:
-        google.start_refresh()
+            stopping.set()
+            try:
+                modules.close()
+                self.module_shutdown = {ident:{'workers_stopped':status} for ident,status in modules.stop_results.items()}
+                external = [value for ident,value in modules.stop_results.items() if ident not in modules.backends]
+                self.module_shutdown['extensions'] = {'workers_stopped':all(external)}
+            finally:
+                super().server_close()
+
+    httpd = Server((host, port), make_handler(store, token, modules=modules, stopping=stopping))
+    httpd.module_host = modules
+    httpd.module_shutdown = {}
+    modules.start_backends()
+    work = modules.backends.get(WORK_CALENDAR)
+    httpd.google_calendar = getattr(work, 'google', None)
+    httpd.calendar_writer = getattr(work, 'writer', None)
     httpd.daemon_threads = True
-    httpd.wsflow_token = token  # 호출자(run.py·시험)가 주소를 만들 수 있도록
+    httpd.wsflow_token = token
     if open_browser:
         import webbrowser
-        url = f"http://{host}:{httpd.server_address[1]}/?t={token}"
-        threading.Timer(0.5, lambda: webbrowser.open(url)).start()
+        url = f'http://{host}:{httpd.server_address[1]}/?t={token}'
+        threading.Timer(0.5, lambda:webbrowser.open(url)).start()
     return httpd

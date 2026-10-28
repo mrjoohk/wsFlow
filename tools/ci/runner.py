@@ -19,8 +19,9 @@ import tempfile
 import time
 from uuid import uuid4
 import zipfile
+import zlib
 
-ROOTS = ('wsflow', 'static', 'tests', 'vendor', 'tools', 'ci', '.github')
+ROOTS = ('wsflow', 'static', 'tests', 'vendor', 'tools', 'ci', '.github', 'examples')
 IGNORED = {'.git', '__pycache__', '.pytest_cache', 'node_modules'}
 MANIFEST = 'ci/source-manifest.json'
 CONTEXT = ('.gitignore', 'GLOBAL_RULES.md', 'PROJECT_RULES.md', 'README.md',
@@ -28,7 +29,7 @@ CONTEXT = ('.gitignore', 'GLOBAL_RULES.md', 'PROJECT_RULES.md', 'README.md',
            'rd/v0_v1_contracts.md', 'rd/ci_fixture_reliability_contracts.md', 'evidence_pack/metrics.yaml')
 BROWSER_COUNTS = (11, 11, 7, 11, 11, 14, 17)
 OUTPUT_ENV = ('WSFLOW_BROWSER_OUTPUT', 'WSFLOW_RUN_EVIDENCE_DIR', 'WSFLOW_TEST_EVIDENCE_DIR',
-              'WSFLOW_GRAPH_EVIDENCE')
+              'WSFLOW_GRAPH_EVIDENCE', 'WSFLOW_MODULES_BROWSER_BASE')
 
 
 def plain(path):
@@ -179,7 +180,7 @@ def g4(root):
 def clean_env(out, logdir):
     env = dict(os.environ)
     for key in list(env):
-        if key.startswith(('JIRA_', 'WSFLOW_GOOGLE_', 'GOOGLE_', 'GITHUB_TOKEN', 'GH_TOKEN')) or key in (*OUTPUT_ENV, 'PYTHONPATH', 'WF_HOME'):
+        if key.startswith(('JIRA_', 'WSFLOW_GOOGLE_', 'GOOGLE_', 'GITHUB_TOKEN', 'GH_TOKEN')) or key in (*OUTPUT_ENV, 'PYTHONPATH', 'WF_HOME', 'WSFLOW_PYTHON'):
             env.pop(key)
     profile = out / 'profile'
     profile.mkdir()
@@ -245,6 +246,92 @@ def preserve_browser(folder, target):
     if before != tree_hashes(target) or before != tree_hashes(folder):
         raise ValueError('browser snapshot changed during copy')
     return before
+
+
+def module_source_hashes(root):
+    inputs = {n: p for n, p in files(root).items()
+              if n.startswith('wsflow/') and p.suffix in ('.py', '.js', '.json')}
+    for name in ('static/index.html', 'tests/modules_browser.cjs', 'tests/modules_fixture.py',
+                 'examples/erp_demo/module.json', 'examples/erp_demo/backend.py', 'examples/erp_demo/view.js'):
+        inputs[name] = root / name
+    return {n: digest(p.read_bytes()) for n, p in sorted(inputs.items())}
+
+
+def valid_png(raw):
+    if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
+        return False
+    offset, tags = 8, []
+    while offset + 12 <= len(raw):
+        size = int.from_bytes(raw[offset:offset+4], 'big')
+        end = offset + 12 + size
+        if end > len(raw):
+            return False
+        tag = raw[offset+4:offset+8]
+        data = raw[offset+8:offset+8+size]
+        if zlib.crc32(tag + data) != int.from_bytes(raw[end-4:end], 'big'):
+            return False
+        tags.append(tag)
+        if len(tags) == 1 and (tag != b'IHDR' or size != 13 or
+                              int.from_bytes(data[:4], 'big') == 0 or int.from_bytes(data[4:8], 'big') == 0):
+            return False
+        if tag == b'IEND':
+            return size == 0 and end == len(raw) and b'IDAT' in tags
+        offset = end
+    return False
+
+
+def validate_module_browser(root, folder, load=read, blob=lambda p: p.read_bytes(),
+                            expected_python=None, expected_executable=None):
+    """Validate a sealed producer snapshot; consumers may supply original ZIP readers."""
+    baseline = read(root / 'ci/modules-browser-baseline.json')
+    evidence = load(folder / 'result.json')
+    if evidence.get('ok') is not True:
+        raise ValueError('module browser did not finish successfully')
+    cases = evidence.get('cases')
+    if not isinstance(cases, list) or sorted(cases, key=lambda c: c['id']) != sorted(baseline['cases'], key=lambda c: c['id']):
+        raise ValueError('module browser case identity mismatch')
+    if any(evidence.get(key) != [] for key in ('pageErrors', 'unexpectedConsoleErrors', 'unexpectedResponses', 'forbidden')):
+        raise ValueError('module browser unexpected error/provider request')
+    if type(evidence.get('fixtureStarts')) is not int or evidence['fixtureStarts'] != baseline['starts']:
+        raise ValueError('module browser startup count mismatch')
+    expected_runtime = [{'starts': number, 'python': expected_python or platform.python_version(),
+                         'executable': expected_executable or sys.executable}
+                        for number in range(1, baseline['starts'] + 1)]
+    if evidence.get('fixtureRuntimes') != expected_runtime:
+        raise ValueError('module browser Python profile mismatch')
+    if type(evidence.get('providerAttempts')) is not int or evidence['providerAttempts'] != 0:
+        raise ValueError('module browser provider attempt')
+    expected = module_source_hashes(root)
+    if evidence.get('source_sha256') != expected or evidence.get('source_sha256_end') != expected:
+        raise ValueError('module browser source freshness mismatch')
+    for number in range(1, baseline['starts'] + 1):
+        if number == baseline['starts']:
+            stopped = load(folder / 'shutdown.json')
+        else:
+            checkpoint = load(folder / ('restart-' + str(number + 1) + '.json'))
+            if type(checkpoint.get('starts')) is not int or checkpoint['starts'] != number + 1:
+                raise ValueError('module browser restart order mismatch')
+            stopped = checkpoint['previous_shutdown']
+        if (stopped.get('event') != 'stopped' or type(stopped.get('starts')) is not int or
+                stopped['starts'] != number or stopped.get('preserved') is not True):
+            raise ValueError('module browser shutdown/preservation mismatch')
+        if type(stopped.get('provider_attempts')) is not int or stopped['provider_attempts'] != 0:
+            raise ValueError('module browser observed provider attempt')
+        workers = stopped.get('shutdown', {})
+        if (set(workers) != set(baseline['shutdown_keys'][str(number)]) or
+                any(not isinstance(value, dict) or set(value) != {'workers_stopped'} or
+                    value['workers_stopped'] is not True for value in workers.values())):
+            raise ValueError('module browser worker shutdown incomplete')
+    final = load(folder / 'final-state.json')
+    if (final.get('event') != 'snapshot' or
+            type(final.get('provider_attempts')) is not int or final['provider_attempts'] != 0):
+        raise ValueError('module browser final observation mismatch')
+    for name in baseline['screenshots']:
+        raw = blob(folder / name)
+        if not valid_png(raw):
+            raise ValueError('module browser PNG evidence invalid')
+    return {'cases': len(cases), 'starts': baseline['starts'], 'provider_attempts': 0,
+            'source_files': len(expected), 'shutdowns': baseline['starts']}
 
 
 def gates(root, out, mode):
@@ -337,6 +424,20 @@ def run(root, out, expected_python, step, jobs):
         if step in ('all', 'browser'):
             browser = []
             result['browser'] = browser
+            folder = logs / 'browser/modules/run'
+            stage_env = dict(env, WSFLOW_BROWSER_OUTPUT=str(folder),
+                             WSFLOW_MODULES_BROWSER_BASE=str(folder.parent), WSFLOW_PYTHON=sys.executable)
+            r = command(['node', 'tests/modules_browser.cjs'], root, out / 'browser_modules.log', stage_env, 240)
+            result['steps'].append(r); accepted(r)
+            snapshot = out / 'artifacts/browser/modules'
+            hashes = preserve_browser(folder, snapshot)
+            module_result = validate_module_browser(root, snapshot)
+            observed = read(snapshot / 'result.json')
+            if (observed['node'] != result['environment']['node'] or
+                    observed['browser'] != result['environment']['browser']['browser'] or
+                    observed['playwright'] != result['environment']['browser']['playwright']):
+                raise ValueError('module browser runtime mismatch')
+            result['modules'] = {**module_result, 'files': hashes}
             baseline = read(root / 'ci/browser-baseline.json')
             for n, expected in enumerate(BROWSER_COUNTS, 1):
                 folder = logs / 'browser' / ('i' + str(n))
@@ -383,6 +484,11 @@ def run(root, out, expected_python, step, jobs):
             if (tree_hashes(logs / 'browser' / name) != stage['files'] or
                     tree_hashes(out / 'artifacts/browser' / name) != stage['files']):
                 raise ValueError('browser evidence changed after stage: ' + name)
+        if result.get('modules'):
+            hashes = result['modules']['files']
+            if (tree_hashes(logs / 'browser/modules/run') != hashes or
+                    tree_hashes(out / 'artifacts/browser/modules') != hashes):
+                raise ValueError('module browser evidence changed after stage')
         result['status'] = 'PASS'
     except Exception as exc:
         result.update(status='FAIL', error=str(exc))

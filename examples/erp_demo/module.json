@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "erp-demo",
+  "name": "ERP 확장 모형",
+  "version": "1.0.0",
+  "host_api": 1,
+  "data_schema_version": 1,
+  "capabilities": ["erp"],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {"company": {"type": "string", "description": "모형에 표시할 회사 이름"}},
+    "additionalProperties": false
+  },
+  "entrypoint": "backend.py:create_module",
+  "ui": {"entry": "view.js", "label": "ERP 모형"}
+}

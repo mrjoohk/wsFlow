@@ -44,7 +44,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "elif phase == 'checks':",
           "new": "elif phase == 'checks':\n                    fileio.atomic_write(state_file, json.dumps({**state, 'watermark':captured.isoformat()}).encode('utf-8'))"
@@ -70,7 +70,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "if any(q['truncated'] for q in collected['queries']):",
           "new": "if False:"
@@ -96,13 +96,13 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "_command",
           "old": "if cp.returncode:",
           "new": "if False:"
         },
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "if checks.get('exit_code') != 0 or checks.get('violations'):",
           "new": "if False:"
@@ -128,13 +128,13 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "if memo is not None:\n                        # Vendor",
           "new": "if False:\n                        # Vendor"
         },
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "if memo is not None and _memo(staged_daily.read_bytes()) != memo:",
           "new": "if False:"
@@ -160,7 +160,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "def final_gate():\n                        _same(state_file, original_state)",
           "new": "def final_gate():\n                        pass # mutant skips state CAS"
@@ -186,13 +186,13 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "_same(daily, original_daily)\n                    _same(publish_agg",
           "new": "pass # mutant\n                    _same(publish_agg"
         },
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "lambda: (_same(state_file, original_state), _same(daily, original_daily))",
           "new": "lambda: _same(state_file, original_state)"
@@ -218,7 +218,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "try:committed = _json(state_file).get('last_batch', {}).get('run_id') == run_id",
           "new": "try:committed = False"
@@ -244,7 +244,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "support",
           "old": "'supported': mode in (None, '', 'active', 'all')",
           "new": "'supported': True"
@@ -270,7 +270,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "if previous.tzinfo is None or captured < previous:",
           "new": "if previous.tzinfo is None:"
@@ -296,7 +296,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "if not provenance['identical']:",
           "new": "if False:"
@@ -322,7 +322,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "overview",
           "old": "if hashlib.sha256(raw).hexdigest() == marker['aggregate_sha256'] and operations.digest(config(state)) == marker['config_hash']:",
           "new": "if True:"
@@ -348,7 +348,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "_write",
           "old": "if attempt == 4:",
           "new": "if True:"
@@ -374,7 +374,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "fields_complete",
           "old": "required = {'summary','status','issuetype','updated','assignee'}",
           "new": "return True\n    required = {'summary','status','issuetype','updated','assignee'}"
@@ -400,7 +400,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/wfhome.py",
+          "file": "wsflow/modules/work_calendar/wfhome.py",
           "func": "live_tasks",
           "old": "complete=not any(q['truncated'] or not q['fields_complete'] for q in queries)",
           "new": "complete=True"
@@ -452,7 +452,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "creation_context",
           "old": "AND parent = {issue_key(epic_key)} ORDER BY key",
           "new": "AND parent = {issue_key(epic_key)} AND assignee=currentUser() AND statusCategory!=Done ORDER BY key"
@@ -478,7 +478,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/writeplans.py",
+          "file": "wsflow/modules/work_calendar/writeplans.py",
           "func": "preview_new",
           "old": "raw['payload']['fields']['assignee'] = {'accountId': creation['account_id']}",
           "new": "pass # mutant"
@@ -504,7 +504,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/writeplans.py",
+          "file": "wsflow/modules/work_calendar/writeplans.py",
           "func": "apply_new",
           "old": "if seq is None or remote_next > seq:",
           "new": "if False:"
@@ -530,7 +530,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/writeplans.py",
+          "file": "wsflow/modules/work_calendar/writeplans.py",
           "func": "_reserved",
           "old": "return [_unprefix(op.get('title', ''), state) for op in operations.Store(home).list()",
           "new": "return [_unprefix(op.get('title', ''), state) for op in []"
@@ -556,7 +556,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/writeplans.py",
+          "file": "wsflow/modules/work_calendar/writeplans.py",
           "func": "apply_new",
           "old": "if fresh['account_id'] != creation['account_id'] or fresh.get('epic_name') != creation.get('epic_name'):",
           "new": "if False:"
@@ -582,7 +582,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "visibility",
           "old": "'state': 'visible' if visible else 'not_visible'",
           "new": "'state': 'visible'"
@@ -608,7 +608,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/auth.py",
+          "file": "wsflow/modules/work_calendar/auth.py",
           "func": "_from_file",
           "old": "if entry is None and not site_url and len(sites) == 1:",
           "new": "if entry is None and len(sites) == 1:"
@@ -634,7 +634,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/gitops.py",
+          "file": "wsflow/modules/workspace_operations/gitops.py",
           "func": "pull_ff",
           "old": "'pull', '--ff-only', '--no-rebase'",
           "new": "'pull', '--no-rebase'"
@@ -660,13 +660,13 @@
       ],
       "edits": [
         {
-          "file": "wsflow/gitops.py",
+          "file": "wsflow/modules/workspace_operations/gitops.py",
           "func": "pull_ff",
           "old": "'no_upstream' if not st['upstream'] else 'dirty' if not st['clean'] else None",
           "new": "'no_upstream' if not st['upstream'] else None"
         },
         {
-          "file": "wsflow/gitops.py",
+          "file": "wsflow/modules/workspace_operations/gitops.py",
           "func": "pull_ff",
           "old": "if not st['clean']:",
           "new": "if False:"
@@ -692,7 +692,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/gitops.py",
+          "file": "wsflow/modules/workspace_operations/gitops.py",
           "func": "_fetch",
           "old": "at if result['ok'] else previous.get('last_fetch_at')",
           "new": "at"
@@ -718,7 +718,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/gitops.py",
+          "file": "wsflow/modules/workspace_operations/gitops.py",
           "func": "run_git",
           "old": "stdin=subprocess.DEVNULL, ",
           "new": ""
@@ -744,10 +744,10 @@
       ],
       "edits": [
         {
-          "file": "wsflow/server.py",
-          "func": "make_handler",
+          "file": "wsflow/modules/work_calendar/routes.py",
           "old": "if pending and not saved.get('creation'):",
-          "new": "if False:"
+          "new": "if False:",
+          "func": "_jira_route"
         }
       ]
     },
@@ -770,10 +770,10 @@
       ],
       "edits": [
         {
-          "file": "wsflow/server.py",
-          "func": "make_handler",
+          "file": "wsflow/modules/work_calendar/routes.py",
           "old": "with scope_mutex:scope_cache.pop((project['id'],str(Path(home).resolve())),None)",
-          "new": "pass # mutant cached complete scope retained"
+          "new": "pass # mutant cached complete scope retained",
+          "func": "_fresh_scope"
         }
       ]
     },
@@ -796,19 +796,19 @@
       ],
       "edits": [
         {
-          "file": "wsflow/wfinit.py",
+          "file": "wsflow/modules/work_calendar/wfinit.py",
           "func": "build_state",
           "old": "**old,",
           "new": "# mutant drops unknown metadata"
         },
         {
-          "file": "wsflow/wfinit.py",
+          "file": "wsflow/modules/work_calendar/wfinit.py",
           "func": "write_state",
           "old": "value = {**current, **value}",
           "new": "value = dict(value)"
         },
         {
-          "file": "wsflow/wfinit.py",
+          "file": "wsflow/modules/work_calendar/wfinit.py",
           "func": "write_state",
           "old": "('roots', 'watermark', 'last_success', 'last_batch')",
           "new": "('roots', 'watermark', 'last_success')"
@@ -834,7 +834,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/gitops.py",
+          "file": "wsflow/modules/workspace_operations/gitops.py",
           "func": "_fetch",
           "old": "{'ok': False, 'reason': 'no_remote'",
           "new": "{'ok': True, 'reason': 'no_remote'"
@@ -860,7 +860,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "overview",
           "old": "and records['complete'] and not batch['warnings']",
           "new": "and records['complete']"
@@ -886,7 +886,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "overview",
           "old": "except (OSError, ValueError, KeyError, TypeError, AttributeError):",
           "new": "except (OSError, ValueError, KeyError, TypeError):"
@@ -912,7 +912,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "search",
           "old": "if item['key'] in issue_keys:",
           "new": "if False:"
@@ -938,7 +938,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "search",
           "old": "if 'isLast' in data and type(data['isLast']) is not bool:",
           "new": "if False:"
@@ -964,7 +964,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "fields_complete",
           "old": "if 'parent' not in f or (f['parent'] is not None and (not isinstance(f['parent'], dict) or not f['parent'].get('key'))):",
           "new": "if False:"
@@ -990,7 +990,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/writeplans.py",
+          "file": "wsflow/modules/work_calendar/writeplans.py",
           "func": "_unprefix",
           "old": "text = re.sub(r'^(?:\\[[^\\]\\r\\n]+\\]\\s*)+', '', text)",
           "new": "text = text"
@@ -1016,13 +1016,13 @@
       ],
       "edits": [
         {
-          "file": "wsflow/writeplans.py",
+          "file": "wsflow/modules/work_calendar/writeplans.py",
           "func": "_unprefix",
           "old": "if re.search(r'--\\d+--', text) and wfhome.JF.task_seq(text) is None:",
           "new": "if False:"
         },
         {
-          "file": "wsflow/writeplans.py",
+          "file": "wsflow/modules/work_calendar/writeplans.py",
           "func": "_unprefix",
           "old": "if re.match(r'^--\\d{4,}--', text):",
           "new": "if False:"
@@ -1048,7 +1048,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "status",
           "old": "if (not isinstance(item, dict) or not isinstance(item.get('run_id'), str)\n                    or not isinstance(item.get('created_at'), str)\n                    or item.get('status') not in ('executing', 'failed', 'succeeded')):",
           "new": "if False:"
@@ -1074,7 +1074,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": null,
           "old": "\"comment\", \"assignee\", \"project\"",
           "new": "\"comment\", \"project\""
@@ -1100,7 +1100,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "creation_context",
           "old": "if epic.get('key') != epic_key or type(epic.get('fields', {}).get('issuetype', {}).get('hierarchyLevel')) is not int or (epic.get('fields', {}).get('issuetype', {}).get('hierarchyLevel') != 1):",
           "new": "if epic.get('key') != epic_key:"
@@ -1126,7 +1126,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "build_queries",
           "old": "elif state.get('epic_keys'):",
           "new": "elif False:"
@@ -1152,7 +1152,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "run",
           "old": "if not 2000 <= captured.year <= 2099:",
           "new": "if False:"
@@ -1178,7 +1178,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/workflow.py",
+          "file": "wsflow/modules/work_calendar/workflow.py",
           "func": "_command",
           "old": ", timeout=60)",
           "new": ")"
@@ -1204,7 +1204,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "visibility",
           "old": "visible = assigned and any",
           "new": "visible = any"
@@ -1230,7 +1230,7 @@
       ],
       "edits": [
         {
-          "file": "wsflow/jiraapi.py",
+          "file": "wsflow/modules/work_calendar/jiraapi.py",
           "func": "search",
           "old": "if data.get('isLast') is True and data.get('nextPageToken'):",
           "new": "if False:"

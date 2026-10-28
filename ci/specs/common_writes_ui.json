@@ -23,7 +23,7 @@
       "name": "repeat memo effect instead of same id check",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "if (J.pendingMemo) {\n      submitted = J.pendingMemo;",
           "new": "if (false) {\n      submitted = J.pendingMemo;"
         }
@@ -38,7 +38,7 @@
       ],
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "gitPending.set(key,pending);",
           "new": "/* no pending operation stored */"
         }
@@ -49,7 +49,7 @@
       "name": "lose memo operation on browser reload",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "if (!J.pendingMemo && memo.common_writes?.length) J.pendingMemo = memo.common_writes[0];",
           "new": "/* reload operation identity lost */"
         }

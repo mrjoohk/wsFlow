@@ -1,0 +1,559 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-c",
+    "import unittest; s=unittest.TestSuite(unittest.defaultTestLoader.discover('tests', pattern=p) for p in ['test_module*.py', 'test_builtin_package_update.py', 'test_work_calendar_package.py', 'test_workspace_package.py', 'test_packaged_ui.py', 'test_package_generation.py']); r=unittest.TextTestRunner(verbosity=2).run(s); raise SystemExit(not r.wasSuccessful())"
+  ],
+  "timeout": 240,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "mutants": [
+    {
+      "id": "MOD_STALE",
+      "name": "stale module plan replaces newer desired state",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "if current['revision'] != plan['expected_revision']:",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_host.py",
+        "-k",
+        "test_two_preview_plans"
+      ]
+    },
+    {
+      "id": "MOD_SETTINGS",
+      "name": "wrong settings types accepted",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "if not valid or ('enum' in field and value not in field['enum']):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_host.py",
+        "-k",
+        "test_external_configuration_is_validated"
+      ]
+    },
+    {
+      "id": "MOD_SOURCE",
+      "name": "preview and installed digest pinning both removed",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "if actual != plan['package']:",
+          "new": "if False:"
+        },
+        {
+          "file": "wsflow/module_host.py",
+          "old": "if inspection['digest'] != record['package_digest']:",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_host.py",
+        "-k",
+        "test_package_changed_after_preview"
+      ]
+    },
+    {
+      "id": "MOD_ACTIVE_UI",
+      "name": "pending UI metadata replaces currently active entry",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "active_ui=copy.deepcopy(active.get('ui', {})) if active else {},",
+          "new": "active_ui=copy.deepcopy(record.get('ui', {})),"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_host.py",
+        "-k",
+        "test_pending_ui_update"
+      ]
+    },
+    {
+      "id": "MOD_DISABLE_DAMAGED",
+      "name": "cannot disable damaged installed package",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "if record['installed'] and record['enabled']:",
+          "new": "if record['installed']:",
+          "func": "apply"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_host.py",
+        "-k",
+        "test_tampered_installed_package"
+      ]
+    },
+    {
+      "id": "MOD_OWNER_GATE",
+      "name": "legacy module ownership gate removed",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "old": "if not modules.builtin_active(owner):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_server.py",
+        "-k",
+        "test_all_disabled_keep_core"
+      ]
+    },
+    {
+      "id": "MOD_STOP_LOOKUP",
+      "name": "stop lookup exception interrupts other cleanup",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "            try:\n                stop = getattr(service, 'stop', None)\n                if callable(stop)",
+          "new": "            stop = getattr(service, 'stop', None)\n            try:\n                if callable(stop)"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_host.py",
+        "-k",
+        "test_stop_property_failure"
+      ]
+    },
+    {
+      "id": "MOD_STARTUP_ERROR",
+      "name": "startup failure reported as disabled instead of unavailable",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "if ident in self.errors:\n            raise ModuleError('모듈 기동에 실패했습니다: ' + ident, 503)",
+          "new": "if False:\n            pass",
+          "count": 2
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_module_server.py",
+        "-k",
+        "test_failed_extension_returns"
+      ]
+    },
+    {
+      "id": "PKG_DOMAIN_WORK",
+      "name": "upgraded work package reuses canonical workflow implementation",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/backend.py",
+          "old": "from . import calendar_store, calendar_sync, google_calendar, jirawrite, newtask, wfhome, workflow",
+          "new": "from . import calendar_store, calendar_sync, google_calendar, jirawrite, newtask, wfhome\nfrom wsflow.modules.work_calendar import workflow"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_builtin_package_update.py",
+        "-k",
+        "test_work_calendar_update_uses_its_updated_workflow_domain"
+      ]
+    },
+    {
+      "id": "PKG_DOMAIN_WORKSPACE",
+      "name": "upgraded workspace route reuses canonical git implementation",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/routes.py",
+          "old": "from . import context_inventory, context_projection, deploy, gitops, scanner, session_prep",
+          "new": "from . import context_inventory, context_projection, deploy, scanner, session_prep\nfrom wsflow.modules.workspace_operations import gitops"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_builtin_package_update.py",
+        "-k",
+        "test_workspace_update_uses_its_updated_gitops_domain"
+      ]
+    },
+    {
+      "id": "PKG_MEMO_ADAPTER",
+      "name": "current memo adapter is silently ignored",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "old": "if kind=='memo' and memo_adapter is None:",
+          "new": "if kind=='memo':"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_builtin_package_update.py",
+        "-k",
+        "test_memo_save_uses_the_updated_package_adapter_in_common_writes"
+      ]
+    },
+    {
+      "id": "PKG_BIND_PORT",
+      "name": "worker starts before HTTP socket bind succeeds",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "old": "    httpd = Server((host, port),",
+          "new": "    modules.start_backends()\n    httpd = Server((host, port),"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_builtin_package_update.py",
+        "-k",
+        "test_occupied_server_port_does_not_start_any_business_module"
+      ]
+    },
+    {
+      "id": "PKG_VENDOR",
+      "name": "updated generation shares process-flat vendor cache",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/wfhome.py",
+          "old": "AGG = _load_vendor('aggregate')\nJF = _load_vendor('jira_fields')",
+          "new": "import sys\nsys.path.insert(0, str(VENDOR))\nimport aggregate as AGG\nimport jira_fields as JF"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_generation.py",
+        "-k",
+        "test_vendor_imports"
+      ]
+    },
+    {
+      "id": "PKG_DEP_ORDER",
+      "name": "declared dependency order replaced by configuration insertion order",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "old": "return ordered",
+          "new": "return list(self._active['modules'])",
+          "func": "_dependency_order"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_generation.py",
+        "-k",
+        "test_dependency_starts"
+      ]
+    },
+    {
+      "id": "PKG_READY",
+      "name": "bound but unstarted backend is exposed as ready",
+      "edits": [
+        {
+          "file": "wsflow/module_services.py",
+          "old": " or module_id not in self.module_host.started_backends",
+          "new": ""
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_generation.py",
+        "-k",
+        "test_dependency_starts"
+      ]
+    },
+    {
+      "id": "PKG_INLINE_RUNTIME",
+      "name": "legacy supplied runtime is discarded by handler adapter",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "old": "if supplied_runtime and modules.builtin_active(WORK_CALENDAR):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_generation.py",
+        "-k",
+        "test_legacy_handler_uses_supplied_runtime"
+      ]
+    },
+    {
+      "id": "PKG_INLINE_ISOLATION",
+      "name": "unsupported supplied runtime hook aborts core handler creation",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "old": "except Exception as exc:\n                modules.errors[WORK_CALENDAR] = 'supplied runtime failed: ' + str(exc)",
+          "new": "except Exception:\n                raise",
+          "func": "make_handler"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_generation.py",
+        "-k",
+        "test_legacy_runtime_unsupported_hook"
+      ]
+    },
+    {
+      "id": "PKG_INLINE_DEPS",
+      "name": "caller runtime exposes consumer without its declared dependencies",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "old": "if any(services.feature(ident) is None for ident in dependencies):",
+          "new": "if False:",
+          "func": "make_handler"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_generation.py",
+        "-k",
+        "test_legacy_runtime_does_not_expose_consumer"
+      ]
+    },
+    {
+      "id": "PKG_INLINE_WRITER",
+      "name": "legacy caller runtime field dropped: PKG_INLINE_WRITER",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/backend.py",
+          "old": "self.google, self.google_error, self.writer = google, google_error, writer",
+          "new": "self.google, self.google_error, self.writer = google, google_error, None",
+          "func": "Service.use_runtime"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_generation.py",
+        "-k",
+        "test_legacy_runtime_passes_writer_and_setup_error"
+      ]
+    },
+    {
+      "id": "PKG_INLINE_SETUP",
+      "name": "legacy caller runtime field dropped: PKG_INLINE_SETUP",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/backend.py",
+          "old": "self.google, self.google_error, self.writer = google, google_error, writer",
+          "new": "self.google, self.google_error, self.writer = google, None, writer",
+          "func": "Service.use_runtime"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_generation.py",
+        "-k",
+        "test_legacy_runtime_passes_writer_and_setup_error"
+      ]
+    }
+  ]
+}

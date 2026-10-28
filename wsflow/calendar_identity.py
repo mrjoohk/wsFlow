@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from . import context_skills
+from . import path_policy
 from .readmodel import Reader, fingerprint
 
 VERSION = 1
@@ -19,7 +19,7 @@ def observe(projects, registry):
     def document(path, owner):
         path = Path(path).absolute()
         if path not in cache:
-            context_skills.plain_path(path, owner)
+            path_policy.plain_path(path, owner)
             reader.files.append(path)
             info, raw = reader.read(path, str(path), 'identity', boundary=Path(owner))
             if info['status'] == 'missing':
@@ -35,7 +35,7 @@ def observe(projects, registry):
 
     def directory(path):
         path = Path(path).absolute()
-        context_skills.plain_path(path, Path(path.anchor))
+        path_policy.plain_path(path, Path(path.anchor))
         st = path.stat()
         if not path.is_dir():
             raise ValueError('identity_directory_unavailable')

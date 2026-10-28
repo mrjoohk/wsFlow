@@ -1,0 +1,235 @@
+// Real browser + actual module APIs/restarts; synthetic filesystem, no providers.
+const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const {spawn} = require('child_process');
+const fs = require('fs'), path = require('path'), readline = require('readline');
+const assert = require('assert/strict'), crypto = require('crypto');
+const ROOT = path.resolve(__dirname, '..');
+const EVIDENCE_ROOT=path.join(ROOT,'logs/test_evidence');
+const BASE = path.resolve(process.env.WSFLOW_MODULES_BROWSER_BASE || (process.env.WSFLOW_BROWSER_OUTPUT ? path.dirname(process.env.WSFLOW_BROWSER_OUTPUT) : path.join(EVIDENCE_ROOT,'modules_browser')));
+const baseRelative=path.relative(EVIDENCE_ROOT,BASE);
+assert.ok(baseRelative && !baseRelative.startsWith('..') && !path.isAbsolute(baseRelative),'browser evidence base must be within repository test evidence');
+const OUT = path.resolve(process.env.WSFLOW_BROWSER_OUTPUT || path.join(BASE, 'run-' + new Date().toISOString().replace(/[:.]/g, '-')));
+const relative = path.relative(BASE, OUT);
+assert.ok(relative && !relative.startsWith('..') && !path.isAbsolute(relative), 'evidence must use a fresh child of the assigned browser directory');
+assert.ok(!fs.existsSync(OUT),'browser evidence directory must be fresh');
+fs.mkdirSync(OUT, {recursive:true});
+const save = (name, value) => fs.writeFileSync(path.join(OUT, name), JSON.stringify(value, null, 2) + '\n');
+const hash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+function bounded(promise, label, ms=20000) {
+  let timer;
+  return Promise.race([promise, new Promise((_, reject) => timer=setTimeout(()=>reject(Error(label+' timeout')),ms))]).finally(()=>clearTimeout(timer));
+}
+
+async function main() {
+  const fixture = spawn(process.env.WSFLOW_PYTHON || 'python', ['-B', '-X', 'utf8', 'tests/modules_fixture.py', path.join(OUT, 'runtime')],
+    {cwd:ROOT,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONDONTWRITEBYTECODE:'1'}});
+  let stderr='', browser, page, config, fixtureStopped=false;
+  fixture.stderr.on('data', d => {stderr += String(d);});
+  const messages=[], pending=[], cases=[], pageErrors=[], consoleErrors=[], requests=[], forbidden=[];
+  const failedResponses=[];
+  const packageSources=[];
+  const collect=directory=>{for(const entry of fs.readdirSync(directory,{withFileTypes:true})){if(entry.name==='__pycache__')continue;const file=path.join(directory,entry.name);if(entry.isDirectory())collect(file);else if(/\.(py|js|json)$/.test(entry.name))packageSources.push(path.relative(ROOT,file).split(path.sep).join('/'));}};
+  collect(path.join(ROOT,'wsflow'));
+  const sourceFiles=['static/index.html',...packageSources.sort(),'tests/modules_browser.cjs','tests/modules_fixture.py','examples/erp_demo/module.json','examples/erp_demo/backend.py','examples/erp_demo/view.js'];
+  const startingSources=Object.fromEntries(sourceFiles.map(file=>[file,hash(path.join(ROOT,file))]));
+  const lines=readline.createInterface({input:fixture.stdout});
+  lines.on('line', line => {
+    try {const value=JSON.parse(line);pending.length?pending.shift().resolve(value):messages.push(value);}
+    catch(error) {stderr += '\nnon-JSON fixture output: '+line;}
+  });
+  fixture.on('exit', code => {for(const waiter of pending.splice(0))waiter.reject(Error('fixture exited '+code+' '+stderr));});
+  const receive=()=>messages.length?Promise.resolve(messages.shift()):new Promise((resolve,reject)=>pending.push({resolve,reject}));
+  const control=async action=>{fixture.stdin.write(JSON.stringify({action})+'\n');return bounded(receive(),'fixture '+action,20000);};
+  const record=(id,description)=>{cases.push({id,description});save('checkpoint.json',{cases,pageErrors,consoleErrors,requests,forbidden});};
+  const state=async()=>{const r=await page.request.get(config.url+'/api/v1/modules',{headers:{'X-Auth-Token':config.token}});assert.equal(r.status(),200);return r.json();};
+  const row=id=>page.locator('[data-module-id="'+id+'"]');
+  const manager=async()=>{await page.locator('#btnModules').click();await page.locator('#moduleRevision').waitFor();};
+  let restartedRequests=[];
+  const fixtureRuntimes=[];
+  const observeFixture=()=>fixtureRuntimes.push({starts:config.starts,python:config.python,executable:config.executable});
+  const restart=async()=>{
+    const previous=config;
+    config=await control('restart');assert.notEqual(config.token,previous.token);
+    observeFixture();
+    assert.equal(config.previous_shutdown.preserved,true);assert.equal(config.previous_shutdown.provider_attempts,0);
+    save('restart-'+config.starts+'.json',{starts:config.starts,previous_shutdown:config.previous_shutdown});
+    const requestStart=requests.length;
+    await page.goto(config.url+'/?t='+encodeURIComponent(config.token));
+    await page.locator('#list [data-id="'+config.project_id+'"]').waitFor();
+    await manager();restartedRequests=requests.slice(requestStart);return state();
+  };
+  const reserve=async(id,action)=>{
+    await row(id).locator('[data-module-action="'+action+'"]').click();
+    await page.locator('#moduleApply').waitFor();
+    assert.ok((await page.locator('#modulePlan').innerText()).includes('업무 데이터 보존'));
+    await page.locator('#moduleApply').click();
+    await page.locator('#moduleStatus').filter({hasText:'변경을 예약했습니다'}).waitFor();
+    assert.ok((await page.locator('#moduleRevision').innerText()).includes('재시작 필요'));
+  };
+  const reservePackage=async(action,packagePath,target,settings)=>{
+    await page.locator('#modulePackageForm').evaluate(element=>element.open=true);
+    await page.locator('#moduleAction').selectOption(action);
+    if(target)await page.locator('#moduleTarget').selectOption(target);
+    await page.locator('#moduleSource').fill(packagePath);await page.locator('#moduleTrusted').check();
+    await page.locator('#moduleInitialSettings').fill(JSON.stringify(settings));
+    await page.locator('#modulePackagePreview').click();await page.locator('#moduleApply').waitFor();
+    await page.locator('#moduleApply').click();await page.locator('#moduleStatus').filter({hasText:'변경을 예약했습니다'}).waitFor();
+  };
+  try {
+    config=await bounded(receive(),'fixture startup',25000);
+    observeFixture();
+    browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM});
+    page=await browser.newPage({viewport:{width:1440,height:1100}});page.setDefaultTimeout(15000);
+    page.on('pageerror',error=>pageErrors.push(error.message));
+    page.on('console',msg=>{if(msg.type()==='error')consoleErrors.push(msg.text());});
+    page.on('response',response=>{if(response.status()>=400)failedResponses.push({path:new URL(response.url()).pathname,status:response.status(),method:response.request().method()});});
+    await page.route('**/*',async route=>{
+      const req=route.request(),url=new URL(req.url());
+      if(!['127.0.0.1','localhost'].includes(url.hostname)){forbidden.push({origin:url.origin,method:req.method()});return route.abort();}
+      requests.push({method:req.method(),path:url.pathname});return route.continue();
+    });
+    await page.goto(config.url+'/?t='+encodeURIComponent(config.token));
+    await page.locator('#list [data-id="'+config.project_id+'"]').waitFor();await manager();
+    let snapshot=await state();
+    assert.equal(snapshot.modules.find(m=>m.id==='work-calendar').active,true);
+    assert.equal(snapshot.modules.find(m=>m.id==='workspace-operations').active,true);
+    assert.equal(await page.locator('#btnCalendar').isVisible(),true);
+    assert.equal(await page.locator('#menuAdd').isVisible(),true);
+    assert.ok((await page.locator('#moduleRevision').innerText()).includes('적용 대기 없음'));
+    for(const id of ['work-calendar','workspace-operations'])assert.equal(requests.filter(request=>request.path===`/api/v1/modules/${id}/assets/ui.js`).length,1,'each builtin classic UI must load exactly once');
+    assert.deepEqual(await page.evaluate(()=>window.wsflowUI.tabs().map(tab=>tab.id)),['status','log','remotes','rules','jira']);
+    record('MOD-B01','both builtin integration modules initially active and browser module manager available');
+    await reserve('work-calendar','disable');snapshot=await state();
+    let work=snapshot.modules.find(m=>m.id==='work-calendar');assert.equal(work.active,true);assert.equal(work.enabled,false);assert.equal(work.pending,true);
+    assert.equal(await page.locator('#btnCalendar').isVisible(),true);
+    await page.screenshot({path:path.join(OUT,'pending-work-disable.png'),fullPage:true});
+    record('MOD-B02','disable reserves next generation while current calendar remains active and pending restart is explicit');
+    snapshot=await restart();
+    assert.equal(snapshot.modules.find(m=>m.id==='work-calendar').active,false);
+    assert.equal(snapshot.modules.find(m=>m.id==='workspace-operations').active,true);
+    assert.equal(await page.locator('#btnCalendar').isVisible(),false);
+    assert.equal(await page.locator('#menuAdd').isVisible(),true);
+    assert.equal(restartedRequests.filter(request=>request.path==='/api/v1/modules/work-calendar/assets/ui.js').length,0,'inactive module code must not be fetched');
+    assert.equal(await page.evaluate(()=>typeof renderJira),'undefined');
+    assert.equal(await page.evaluate(()=>typeof renderStatus),'function');
+    const calendar=await page.request.get(config.url+'/api/v2/calendar/range?start=2026-10-01&end=2026-11-01',{headers:{'X-Auth-Token':config.token}});
+    assert.equal(calendar.status(),409);
+    record('MOD-B03','restart hides inactive calendar and blocks its legacy API while workspace operation UI remains');
+    await reserve('workspace-operations','disable');snapshot=await restart();
+    assert.equal(snapshot.modules.some(m=>m.active),false);
+    assert.equal(await page.locator('#menuAdd').isVisible(),false);assert.equal(await page.locator('#menuTools').isVisible(),false);
+    assert.equal(await page.locator('#rootSel').isVisible(),false,'workspace-disabled root selector must be visually hidden');
+    assert.equal(await page.locator('#btnModules').isVisible(),true);
+    assert.equal(restartedRequests.filter(request=>/^\/api\/v1\/modules\/(work-calendar|workspace-operations)\/assets\//.test(request.path)).length,0);
+    assert.equal(await page.evaluate(()=>typeof renderJira),'undefined');assert.equal(await page.evaluate(()=>typeof renderStatus),'undefined');
+    const projects=await page.request.get(config.url+'/api/projects',{headers:{'X-Auth-Token':config.token}});
+    assert.equal(projects.status(),200);assert.equal((await projects.json()).projects.length,1);
+    await page.screenshot({path:path.join(OUT,'core-without-business-modules.png'),fullPage:true});
+    record('MOD-B04','both business modules may be inactive while core registry reads and module management remain usable');
+    const packagePath=path.join(ROOT,'examples/erp_demo'), manifest=JSON.parse(fs.readFileSync(path.join(packagePath,'module.json'),'utf8'));
+    const settings=JSON.parse(process.env.WSFLOW_ERP_TEST_SETTINGS || '{"company":"Synthetic Demo Company"}');
+    await page.locator('#modulePackageForm > summary').click();
+    await page.locator('#moduleAction').selectOption('install');await page.locator('#moduleSource').fill(packagePath);
+    await page.locator('#moduleInitialSettings').fill(JSON.stringify(settings));
+    await page.locator('#modulePackagePreview').click();
+    await page.locator('#moduleStatus').filter({hasText:'신뢰 확인'}).waitFor();
+    assert.equal(await page.locator('#moduleApply').count(),0);
+    record('MOD-B05','untrusted package preview is rejected without an apply action');
+    await page.locator('#moduleTrusted').check();await page.locator('#modulePackagePreview').click();
+    await page.locator('#moduleApply').waitFor();
+    assert.ok((await page.locator('#modulePlan').innerText()).includes(manifest.id));
+    await page.locator('#moduleApply').click();await page.locator('#moduleStatus').filter({hasText:'변경을 예약했습니다'}).waitFor();
+    snapshot=await state();let erp=snapshot.modules.find(m=>m.id===manifest.id);assert.equal(erp.active,false);assert.equal(erp.enabled,true);
+    assert.equal(await page.locator('#moduleNavigation [data-module-view]').count(),0);
+    record('MOD-B06','trusted local ERP model package can be staged with no execution before restart');
+    snapshot=await restart();erp=snapshot.modules.find(m=>m.id===manifest.id);assert.equal(erp.active,true);assert.equal(erp.error,null);
+    assert.equal(await page.locator('#moduleNavigation [data-module-view]').count(),1);
+    await page.locator('#moduleNavigation [data-module-view]').click();
+    await page.locator('#extensionView').waitFor();
+    await page.waitForFunction(()=>{const v=document.querySelector('#extensionView');return v&&v.textContent.trim()&&!v.textContent.includes('불러오는 중');});
+    await page.waitForFunction(company=>document.querySelector('#extensionView')?.textContent.includes(company),settings.company);
+    const extensionText=await page.locator('#extensionView').innerText();
+    assert.ok(/ERP/i.test(extensionText),extensionText);
+    await page.waitForFunction(()=>document.querySelector('#extensionView').textContent.includes('모형'));
+    await page.screenshot({path:path.join(OUT,'erp-module-view.png'),fullPage:true});
+    assert.ok(extensionText.includes(settings.company));
+    record('MOD-B07','new ERP model module contributes a real browser menu/view and calls its registered API with both builtins disabled');
+    const overview=async ident=>{
+      const response=await page.request.get(config.url+'/api/v1/modules/'+ident+'/api/overview',{headers:{'X-Auth-Token':config.token}});
+      assert.equal(response.status(),200);return response.json();
+    };
+    await manager();await row(manifest.id).locator('[data-module-action="configure"]').click();
+    await page.locator('#moduleSettings').fill(JSON.stringify({company:'Updated Synthetic Company'}));
+    await page.locator('#moduleSettingsPreview').click();await page.locator('#moduleApply').waitFor();
+    await page.locator('#moduleApply').click();await page.locator('#moduleStatus').filter({hasText:'변경을 예약했습니다'}).waitFor();
+    assert.equal((await overview(manifest.id)).company,settings.company);
+    snapshot=await restart();assert.equal((await overview(manifest.id)).company,'Updated Synthetic Company');
+    record('MOD-B08','module setting preview/apply retains active settings until restart, then new configuration reaches the extension API');
+    const updated=path.join(OUT,'runtime','erp-update');fs.cpSync(packagePath,updated,{recursive:true});
+    const newEntry='view-v2.js';
+    fs.renameSync(path.join(updated,manifest.ui.entry),path.join(updated,newEntry));
+    fs.writeFileSync(path.join(updated,'module.json'),JSON.stringify({...manifest,version:'1.1.0',ui:{...manifest.ui,entry:newEntry}},null,2));
+    await reservePackage('update',updated,manifest.id,{company:'Updated Synthetic Company'});
+    snapshot=await state();erp=snapshot.modules.find(m=>m.id===manifest.id);assert.equal(erp.active_version,'1.0.0');assert.equal(erp.version,'1.1.0');
+    assert.equal(erp.ui.entry,newEntry);assert.equal(erp.active_ui.entry,manifest.ui.entry);
+    await page.locator('#moduleNavigation [data-module-view]').click();
+    await page.waitForFunction(()=>document.querySelector('#extensionView')?.textContent.includes('Updated Synthetic Company'));
+    assert.equal((await overview(manifest.id)).company,'Updated Synthetic Company');
+    assert.ok(requests.some(r=>r.path==='/api/v1/modules/'+manifest.id+'/assets/'+manifest.ui.entry));
+    assert.ok(!requests.some(r=>r.path==='/api/v1/modules/'+manifest.id+'/assets/'+newEntry));
+    await page.screenshot({path:path.join(OUT,'pending-update-active-ui.png'),fullPage:true});
+    record('MOD-B12','pending update with a different UI entry keeps the current menu/view/API on active_ui until restart');
+    await manager();
+    snapshot=await restart();assert.equal(snapshot.modules.find(m=>m.id===manifest.id).active_version,'1.1.0');
+    assert.equal(snapshot.modules.find(m=>m.id===manifest.id).active_ui.entry,newEntry);
+    await page.locator('#moduleNavigation [data-module-view]').click();
+    await page.waitForFunction(()=>document.querySelector('#extensionView')?.textContent.includes('Updated Synthetic Company'));
+    assert.ok(requests.some(r=>r.path==='/api/v1/modules/'+manifest.id+'/assets/'+newEntry));
+    await page.screenshot({path:path.join(OUT,'updated-ui-entry-active.png'),fullPage:true});
+    assert.equal((await overview(manifest.id)).company,'Updated Synthetic Company');
+    record('MOD-B09','same-ID module update is reserved and becomes the active version only after restart');
+    await manager();
+    const alternate=path.join(OUT,'runtime','erp-alternative');fs.cpSync(packagePath,alternate,{recursive:true});
+    const alternateId='erp-demo-alternative';
+    fs.writeFileSync(path.join(alternate,'module.json'),JSON.stringify({...manifest,id:alternateId,name:'ERP 대체 모형',ui:{...manifest.ui,label:'ERP 대체 모형'}},null,2));
+    await reservePackage('replace',alternate,manifest.id,{company:'Alternative Synthetic Company'});
+    snapshot=await state();assert.equal(snapshot.modules.find(m=>m.id===manifest.id).active,true);
+    assert.equal(snapshot.modules.find(m=>m.id===alternateId).active,false);
+    snapshot=await restart();assert.equal(snapshot.modules.find(m=>m.id===manifest.id).active,false);
+    assert.equal(snapshot.modules.find(m=>m.id===alternateId).active,true);
+    assert.equal((await overview(alternateId)).company,'Alternative Synthetic Company');
+    assert.equal(await page.locator('#moduleNavigation [data-module-view]').count(),1);
+    assert.ok((await page.locator('#moduleNavigation').innerText()).includes('ERP 대체 모형'));
+    record('MOD-B10','alternative-ID replacement reserves removal and installation, activates only the new implementation on restart');
+    await reserve(alternateId,'uninstall');
+    assert.equal(await page.locator('#moduleNavigation [data-module-view]').count(),1);
+    snapshot=await restart();assert.equal(snapshot.modules.some(m=>m.active),false);
+    assert.equal(await page.locator('#moduleNavigation [data-module-view]').count(),0);
+    assert.equal(await page.locator('#btnModules').isVisible(),true);
+    assert.equal(await page.locator('#rootSel').isVisible(),false);
+    record('MOD-B11','GUI uninstall removes extension navigation on restart while core manager and preserved project registry remain');
+    assert.equal(pageErrors.length,0,JSON.stringify(pageErrors));assert.equal(forbidden.length,0,JSON.stringify(forbidden));
+    const unexpectedResponses=failedResponses.filter(r=>!(r.method==='POST'&&r.path==='/api/v1/modules/plan'&&r.status===400));
+    assert.equal(unexpectedResponses.length,0,JSON.stringify(unexpectedResponses));assert.equal(failedResponses.length,1);
+    const unexpectedConsoleErrors=consoleErrors.filter(text=>!/^Failed to load resource: the server responded with a status of 400 \(Bad Request\)$/.test(text));
+    assert.equal(unexpectedConsoleErrors.length,0,JSON.stringify(unexpectedConsoleErrors));
+    const last=await control('snapshot');assert.equal(last.provider_attempts,0);save('final-state.json',last);
+    const stop=await control('stop');fixtureStopped=true;assert.equal(stop.preserved,true);assert.equal(stop.provider_attempts,0);save('shutdown.json',stop);
+    const endingSources=Object.fromEntries(sourceFiles.map(file=>[file,hash(path.join(ROOT,file))]));
+    assert.deepEqual(endingSources,startingSources,'browser source inputs changed during the run');
+    save('result.json',{ok:true,cases,pageErrors,consoleErrors,unexpectedConsoleErrors,failedResponses,unexpectedResponses,forbidden,requests,fixtureStarts:config.starts,fixtureRuntimes,providerAttempts:0,browser:await browser.version(),node:process.version,
+      executable:process.env.PLAYWRIGHT_CHROMIUM,executable_sha256:process.env.PLAYWRIGHT_CHROMIUM?hash(process.env.PLAYWRIGHT_CHROMIUM):null,
+      playwright:require(path.join(process.env.PLAYWRIGHT_MODULE || 'playwright','package.json')).version,
+      source_sha256:startingSources,source_sha256_end:endingSources,scope:'new module manager acceptance only; no legacy46 or actual ERP/provider acceptance'});
+    console.log(JSON.stringify({ok:true,case_count:cases.length,out:OUT}));
+  } catch(error) {
+    try{if(page){fs.writeFileSync(path.join(OUT,'failure.html'),await page.content());await page.screenshot({path:path.join(OUT,'failure.png'),fullPage:true});}}catch{}
+    save('result.json',{ok:false,error:{message:error.message,stack:error.stack},cases,pageErrors,consoleErrors,forbidden,requests,stderr});
+    throw error;
+  } finally {
+    if(browser)await browser.close();
+    if(!fixtureStopped&&fixture.exitCode===null){try{await control('stop');fixtureStopped=true;}catch{fixture.kill();}}
+    fixture.stdin.end();lines.close();fs.writeFileSync(path.join(OUT,'fixture.stderr.log'),stderr);
+  }
+}
+main().catch(error=>{console.error(error.stack);process.exitCode=1;});

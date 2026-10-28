@@ -70,7 +70,7 @@
       "name": "leak task body in date cells",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/work_calendar/ui.js",
           "old": "<span class=\"cal-counts\">업무 ${day?.task_count",
           "new": "${esc(JSON.stringify(day?.tasks||[]))}<span class=\"cal-counts\">업무 ${day?.task_count"
         }
@@ -85,7 +85,7 @@
       "name": "count same task records separately",
       "edits": [
         {
-          "file": "wsflow/calendar_query.py",
+          "file": "wsflow/modules/work_calendar/calendar_query.py",
           "old": "task_id = fingerprint([site or str(home), key])",
           "new": "task_id = fingerprint([site or str(home), key, len(item['tasks'])])"
         }
@@ -96,7 +96,7 @@
       "name": "count note lines as separate memos",
       "edits": [
         {
-          "file": "wsflow/calendar_view.py",
+          "file": "wsflow/modules/work_calendar/calendar_view.py",
           "old": "day['memo_count'] = len(day['memos']) if legacy_ok and local_ok else None",
           "new": "day['memo_count'] = sum(len(m.get('body','').splitlines()) if m.get('kind')=='note' else 1 for m in day['memos']) if legacy_ok and local_ok else None"
         }
@@ -107,7 +107,7 @@
       "name": "include all-day exclusive end",
       "edits": [
         {
-          "file": "wsflow/calendar_view.py",
+          "file": "wsflow/modules/work_calendar/calendar_view.py",
           "old": "<= day.isoformat() < event['end_date']",
           "new": "<= day.isoformat() <= event['end_date']"
         }
@@ -118,7 +118,7 @@
       "name": "include next day at midnight end",
       "edits": [
         {
-          "file": "wsflow/calendar_view.py",
+          "file": "wsflow/modules/work_calendar/calendar_view.py",
           "old": "return start < right and end > left",
           "new": "return start < right and end >= left"
         }
@@ -129,7 +129,7 @@
       "name": "ignore display timezone",
       "edits": [
         {
-          "file": "wsflow/calendar_view.py",
+          "file": "wsflow/modules/work_calendar/calendar_view.py",
           "old": "zone = ZoneInfo(display_timezone)",
           "new": "zone = ZoneInfo('UTC')"
         }
@@ -140,7 +140,7 @@
       "name": "accept stale record revision",
       "edits": [
         {
-          "file": "wsflow/calendar_store.py",
+          "file": "wsflow/modules/work_calendar/calendar_store.py",
           "old": "current['revision'] != op['expected_revision']",
           "new": "False"
         }
@@ -151,7 +151,7 @@
       "name": "refuse known operation replay",
       "edits": [
         {
-          "file": "wsflow/calendar_store.py",
+          "file": "wsflow/modules/work_calendar/calendar_store.py",
           "old": "return op['result']",
           "new": "raise Conflict('lost cached success')"
         }
@@ -162,7 +162,7 @@
       "name": "accept expired plan",
       "edits": [
         {
-          "file": "wsflow/calendar_store.py",
+          "file": "wsflow/modules/work_calendar/calendar_store.py",
           "old": "if time.time() > plan['expires_at'] or op['status'] != 'planned':",
           "new": "if op['status'] != 'planned':"
         }
@@ -173,7 +173,7 @@
       "name": "ignore changed project binding",
       "edits": [
         {
-          "file": "wsflow/calendar_store.py",
+          "file": "wsflow/modules/work_calendar/calendar_store.py",
           "old": "if op.get('identity_version') != calendar_identity.VERSION or op['project_bindings'] != self._bindings(projects, op['bound_project_ids']):",
           "new": "if False:"
         }
@@ -184,7 +184,7 @@
       "name": "create database on read",
       "edits": [
         {
-          "file": "wsflow/calendar_store.py",
+          "file": "wsflow/modules/work_calendar/calendar_store.py",
           "old": "with self.connection() as db:",
           "new": "with self.connection(True) as db:",
           "func": "Store.records"
@@ -196,7 +196,7 @@
       "name": "render failed local read as zero",
       "edits": [
         {
-          "file": "wsflow/calendar_view.py",
+          "file": "wsflow/modules/work_calendar/calendar_view.py",
           "old": "day['event_count'] = len(day['events']) if local_ok and google_ok else None",
           "new": "day['event_count'] = len(day['events'])"
         }
@@ -207,7 +207,7 @@
       "name": "commit effect before audit result",
       "edits": [
         {
-          "file": "wsflow/calendar_store.py",
+          "file": "wsflow/modules/work_calendar/calendar_store.py",
           "old": "self._event(db, operation_id, 'succeeded', {'before':current, 'after':record})",
           "new": "db.commit()\n            self._event(db, operation_id, 'succeeded', {'before':current, 'after':record})"
         }
@@ -218,7 +218,7 @@
       "name": "exclude local records from snapshot",
       "edits": [
         {
-          "file": "wsflow/calendar_view.py",
+          "file": "wsflow/modules/work_calendar/calendar_view.py",
           "old": "fingerprint([scope,legacy['snapshot_id'],records,local_ok,days])",
           "new": "fingerprint([scope,legacy['snapshot_id'],local_ok])"
         }
@@ -229,7 +229,7 @@
       "name": "ignore project scope on local records",
       "edits": [
         {
-          "file": "wsflow/calendar_view.py",
+          "file": "wsflow/modules/work_calendar/calendar_view.py",
           "old": "(selected is not None and not selected.intersection(active))",
           "new": "False"
         }
@@ -240,7 +240,7 @@
       "name": "show deleted records",
       "edits": [
         {
-          "file": "wsflow/calendar_view.py",
+          "file": "wsflow/modules/work_calendar/calendar_view.py",
           "old": "if record['deleted'] or (selected is not None",
           "new": "if False or (selected is not None"
         }
@@ -251,7 +251,7 @@
       "name": "reuse legacy project ID for another checkout",
       "edits": [
         {
-          "file": "wsflow/calendar_view.py",
+          "file": "wsflow/modules/work_calendar/calendar_view.py",
           "old": "active = {i for i, status in statuses.items() if status in {'verified','legacy_path'}}",
           "new": "active = set(record['project_ids'])"
         }

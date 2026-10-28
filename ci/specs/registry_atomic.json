@@ -1,0 +1,56 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_registry_atomic.py"
+  ],
+  "timeout": 60,
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONIOENCODING": "utf-8"
+  },
+  "mutants": [
+    {
+      "id": "REG_RETRY",
+      "name": "temporary sharing violation never retried",
+      "edits": [
+        {
+          "file": "wsflow/store.py",
+          "old": "if os.name != \"nt\" or getattr(error, \"winerror\", None) not in (5, 32, 33) or attempt == 5:",
+          "new": "if True:",
+          "func": "Store._save"
+        }
+      ]
+    },
+    {
+      "id": "REG_BOUND",
+      "name": "permanent denial falls through as success",
+      "edits": [
+        {
+          "file": "wsflow/store.py",
+          "old": "or attempt == 5:",
+          "new": ":",
+          "func": "Store._save"
+        }
+      ]
+    }
+  ]
+}

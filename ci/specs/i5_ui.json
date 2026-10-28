@@ -23,7 +23,7 @@
       "name": "selection invalidation disabled",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "const invalidate = () => { generation++; plan=null; $(\"#ctxApply\").disabled=true;",
           "new": "const invalidate = () => {"
         }
@@ -34,7 +34,7 @@
       "name": "late plan re-enables stale selection",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "if(captured!==generation || !dlg.open)return;",
           "new": "if(!dlg.open)return;"
         }
@@ -45,7 +45,7 @@
       "name": "same approval recovery removed",
       "edits": [
         {
-          "file": "static/index.html",
+          "file": "wsflow/modules/workspace_operations/ui.js",
           "old": "$(\"#ctxRetry\").onclick=apply;",
           "new": "$(\"#ctxRetry\").onclick=()=>{};"
         }

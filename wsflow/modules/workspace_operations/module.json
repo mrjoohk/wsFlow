@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "workspace-operations",
+  "name": "워크스페이스 운영",
+  "version": "1.0.0",
+  "host_api": 1,
+  "data_schema_version": 1,
+  "capabilities": [
+    "workspace",
+    "development-context"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "entrypoint": "backend.py:create_module",
+  "ui": {
+    "entry": "ui.js",
+    "label": "워크스페이스 운영",
+    "mode": "classic"
+  }
+}

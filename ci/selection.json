@@ -168,7 +168,25 @@
       "spec": "ci/specs/reader_scope.json",
       "count": 13,
       "source": "rd/reader_scope_contracts.md"
+    },
+    {
+      "stage": "modules",
+      "spec": "ci/specs/modules.json",
+      "count": 20,
+      "source": "rd/261028_P055_packaged_modules_contract.md"
+    },
+    {
+      "stage": "module_evidence",
+      "spec": "ci/specs/module_evidence.json",
+      "count": 15,
+      "source": "rd/module_ci_contracts.md"
+    },
+    {
+      "stage": "registry_atomic",
+      "spec": "ci/specs/registry_atomic.json",
+      "count": 2,
+      "source": "rd/module_ci_contracts.md"
     }
   ],
-  "total": 336
+  "total": 373
 }
