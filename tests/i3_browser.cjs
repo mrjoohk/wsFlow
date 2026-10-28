@@ -8,9 +8,14 @@ async function main(){
   const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM});
   const context=await browser.newContext({viewport:{width:1560,height:1120}}),page=await context.newPage(),cases=[],errors=[];
   page.setDefaultTimeout(12000);page.on('pageerror',e=>errors.push(e.message));await page.clock.setFixedTime(new Date('2026-10-18T03:00:00Z'));
+  let heldBootstrap=false,releaseBootstrap;
+  const bootstrapGate=new Promise(resolve=>releaseBootstrap=resolve);
   await context.route('**/*',async route=>{
     const url=new URL(route.request().url());
-    if(url.origin===config.url)return route.continue();
+    if(url.origin===config.url){
+      if(!heldBootstrap&&url.pathname==='/api/v1/modules'){heldBootstrap=true;await bootstrapGate;}
+      return route.continue();
+    }
     if(url.origin==='https://accounts.google.com'){
       assert.equal(url.searchParams.get('code_challenge_method'),'S256');
       const callback=new URL(url.searchParams.get('redirect_uri'));callback.searchParams.set('state',url.searchParams.get('state'));callback.searchParams.set('code','synthetic-code');
@@ -19,7 +24,13 @@ async function main(){
     assert.equal(url.hostname,'127.0.0.1','external traffic forbidden');assert.equal(url.pathname,'/oauth/callback');return route.continue();
   });
   try {
-    await page.goto(config.url+'/?t='+config.token);await page.locator('#btnCalendar').click();await page.locator('#cStatus').filter({hasText:'저장된 기록을 확인했습니다.'}).waitFor();
+    const metadata=page.waitForRequest(request=>new URL(request.url()).pathname==='/api/v1/modules');
+    await page.goto(config.url+'/?t='+config.token,{waitUntil:'domcontentloaded'});await metadata;
+    for(const selector of ['#btnCalendar','#menuAdd','#menuTools','#rootSel'])
+      assert.equal(await page.locator(selector).isVisible(),false,'business navigation waits for module readiness: '+selector);
+    assert.equal(await page.locator('#btnModules').isVisible(),true);
+    releaseBootstrap();
+    await page.locator('#btnCalendar').click();await page.locator('#cStatus').filter({hasText:'저장된 기록을 확인했습니다.'}).waitFor();
     await page.locator('#gPanel summary').click();await page.getByText('Google 미연결',{exact:true}).waitFor();cases.push('unconnected local calendar remains usable');
     await page.locator('#gConnect').click();const popupPromise=context.waitForEvent('page');await page.getByText('Google 브라우저 승인 열기 (3분 이내)').click();const popup=await popupPromise;
     await popup.getByText('Google 연결 완료.',{exact:false}).waitFor();await page.locator('#gDisconnect').waitFor();await popup.close();cases.push('browser approval uses S256 and actual one-time loopback callback; UI observes connection');
@@ -40,6 +51,6 @@ async function main(){
     assert.deepEqual(errors,[]);
     const evidence={passed:cases.length,cases,errors,live_google:'not_run',source_sha256:crypto.createHash('sha256').update(fs.readFileSync('static/index.html')).digest('hex')};
     fs.writeFileSync(path.join(out,'evidence.json'),JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence));
-  } finally {await browser.close();child.stdin.end('stop\n');await new Promise(resolve=>child.on('exit',resolve));if(stderr)console.error(stderr);}
+  } finally {releaseBootstrap();await browser.close();child.stdin.end('stop\n');await new Promise(resolve=>child.on('exit',resolve));if(stderr)console.error(stderr);}
 }
 main().catch(e=>{console.error(e.stack);process.exitCode=1;});

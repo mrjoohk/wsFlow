@@ -24,7 +24,22 @@
         }
       ],
       "id": "CF01_reply_identity",
-      "name": "CF01_reply_identity"
+      "name": "CF01_reply_identity",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_fixture_protocol.py",
+        "-k",
+        "test_wrong_id_cannot_complete_pending_command"
+      ]
     },
     {
       "edits": [
@@ -35,7 +50,22 @@
         }
       ],
       "id": "CF02_rejection",
-      "name": "CF02_rejection"
+      "name": "CF02_rejection",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_fixture_protocol.py",
+        "-k",
+        "test_rejected_command_is_not_acknowledged"
+      ]
     },
     {
       "edits": [
@@ -46,7 +76,22 @@
         }
       ],
       "id": "CF03_deadline",
-      "name": "CF03_deadline"
+      "name": "CF03_deadline",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_fixture_protocol.py",
+        "-k",
+        "test_deadlines_reject_pending_and_allow_completed"
+      ]
     },
     {
       "edits": [
@@ -57,7 +102,22 @@
         }
       ],
       "id": "CF04_poisoned_channel",
-      "name": "CF04_poisoned_channel"
+      "name": "CF04_poisoned_channel",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_fixture_protocol.py",
+        "-k",
+        "test_missing_reply_times_out_and_poisoned_channel_stops"
+      ]
     },
     {
       "edits": [
@@ -68,18 +128,49 @@
         }
       ],
       "id": "CF05_provider_edit",
-      "name": "CF05_provider_edit"
+      "name": "CF05_provider_edit",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_fixture_protocol.py",
+        "-k",
+        "test_real_provider_edit_error_is_rejected"
+      ]
     },
     {
       "edits": [
         {
           "file": "tools/ci/runner.py",
           "new": "key in ('PYTHONPATH',)",
-          "old": "key in (*OUTPUT_ENV, 'PYTHONPATH', 'WF_HOME')"
+          "old": "key in (*OUTPUT_ENV, 'PYTHONPATH', 'WF_HOME', 'WSFLOW_PYTHON')",
+          "func": "clean_env"
         }
       ],
       "id": "CF06_ambient_env",
-      "name": "CF06_ambient_env"
+      "name": "CF06_ambient_env",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_ambient_output_paths_and_workflow_home_are_not_inherited"
+      ]
     },
     {
       "edits": [
@@ -90,7 +181,22 @@
         }
       ],
       "id": "CF07_descendant_env",
-      "name": "CF07_descendant_env"
+      "name": "CF07_descendant_env",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_real_nested_mutation_writer_cannot_replace_normal_browser_evidence"
+      ]
     },
     {
       "edits": [
@@ -101,7 +207,22 @@
         }
       ],
       "id": "CF08_snapshot_copy",
-      "name": "CF08_snapshot_copy"
+      "name": "CF08_snapshot_copy",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_browser_snapshot_is_fresh_and_does_not_follow_later_writer"
+      ]
     },
     {
       "edits": [
@@ -112,7 +233,22 @@
         }
       ],
       "id": "CF09_copy_race",
-      "name": "CF09_copy_race"
+      "name": "CF09_copy_race",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_browser_copy_race_is_rejected"
+      ]
     },
     {
       "edits": [
@@ -123,7 +259,22 @@
         }
       ],
       "id": "CF10_late_raw",
-      "name": "CF10_late_raw"
+      "name": "CF10_late_raw",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_late_raw_writer_is_rejected_and_original_snapshot_survives"
+      ]
     },
     {
       "edits": [
@@ -134,7 +285,22 @@
         }
       ],
       "id": "CF11_late_sealed",
-      "name": "CF11_late_sealed"
+      "name": "CF11_late_sealed",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_late_snapshot_writer_is_rejected"
+      ]
     },
     {
       "edits": [
@@ -145,7 +311,22 @@
         }
       ],
       "id": "CF12_no_merge",
-      "name": "CF12_no_merge"
+      "name": "CF12_no_merge",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_real_nested_mutation_writer_cannot_replace_normal_browser_evidence"
+      ]
     },
     {
       "edits": [
@@ -161,7 +342,22 @@
         }
       ],
       "id": "CF13_validation_gap",
-      "name": "capture foreign bytes after validation"
+      "name": "capture foreign bytes after validation",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_validation_to_snapshot_gap_cannot_seal_foreign_bytes"
+      ]
     },
     {
       "edits": [
@@ -172,7 +368,22 @@
         }
       ],
       "id": "CF14_startup_deadline",
-      "name": "CF14_startup_deadline"
+      "name": "CF14_startup_deadline",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_fixture_protocol.py",
+        "-k",
+        "test_startup_without_configuration_times_out"
+      ]
     },
     {
       "edits": [
@@ -183,7 +394,22 @@
         }
       ],
       "id": "CF15_shutdown_deadline",
-      "name": "CF15_shutdown_deadline"
+      "name": "CF15_shutdown_deadline",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_fixture_protocol.py",
+        "-k",
+        "test_acknowledged_stop_without_exit_times_out_and_kills"
+      ]
     },
     {
       "edits": [
@@ -194,7 +420,22 @@
         }
       ],
       "id": "CF16_copy_target_integrity",
-      "name": "CF16_copy_target_integrity"
+      "name": "CF16_copy_target_integrity",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_browser_target_copy_race_is_rejected"
+      ]
     },
     {
       "edits": [
@@ -205,7 +446,22 @@
         }
       ],
       "id": "CF17_exact_cases",
-      "name": "CF17_exact_cases"
+      "name": "CF17_exact_cases",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_run_evidence_contracts_reject_bad_results"
+      ]
     },
     {
       "edits": [
@@ -216,7 +472,22 @@
         }
       ],
       "id": "CF18_single_result",
-      "name": "CF18_single_result"
+      "name": "CF18_single_result",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_run_evidence_contracts_reject_bad_results"
+      ]
     },
     {
       "edits": [
@@ -242,6 +513,21 @@
           "old": "name.endswith('_ui') or name == 'v2_fixes'",
           "new": "name.endswith('_ui')"
         }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_real_nested_mutation_writer_cannot_replace_normal_browser_evidence"
       ]
     },
     {
@@ -253,6 +539,21 @@
           "old": "args += ['--timeout', '120']",
           "new": "pass  # budget override lost"
         }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_runner.py",
+        "-k",
+        "test_real_nested_mutation_writer_cannot_replace_normal_browser_evidence"
       ]
     },
     {

@@ -1,0 +1,33 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "node",
+    "tests/i3_browser.cjs"
+  ],
+  "timeout": 120,
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "mutants": [
+    {
+      "id": "UI_BOOTSTRAP_READY",
+      "name": "business navigation is clickable before module metadata/UI readiness",
+      "edits": [
+        {
+          "file": "static/index.html",
+          "old": "<button id=\"btnCalendar\" class=\"nav\" hidden>",
+          "new": "<button id=\"btnCalendar\" class=\"nav\">"
+        }
+      ]
+    }
+  ]
+}

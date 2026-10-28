@@ -186,7 +186,13 @@
       "spec": "ci/specs/registry_atomic.json",
       "count": 2,
       "source": "rd/module_ci_contracts.md"
+    },
+    {
+      "stage": "module_bootstrap_ui",
+      "spec": "ci/specs/module_bootstrap_ui.json",
+      "count": 1,
+      "source": "rd/module_ci_contracts.md"
     }
   ],
-  "total": 373
+  "total": 374
 }

@@ -88,8 +88,8 @@
 <body>
 <header>
   <h1>wsFlow</h1>
-  <label class="hlabel">루트 <select id="rootSel" title="워크스페이스 루트 — 스캔·새 프로젝트·배포의 기준 폴더"></select></label>
-  <details class="menu" id="menuAdd">
+  <label class="hlabel" hidden>루트 <select id="rootSel" title="워크스페이스 루트 — 스캔·새 프로젝트·배포의 기준 폴더"></select></label>
+  <details class="menu" id="menuAdd" hidden>
     <summary>＋ 추가</summary>
     <div class="menuBody">
       <div class="menuRow"><b>루트에서 찾기</b><button id="btnScan" title="선택한 루트 아래 폴더를 나열해 등록">루트 스캔…</button></div>
@@ -99,7 +99,7 @@
       <div class="menuRow sep"><b>루트 관리</b><button id="btnDelRoot" class="danger" title="선택한 루트를 목록에서 제거(폴더는 그대로)">선택한 루트 제거</button></div>
     </div>
   </details>
-  <details class="menu" id="menuTools">
+  <details class="menu" id="menuTools" hidden>
     <summary>도구</summary>
     <div class="menuBody">
       <div class="menuRow"><button id="btnDeploy" title="폴더/파일을 체크한 프로젝트들에 복사(항상 덮어쓰기)">배포…</button><span class="muted">폴더/파일을 여러 프로젝트에 복사</span></div>
@@ -107,7 +107,7 @@
     </div>
   </details>
   <button id="btnDash" class="nav">대시보드</button>
-  <button id="btnCalendar" class="nav">캘린더</button>
+  <button id="btnCalendar" class="nav" hidden>캘린더</button>
   <button id="btnModules" class="nav">모듈 관리</button>
   <span id="moduleNavigation"></span>
   <span style="flex:1"></span>

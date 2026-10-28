@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-28T11:01:11.795058+00:00",
+  "created_at": "2026-10-28T11:36:43.395555+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "0e6e3b52fb35f9dcb4ace5c4177245a0c7e6a5ed3d4bbd6ae86ce7bc35a6fc19",
@@ -34,8 +34,8 @@
       "sha256": "9d5dd7cb0797e64087970ce1b060f57e31b939317bece54c192f60146fb00c13"
     },
     "ci/profile-baseline.json": {
-      "raw_sha256": "d886b79bb52b445f33c962ccf177ada2fd73746051a35681c3b64c7d519f882b",
-      "sha256": "203bee651a00d9c9921fba21b05f371318d89d8f2ebd0a94494422df09788873"
+      "raw_sha256": "53422e74df8a8413765285a4958bc9ec4ebf62ba260a0e6845c0335638a24f78",
+      "sha256": "474f85d857ef8679607548282e984afadae117c2b8648827df5a37f953d7521b"
     },
     "ci/python-requirements.txt": {
       "raw_sha256": "4300e5e4d59a547918e2c8b6bfa494651017cfd6669708c888cfa97690f22e2e",
@@ -50,8 +50,8 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "a0f95fbfc618d417fac881a83ea19c0c4b4e2fb4d8f504520d4be1aa427be3dd",
-      "sha256": "af3b94eab56ad477eed9982dd0a36a592ef47944b825accf3d5f1c3452822fc6"
+      "raw_sha256": "cb3f79792f03409cca1e1cae25e87773d411e6004857bf3b2f8b8422aa413447",
+      "sha256": "610d0f68efe01ec9cdc569fe27a3ba832c4b8c63fa247726ac8bb0b70f084195"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "6c77009186cc2a5cf84fda712c76a129fd36e20dc548b669c8be911fbc326a8e",
@@ -70,8 +70,8 @@
       "sha256": "d4abef5a15fca63b4bde94ed04c32ceee537be14506f671c83fd7379bab420a9"
     },
     "ci/specs/fixture_reliability.json": {
-      "raw_sha256": "f18e2d26585d63236fad0564fb005faf784f3bbf924c0b58c559d81156d59359",
-      "sha256": "dd8089159b974fff72167f94b8dead8cca565e968f3ec866c22f46fd8ccd70ac"
+      "raw_sha256": "bf231ec39503f3b5e471730e2aa860c77b38d65abf43efb4c1be3a57c50e7b9d",
+      "sha256": "1043c8569b18feef2c5788167122e4c40826c20b883faa7758be82f647913698"
     },
     "ci/specs/i0.json": {
       "raw_sha256": "d6e0debc23ea6c1e2a9cf372a392132183096124f6d8c1e4c9572726da368ac6",
@@ -124,6 +124,10 @@
     "ci/specs/i7_ui.json": {
       "raw_sha256": "f6415d1ff7588cc91b35b51eea3ea58a8db6a8d08409547dd38a53617d346d1f",
       "sha256": "34db0f8d8d11cafb586987276ebba70d11d0d995f7206bbfe77698ae7a37fcf2"
+    },
+    "ci/specs/module_bootstrap_ui.json": {
+      "raw_sha256": "7cfcdbc461efc12a13d8cf8a5bf99a1d9392f06fd6fdc6ac1456c47bfb392a5a",
+      "sha256": "3910494caae15651cfef83eada5870f402d8101a295de33a007a395ce327598e"
     },
     "ci/specs/module_evidence.json": {
       "raw_sha256": "e5c69cbf94b0f130ae3593d4e564f39044ec563d0e1aa3b7d63254760a6db3fe",
@@ -190,8 +194,8 @@
       "sha256": "ccd8e7ffa0f1c134f804a8101855671f628feded39205cb47b46b4b0a22d1111"
     },
     "static/index.html": {
-      "raw_sha256": "f538ea903fc59b41174fbe3ea39cf5ea3eeb3364fcf8e57e6b0f1ce5779b9bc2",
-      "sha256": "6d8a63612d2c23a9e1e879e56835e46632828c996dd9f984efc0edf61d8037bc"
+      "raw_sha256": "7a7a05413f333d3cc9188b3caa206e7bbc14ffec31ade0b4e73e3a9d6b05cd73",
+      "sha256": "a96f8c6c6116a8bc0e098bd6372b33b4ef9a22cfccbc5ff10c2910b0beba9db2"
     },
     "tests/calendar_identity_browser.cjs": {
       "raw_sha256": "33b310d047423c57abbc6200940473a3143bcc8879caf9f902695a71e9b35eca",
@@ -314,8 +318,8 @@
       "sha256": "d1cc157c1508e2ad9bf74de71dcfb3956f2504af8e118f06e29a1b614a3ea547"
     },
     "tests/i3_browser.cjs": {
-      "raw_sha256": "2cabbbbef0a71d4cb32245ba1ad8621243aa219b7334ae7c44b02fc7acb4f409",
-      "sha256": "2cabbbbef0a71d4cb32245ba1ad8621243aa219b7334ae7c44b02fc7acb4f409"
+      "raw_sha256": "6da63d2ac20355af9afb04388685abefb900b33f1ac996951c7d25840bb7271c",
+      "sha256": "6da63d2ac20355af9afb04388685abefb900b33f1ac996951c7d25840bb7271c"
     },
     "tests/i3_fixture_server.py": {
       "raw_sha256": "dfa444ed7e9fa8cc50ad0ab804bbdbc79739fae3a4a9610064c144f1e21160a1",
@@ -906,7 +910,7 @@
       "sha256": "a4889370ca81e24841b2df85c41dc4bf8285b3bfc047cdfbe61a0da36d07b850"
     }
   },
-  "fingerprint": "1b53598aab61bbccb2c5fda3a0f5b356d8c1168ade02b93b0336944fa7f94f2b",
+  "fingerprint": "fcf73acca4fe8912c21c262846f5a756afe05b44a5a505ced190fab49fe6a65b",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }
