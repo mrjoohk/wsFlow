@@ -10,10 +10,12 @@ import json
 import os
 import sqlite3
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
+
+from .writer_admission import default_domain, writer_method
 
 
 class StateConflict(ValueError):
@@ -41,9 +43,17 @@ class Store:
         if base == Path(self.home) or Path(self.home) in base.parents:
             raise StateConflict('작업 DB는 WF_HOME 밖의 사용자 데이터 영역을 사용해야 합니다')
         self.path = base / 'operations' / (digest(self.home) + '.sqlite3')
+        self._writer_domain = default_domain()
 
     @contextmanager
     def connection(self, write=False):
+        # Admit before directory creation, SQLite open and schema initialization.
+        with self._writer_domain.writing() if write else nullcontext():
+            with self._connection(write) as db:
+                yield db
+
+    @contextmanager
+    def _connection(self, write=False):
         if not write and not self.path.exists():
             yield None
             return
@@ -87,6 +97,7 @@ PRAGMA user_version=1;
         db.execute('INSERT INTO events(operation_id,status,detail,at) VALUES(?,?,?,?)',
                    (ident, status, encoded(detail or {}), now()))
 
+    @writer_method
     def create(self, intent, ident=None):
         ident = ident or 'A-' + uuid4().hex
         value = {**intent, 'home': self.home, 'operation_id': ident}
@@ -95,6 +106,7 @@ PRAGMA user_version=1;
             self._event(db, ident, 'planned')
         return self.get(ident)
 
+    @writer_method
     def save_plan(self, snapshot, items, ttl=1800):
         plan_id = 'P-' + uuid4().hex
         value = {**snapshot, 'plan_id': plan_id, 'home': self.home,
@@ -133,6 +145,7 @@ PRAGMA user_version=1;
             rows = db.execute('SELECT * FROM operations ORDER BY rowid').fetchall() if db else []
         return [self._decode(row) for row in rows]
 
+    @writer_method
     def approve(self, ident):
         stamp = now()
         with self.connection(True) as db:
@@ -144,6 +157,7 @@ PRAGMA user_version=1;
                 self._event(db, ident, 'approved')
         return self.get(ident)
 
+    @writer_method
     def claim(self, ident):
         with self.connection(True) as db:
             changed = db.execute("UPDATE operations SET status='executing' WHERE id=? AND status='approved'", (ident,)).rowcount
@@ -151,6 +165,7 @@ PRAGMA user_version=1;
                 raise StateConflict('중복 실행 또는 결과 확인이 필요한 작업입니다')
             self._event(db, ident, 'executing')
 
+    @writer_method
     def reject_unexecuted(self, ident, error):
         """Cancel only a never-claimed intent; a delayed apply cannot revive it."""
         with self.connection(True) as db:
@@ -160,6 +175,7 @@ PRAGMA user_version=1;
                 raise StateConflict('실행되지 않은 작업만 종료할 수 있습니다')
             self._event(db, ident, 'failed', {'error': error, 'effect_started': False})
 
+    @writer_method
     def finish(self, ident, status, result=None, error=None):
         if status not in ('succeeded', 'failed', 'uncertain'):
             raise ValueError('invalid operation state')
@@ -170,6 +186,7 @@ PRAGMA user_version=1;
                 raise StateConflict('이 상태의 작업 결과를 덮을 수 없습니다')
             self._event(db, ident, status, {'error': error})
 
+    @writer_method
     def local_recorded(self, ident):
         with self.connection(True) as db:
             db.execute("UPDATE operations SET local_recorded=1 WHERE id=? AND status='succeeded'", (ident,))

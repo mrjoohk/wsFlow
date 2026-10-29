@@ -14,6 +14,7 @@ from helpers import git, make_bare, make_repo
 from wsflow import common_writes, fileio, gitops, operations, wfhome
 from wsflow.server import serve
 from wsflow.store import Store
+from wsflow.writer_admission import WriterUnavailable
 
 
 class CommonFixture(unittest.TestCase):
@@ -62,6 +63,9 @@ class CommonWrites(CommonFixture):
             gate.wait()
             try:return self.apply(self.gs,p)
             except fileio.LockBusy:return None
+            except WriterUnavailable as error:
+                if error.reason!='busy':raise
+                return None
         with concurrent.futures.ThreadPoolExecutor(2) as pool:results=list(pool.map(run,range(2)))
         hashes=[r['hash'] for r in results if r is not None]
         self.assertTrue(hashes);self.assertEqual(len(set(hashes)),1)

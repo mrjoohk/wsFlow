@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import threading
+from contextlib import nullcontext
 
 from wsflow.module_services import ApiError
 from wsflow.runtime_activity import admitted, normalize_activity
@@ -14,6 +15,7 @@ class Service:
         self.services = context['services']
         activity = getattr(self.services, 'activity', None)
         self._activity = normalize_activity(activity)
+        self._writing = normalize_activity(getattr(self.services, 'writing', None))
         self._activity_bound = activity is not None
         self.google = None
         self.google_error = None
@@ -69,7 +71,8 @@ class Service:
     @admitted
     def dispatch(self, request, method, path, query, body):
         try:
-            return Routes(request, self.services, self).dispatch(method, path, query, body)
+            with (self._writing() if method != 'GET' else nullcontext()):
+                return Routes(request, self.services, self).dispatch(method, path, query, body)
         except wfhome.MemoConflict as exc:
             raise ApiError(409, str(exc), {'current_text': exc.current_text,
                                          'current_sha': exc.current_sha}) from exc

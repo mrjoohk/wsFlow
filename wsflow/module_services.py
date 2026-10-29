@@ -21,10 +21,15 @@ class ModuleServices:
         self.module_host = module_host
         self.google_transport = google_transport
         self._activity = normalize_activity(getattr(module_host, 'activity', None))
+        self._writing = normalize_activity(getattr(module_host, 'writer_activity', None))
 
     def activity(self):
         """Enter this host's complete synchronous business activity."""
         return self._activity()
+
+    def writing(self):
+        """Promote a complete host root before its first cooperative write."""
+        return self._writing()
 
     def feature(self, module_id):
         if not self.module_host.builtin_active(module_id) or module_id not in self.module_host.started_backends:

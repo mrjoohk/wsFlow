@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-29T06:42:44.862511+00:00",
+  "created_at": "2026-10-29T22:49:10.830995+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "9c4e1d5116114579583bf77d597b3f6b61c59cca998ce7909afc79b6d87a0f6b",
@@ -34,8 +34,8 @@
       "sha256": "9d5dd7cb0797e64087970ce1b060f57e31b939317bece54c192f60146fb00c13"
     },
     "ci/profile-baseline.json": {
-      "raw_sha256": "7998022703224fe354f6e4d374ae745ef1e4d497d598d6f326beecfec1e6cad9",
-      "sha256": "e0144234e41c6e5682da3299e722ff5808a70e295081e232b8652503369ac09a"
+      "raw_sha256": "903d500c13e5af29289a1b69c4edeb3cd9e6d0a2843421e0b30018bfa95710f1",
+      "sha256": "44fbeedf0df8093f9675eb8d3d4b810af39a00e35cb7410df9f83cbeecb3773d"
     },
     "ci/python-requirements.txt": {
       "raw_sha256": "4300e5e4d59a547918e2c8b6bfa494651017cfd6669708c888cfa97690f22e2e",
@@ -50,8 +50,8 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "9157887c07357793748b1d1d1ecf98aacb7890f1d9a349719f153c0e92af7672",
-      "sha256": "ad9805f146d42d7efe883f52ac4877150b5554ffc7306c937878802bab4777bb"
+      "raw_sha256": "38f0020d7d0ff61656d0743f2da915f02e53c302ae43131064ddefc470f62327",
+      "sha256": "f98111a0d9785715647f81c3ca1517e9cd21fb631f7c2f8130f5dca6ae765038"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "6c77009186cc2a5cf84fda712c76a129fd36e20dc548b669c8be911fbc326a8e",
@@ -160,6 +160,10 @@
     "ci/specs/v2_fixes_ui.json": {
       "raw_sha256": "9962c7eac4378f648d2768c51670e6857e8ec1810e3f5eb4485e2f9951aa71ea",
       "sha256": "9962c7eac4378f648d2768c51670e6857e8ec1810e3f5eb4485e2f9951aa71ea"
+    },
+    "ci/specs/writer_admission.json": {
+      "raw_sha256": "c679f2f4b05a18a126774be4eca82046b9c70e3d576f86184dd4fb69f5c5e14d",
+      "sha256": "5eb135863ebe2032a8659fb52267e85128057348b3675771218691d553e615b9"
     },
     "ci/tests/module_fixture.py": {
       "raw_sha256": "121961be9f172672b74bc6c115dbcfe4be4b1f36cabb3e79a6faa18449118a09",
@@ -402,8 +406,8 @@
       "sha256": "502705ccf7471a20fe92eb3ec595f7d10f763a6e76c1586f21831d0cf4a650f2"
     },
     "tests/test_common_writes.py": {
-      "raw_sha256": "6de993b088301805875f6b81f948e3f6f68c79d344defea19663eb124cbaed61",
-      "sha256": "6de993b088301805875f6b81f948e3f6f68c79d344defea19663eb124cbaed61"
+      "raw_sha256": "3f544aaf51ecb31e55da2d94034d06a053eb9a92ca4bec2d06060dc85edcacb9",
+      "sha256": "3f544aaf51ecb31e55da2d94034d06a053eb9a92ca4bec2d06060dc85edcacb9"
     },
     "tests/test_deploy.py": {
       "raw_sha256": "d258fc7d0f21377801f2dc414c3aca76ac29a5d0952bc7725030715beae49e83",
@@ -418,8 +422,8 @@
       "sha256": "4d98698b466700b9278e46464518de6617a79a769edb67a0995703e96f16bff9"
     },
     "tests/test_i1.py": {
-      "raw_sha256": "c6db20eefe92a20bcb38f455b3bc59d2387dd84c018d923604e97d2ed6aa46a3",
-      "sha256": "c6db20eefe92a20bcb38f455b3bc59d2387dd84c018d923604e97d2ed6aa46a3"
+      "raw_sha256": "9f4fa821c6a5e7b1d3b3f44c119a7f673f8d67cfa7993b3309f12c574b204e6e",
+      "sha256": "9f4fa821c6a5e7b1d3b3f44c119a7f673f8d67cfa7993b3309f12c574b204e6e"
     },
     "tests/test_i2.py": {
       "raw_sha256": "a0baab2c9684681d8a2e33da80d2dcb145409695faf9306569aa3a1533258287",
@@ -434,16 +438,16 @@
       "sha256": "631b25073060f1dbb36de155d6420edf4526608ff82759223f11a3f0dd7ad59a"
     },
     "tests/test_i5.py": {
-      "raw_sha256": "88734e1434db6ae604a022db08010f18e01904f14c01958e6d4c9b2e6de27172",
-      "sha256": "88734e1434db6ae604a022db08010f18e01904f14c01958e6d4c9b2e6de27172"
+      "raw_sha256": "965b4e3b1d80959e3754e7db8fc62b805c4f74c18052040363a634699e3549b1",
+      "sha256": "965b4e3b1d80959e3754e7db8fc62b805c4f74c18052040363a634699e3549b1"
     },
     "tests/test_i6.py": {
       "raw_sha256": "1b3c3b724248d65ebfb97a0186542e539093b34643f82cfea9ee0a57aa944f61",
       "sha256": "1b3c3b724248d65ebfb97a0186542e539093b34643f82cfea9ee0a57aa944f61"
     },
     "tests/test_i7.py": {
-      "raw_sha256": "e6bd3b26d87496bba8fd76e0e8bf187bb497895e3d899c3e524f0d6d7529e8d1",
-      "sha256": "e6bd3b26d87496bba8fd76e0e8bf187bb497895e3d899c3e524f0d6d7529e8d1"
+      "raw_sha256": "f1041f26b6812d2637b499d241096469c2a7d8906fb49da814c047a35e3520e9",
+      "sha256": "f1041f26b6812d2637b499d241096469c2a7d8906fb49da814c047a35e3520e9"
     },
     "tests/test_jiraapi.py": {
       "raw_sha256": "cbdce06c1e2ca965e63658934d42340907d9b9ac7b672d1abe75c151684be9fd",
@@ -514,8 +518,8 @@
       "sha256": "8397056a7a370f651f7e390c01fe885f3269d497febcc58ebca4acd183c17717"
     },
     "tests/test_runtime_quiescence.py": {
-      "raw_sha256": "299ef570eebf3c31ab6de366f3838d91d2994c369c4c0359937c53957abcff13",
-      "sha256": "299ef570eebf3c31ab6de366f3838d91d2994c369c4c0359937c53957abcff13"
+      "raw_sha256": "b6cec18ab5dcd7ebe931fe513e54fcf3cd8118a52fdbc855c9180bb7e993f050",
+      "sha256": "b6cec18ab5dcd7ebe931fe513e54fcf3cd8118a52fdbc855c9180bb7e993f050"
     },
     "tests/test_server.py": {
       "raw_sha256": "0a6efc5e5611dee03cbebc4696df3463157e89e748c5a57f59ec673d118ffa8a",
@@ -530,8 +534,8 @@
       "sha256": "1a28d822fcc00da34dc89b0016d5afa3a03f1f850db287e288a26350886dd0c1"
     },
     "tests/test_v2_fixes.py": {
-      "raw_sha256": "416d99a69d61fd2117818b1f544a9afa07dced65a4bf7223bb5b665ae62b808b",
-      "sha256": "416d99a69d61fd2117818b1f544a9afa07dced65a4bf7223bb5b665ae62b808b"
+      "raw_sha256": "6f0e8990ab63997fb62e59ee140da16357a873f850c9af89ba7275e7f0ea1261",
+      "sha256": "6f0e8990ab63997fb62e59ee140da16357a873f850c9af89ba7275e7f0ea1261"
     },
     "tests/test_wfhome.py": {
       "raw_sha256": "b6a78e13b486d19d5981de0cd5847070c5cab9bcaedcac74c1fde9d7771345c3",
@@ -549,6 +553,18 @@
       "raw_sha256": "94af860cf17035ea8618be02d040690316ef0f0ef92221632f818dd0f5332539",
       "sha256": "94af860cf17035ea8618be02d040690316ef0f0ef92221632f818dd0f5332539"
     },
+    "tests/test_writer_admission.py": {
+      "raw_sha256": "b59142c6240d4dc03d688e3dbe0a9372bd2b1c673e0d3a4be8d2833ab277ec9e",
+      "sha256": "b59142c6240d4dc03d688e3dbe0a9372bd2b1c673e0d3a4be8d2833ab277ec9e"
+    },
+    "tests/test_writer_host.py": {
+      "raw_sha256": "de2771a618cc476c14d44eabd71df527a7f7f97df4ae5f4f209ab1568eaef4c1",
+      "sha256": "de2771a618cc476c14d44eabd71df527a7f7f97df4ae5f4f209ab1568eaef4c1"
+    },
+    "tests/test_writer_roots.py": {
+      "raw_sha256": "d9d7d016e07c4709c83f29bc1d149b2d91b3b8ce389dd079e9728412fb0f1f3a",
+      "sha256": "d9d7d016e07c4709c83f29bc1d149b2d91b3b8ce389dd079e9728412fb0f1f3a"
+    },
     "tests/v2_fixes_browser.cjs": {
       "raw_sha256": "244126d13a1bf8a8525a92cf9ad16c9f9fff57d658338ba763e1b71d4478b240",
       "sha256": "244126d13a1bf8a8525a92cf9ad16c9f9fff57d658338ba763e1b71d4478b240"
@@ -556,6 +572,14 @@
     "tests/v2_fixes_fixture_server.py": {
       "raw_sha256": "6dc116b5d6f06a175dca56b735a48481fab628abdef9558570f139b34c1f0758",
       "sha256": "6dc116b5d6f06a175dca56b735a48481fab628abdef9558570f139b34c1f0758"
+    },
+    "tests/writer_actor.py": {
+      "raw_sha256": "c972a92ed4bbe180d2143034edfe3d39f0fe823d86a8fc74b63ef6a63847c303",
+      "sha256": "c972a92ed4bbe180d2143034edfe3d39f0fe823d86a8fc74b63ef6a63847c303"
+    },
+    "tests/writer_roots_actor.py": {
+      "raw_sha256": "fdce50de2a59806172b1b0efd2297d5a14c549473b2fea5ff55744e0e817f878",
+      "sha256": "fdce50de2a59806172b1b0efd2297d5a14c549473b2fea5ff55744e0e817f878"
     },
     "tools/check_jira_vendor.py": {
       "raw_sha256": "b5609c81c5d2dff46959d0e3520e9f03fd9c31f62f93b2702caa5fa952573cb2",
@@ -658,8 +682,8 @@
       "sha256": "58569117f41e9cdb63e4172987c15294ef83758d1cb84047037fd7a15f0ad6d3"
     },
     "wsflow/common_writes.py": {
-      "raw_sha256": "8b215d3145d8603e1ac4a9ee005be3dd6679f8bb7a926d4de20c8ebd0b733bb4",
-      "sha256": "fb908d5eb1786564231cf362c07e5f6a0d7823d0429cc27cde4fc3c18b7ec47c"
+      "raw_sha256": "8620902b868a3262271a13d222ec8ec4c6c4d21efd37cf61b8386e770e5a6012",
+      "sha256": "86b2c51b53c9c16b21ffa8f1bcbab102528bbfaba71c6234356d709166209d64"
     },
     "wsflow/context_inventory.py": {
       "raw_sha256": "80100b271c6736b1032828aeaf331fddf86e57a85d7dcb6d118d83ae2a19d42b",
@@ -706,12 +730,12 @@
       "sha256": "c276173c114a6e0969bdb0425800e2a591158eb5db6280d62974c51703290298"
     },
     "wsflow/module_host.py": {
-      "raw_sha256": "527516d02946f98679667910d58a17f330a9165285fc6b3796cc534dc13b3fb4",
-      "sha256": "d5bf9dca1fb0bbc227cb41b14c2f491e6c98959ce05a33318e2ac64e930e6087"
+      "raw_sha256": "6bce259def14029783e55265a9b24b4ba83342092cad4b46798a22c60658f422",
+      "sha256": "e918377f225f2d687c6ca03769455c425c455ee4698aed5503af291439e6a17a"
     },
     "wsflow/module_services.py": {
-      "raw_sha256": "6c9c6bd93729b3f6380f0dc56fbcadf112754624f9f33f09ef87c710a728e6fc",
-      "sha256": "6c9c6bd93729b3f6380f0dc56fbcadf112754624f9f33f09ef87c710a728e6fc"
+      "raw_sha256": "53942d0be1f9b6afcfada4f530b0db12ace630151cf8f3f1608909fe77a98717",
+      "sha256": "53942d0be1f9b6afcfada4f530b0db12ace630151cf8f3f1608909fe77a98717"
     },
     "wsflow/modules/__init__.py": {
       "raw_sha256": "7fada1fc0d12154979d8068a4b71f6f48fba1f0f011255ca80e2c5a6a1564c42",
@@ -726,16 +750,16 @@
       "sha256": "a2500594655311c0d09943f20b9dde0971aa9489de801934ccf94c6698f83495"
     },
     "wsflow/modules/work_calendar/backend.py": {
-      "raw_sha256": "b46f5084dc87dfccfce85cc016f6b80d906237361721703e977696e944762d9e",
-      "sha256": "b46f5084dc87dfccfce85cc016f6b80d906237361721703e977696e944762d9e"
+      "raw_sha256": "6356e7948bc7ecc13ec9dda2182f2acad89c7b0f28a50648eb939812f5a62a42",
+      "sha256": "6356e7948bc7ecc13ec9dda2182f2acad89c7b0f28a50648eb939812f5a62a42"
     },
     "wsflow/modules/work_calendar/calendar_query.py": {
       "raw_sha256": "1cfe01913e70959ffaf7893d3d6be75c9513f90cee07174c608a30664a04b2f4",
       "sha256": "a39f32c8667b427ec9d82b390ebc8a2dff20946325d076661c03c13aaf053096"
     },
     "wsflow/modules/work_calendar/calendar_store.py": {
-      "raw_sha256": "78a77fba18168a949ef6cec74dba26cb9b32aad2842bbd6516e1b70bb354f0bd",
-      "sha256": "f1a8d79e82a57579a2c1b2418e6952651908f8b18c1c0a26cd0fd73b530204d3"
+      "raw_sha256": "9a2e128bc30a71afa93320e2883fb628a91a6e1e9f54d508a8840e970d3cbadc",
+      "sha256": "7ab70d0f62b5edd41c44b5010ff8348df5894bc6a8782b6162cd1e34e38a05c7"
     },
     "wsflow/modules/work_calendar/calendar_sync.py": {
       "raw_sha256": "feb7b57b71d4d7735570f576549a953c7a69480a671015d07ac4bcaa79df3d5f",
@@ -826,8 +850,8 @@
       "sha256": "b8d9dd6a3927e7b03317c07c7726d1d252df18ee9249938a7e4e569c5dd2a93b"
     },
     "wsflow/modules/work_calendar/wfhome.py": {
-      "raw_sha256": "6ed0fbf2ba0451e984208a097544a1db40c3be303f3981138f8c4a5b8941fee4",
-      "sha256": "fd9f9f8461b087e73fc4c7a1b6a7f2364ecf7bb8fc7e6a55776e3a2d5a6b7a21"
+      "raw_sha256": "f0068e580121ad340f5e916ddd517165573afd3377624890e240a616d72818a2",
+      "sha256": "a19f002ec8f285cf42d43b5b757ec22e627b34395caaf20228e9ec6148d2e577"
     },
     "wsflow/modules/work_calendar/wfinit.py": {
       "raw_sha256": "e4a0884ac5c617b8f60ccc4d55fbaab17300880b3ff2ab652b66f2cd1422ee1f",
@@ -846,8 +870,8 @@
       "sha256": "d8ad4c60c69ad0bd0bedd2066c0d011710ac9f48a18d52dca4bb26a2361c3a11"
     },
     "wsflow/modules/workspace_operations/backend.py": {
-      "raw_sha256": "fb8125b2e62a49c0325317f14a96cbd6bc21259a448ce9ec4e4e3c2468e4fda8",
-      "sha256": "fb8125b2e62a49c0325317f14a96cbd6bc21259a448ce9ec4e4e3c2468e4fda8"
+      "raw_sha256": "f632a7295de0478550dfdaa426812a48c074980421729d6ed253369c99a6906b",
+      "sha256": "f632a7295de0478550dfdaa426812a48c074980421729d6ed253369c99a6906b"
     },
     "wsflow/modules/workspace_operations/context_inventory.py": {
       "raw_sha256": "d07846ae509f9559524570bbbcd736f770f16615cc02bcba7e9f87e83f9b08af",
@@ -898,8 +922,8 @@
       "sha256": "d0c6019c5e5040f34465972c686a4e0c1a30071ad12957c350433c56dd2e2674"
     },
     "wsflow/operations.py": {
-      "raw_sha256": "f2e7a853ba8e861c40c5c40b6e05530034a0ade59f718b8c474ad98f07defde1",
-      "sha256": "f2e7a853ba8e861c40c5c40b6e05530034a0ade59f718b8c474ad98f07defde1"
+      "raw_sha256": "9f52b36821da2fe93aaeeb8b03d4296a46f7f146c3927bad560df0a09c1fcc53",
+      "sha256": "9f52b36821da2fe93aaeeb8b03d4296a46f7f146c3927bad560df0a09c1fcc53"
     },
     "wsflow/path_policy.py": {
       "raw_sha256": "8f618cc94e1107e86c47f1bdee089e886e3a470b6d77105d6f8bf166c14f24ee",
@@ -914,8 +938,8 @@
       "sha256": "ea447ca780bc036f6f7146926c0ae8cde5e4dde4e8e1c6d438ce18b95e57f04d"
     },
     "wsflow/runtime_activity.py": {
-      "raw_sha256": "00a46a8f4ff154b632841e09006756fdef1e385a8792552ac0ddb9e1fb5b6a0f",
-      "sha256": "00a46a8f4ff154b632841e09006756fdef1e385a8792552ac0ddb9e1fb5b6a0f"
+      "raw_sha256": "8a3a357449201a71e697aefc4de13334b651f68f9cdb37f1c7a0523e39c9a7f3",
+      "sha256": "8a3a357449201a71e697aefc4de13334b651f68f9cdb37f1c7a0523e39c9a7f3"
     },
     "wsflow/scanner.py": {
       "raw_sha256": "08346f3e3b7ac36e1247b5c1101dc66e73d221b5214d1f0218312b089ae79bc3",
@@ -934,8 +958,8 @@
       "sha256": "a86b5e05a13aa95b43745a6296463c149e5881823af72e48c85b26cfed84d74a"
     },
     "wsflow/store.py": {
-      "raw_sha256": "da8beb0d3c804b8d853bc9cae799cfa015868f1d95b9b5133e5589f30bbac430",
-      "sha256": "da8beb0d3c804b8d853bc9cae799cfa015868f1d95b9b5133e5589f30bbac430"
+      "raw_sha256": "e5e2099a4ff08088b3df9f694d311da1c0c056f9a7e9066671750b49615d12f8",
+      "sha256": "e5e2099a4ff08088b3df9f694d311da1c0c056f9a7e9066671750b49615d12f8"
     },
     "wsflow/wf_migrate.py": {
       "raw_sha256": "b0d5134ff46be90071d450e4a4af4d3c27a2565bc887249b1b083681c18a3098",
@@ -960,9 +984,13 @@
     "wsflow/writeplans.py": {
       "raw_sha256": "57b28dcdbfb68b9ea2a65c36bea53924367b74a5c22a7dda4513e01bf4d574ef",
       "sha256": "a4889370ca81e24841b2df85c41dc4bf8285b3bfc047cdfbe61a0da36d07b850"
+    },
+    "wsflow/writer_admission.py": {
+      "raw_sha256": "8bf9ecf8d757f6e80d2a0e603db31f61cd76ad01ffb74ae73807c0a6d27d07ff",
+      "sha256": "8bf9ecf8d757f6e80d2a0e603db31f61cd76ad01ffb74ae73807c0a6d27d07ff"
     }
   },
-  "fingerprint": "77122b751528f94f820ea17a01fea631b261dd7d5ea60f112bf2c7375a18178f",
+  "fingerprint": "415f952d6754b8566b81be8f6842e9f5c458a83e4c01417f9d1b1fea73159b55",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }

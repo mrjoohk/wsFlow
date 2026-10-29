@@ -1,0 +1,955 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_writer_host.py",
+    "-k",
+    "test_legacy_services_writing_context_is_optional"
+  ],
+  "timeout": 60,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "id": "WA_GATE_AROUND",
+      "name": "wa gate around",
+      "edits": [
+        {
+          "file": "wsflow/runtime_activity.py",
+          "func": "ActivityGate.activity",
+          "old": "with (self._around() if not depth else nullcontext()):",
+          "new": "with nullcontext():"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_context_covers_root_and_nested_completion_once"
+      ]
+    },
+    {
+      "id": "WA_HOST_BRIDGE",
+      "name": "wa host bridge",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.__init__",
+          "old": "self._activity = ActivityGate(around=self._writer_domain.activity)",
+          "new": "self._activity = ActivityGate()"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_peer_host_barrier_refuses_real_http_memo_and_registry_before_effect"
+      ]
+    },
+    {
+      "id": "WA_HOST_PROMOTE",
+      "name": "wa host promote",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.writer_activity",
+          "old": "with self._writer_domain.writing():",
+          "new": "with self._writer_domain.activity():"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_writing_promotes_outer_host_root_until_after_return"
+      ]
+    },
+    {
+      "id": "WA_HOST_STOP_REQUIRED",
+      "name": "wa host stop required",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.writer_barrier",
+          "old": "if (state['phase'] != 'stopped' or not self._stop_started or\n                    not state['stop_verified'] or state['accepting'] or state['in_flight'] != 0):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_verified_stop_is_required_and_lease_is_lexical"
+      ]
+    },
+    {
+      "id": "WA_QUIESCE_DOMAIN",
+      "name": "wa quiesce domain",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.quiesce",
+          "old": "if self._activity.in_activity() or self._writer_domain.in_activity():",
+          "new": "if self._activity.in_activity():"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_raw_domain_reentrant_control_does_not_change_host"
+      ]
+    },
+    {
+      "id": "WA_CLOSE_DOMAIN",
+      "name": "wa close domain",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.close",
+          "old": "if self._activity.in_activity() or self._writer_domain.in_activity():",
+          "new": "if self._activity.in_activity():"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_raw_domain_reentrant_control_does_not_change_host"
+      ]
+    },
+    {
+      "id": "WA_PLAN_WRITING",
+      "name": "wa plan writing",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.plan",
+          "old": "    @admitted\n    @writer_method\n    def plan(",
+          "new": "    @admitted\n    def plan("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_module_plan_and_apply_are_writers"
+      ]
+    },
+    {
+      "id": "WA_APPLY_WRITING",
+      "name": "wa apply writing",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.apply",
+          "old": "    @admitted\n    @writer_method\n    def apply(",
+          "new": "    @admitted\n    def apply("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_module_plan_and_apply_are_writers"
+      ]
+    },
+    {
+      "id": "WA_EXTENSION_WRITING",
+      "name": "wa extension writing",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.extension_request",
+          "old": "with self._writer_domain.writing():",
+          "new": "with self._writer_domain.activity():"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_installed_extension_handle_promotes_even_get_before_actual_file_effect"
+      ]
+    },
+    {
+      "id": "WA_CALENDAR_DISPATCH",
+      "name": "wa calendar dispatch",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/backend.py",
+          "func": "Service.dispatch",
+          "old": "with (self._writing() if method != 'GET' else nullcontext()):",
+          "new": "with nullcontext():"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_builtin_non_get_dispatch_promotes_before_route_effect"
+      ]
+    },
+    {
+      "id": "WA_WORKSPACE_DISPATCH",
+      "name": "wa workspace dispatch",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/backend.py",
+          "func": "Backend.dispatch",
+          "old": "with (self._writing() if method != 'GET' else nullcontext()):",
+          "new": "with nullcontext():"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_builtin_non_get_dispatch_promotes_before_route_effect"
+      ]
+    },
+    {
+      "id": "WA_RAW_01",
+      "name": "wa raw 01",
+      "edits": [
+        {
+          "file": "wsflow/store.py",
+          "func": "Store.add_project",
+          "old": "        with self._lock:\n            self._reload()\n            for pr in self.data[\"projects\"]:",
+          "new": "        with self._lock:\n            for pr in self.data[\"projects\"]:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_stale_registry_instances_preserve_each_others_projects"
+      ]
+    },
+    {
+      "id": "WA_RAW_02",
+      "name": "wa raw 02",
+      "edits": [
+        {
+          "file": "wsflow/store.py",
+          "func": "Store.update_project",
+          "old": "        with self._lock:\n            self._reload()\n            pr = self.get(pid)",
+          "new": "        with self._lock:\n            pr = self.get(pid)"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_stale_registry_updates_and_removals_do_not_resurrect_entries"
+      ]
+    },
+    {
+      "id": "WA_RAW_03",
+      "name": "wa raw 03",
+      "edits": [
+        {
+          "file": "wsflow/store.py",
+          "func": "Store.create_project",
+          "old": "    @writer_method\n    def create_project(",
+          "new": "    def create_project("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_barrier_refuses_registry_mutations_before_effect"
+      ]
+    },
+    {
+      "id": "WA_RAW_04",
+      "name": "wa raw 04",
+      "edits": [
+        {
+          "file": "wsflow/operations.py",
+          "func": "Store.connection",
+          "old": "        with self._writer_domain.writing() if write else nullcontext():",
+          "new": "        with nullcontext():"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_barrier_refuses_raw_sql_before_mkdir_open_or_ddl"
+      ]
+    },
+    {
+      "id": "WA_RAW_05",
+      "name": "wa raw 05",
+      "edits": [
+        {
+          "file": "wsflow/operations.py",
+          "func": "Store.create",
+          "old": "    @writer_method\n    def create(",
+          "new": "    def create("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_operation_root_includes_post_commit_readback"
+      ]
+    },
+    {
+      "id": "WA_RAW_06",
+      "name": "wa raw 06",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "func": "Service.apply",
+          "old": "    @writer_method\n    def apply(",
+          "new": "    def apply("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_memo_saga_holds_domain_through_receipt_and_sql_terminal"
+      ]
+    },
+    {
+      "id": "WA_RAW_07",
+      "name": "wa raw 07",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "func": "Service.preview",
+          "old": "    @writer_method\n    def preview(",
+          "new": "    def preview("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_bound_common_preview_refuses_before_lockfile_creation"
+      ]
+    },
+    {
+      "id": "WA_RAW_08",
+      "name": "wa raw 08",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/wfhome.py",
+          "func": "ensure_daily",
+          "old": "@writer_function\ndef ensure_daily(",
+          "new": "def ensure_daily("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_barrier_refuses_daily_creation_read_and_memo_write"
+      ]
+    },
+    {
+      "id": "WA_KERNEL_01",
+      "name": "wa kernel 01",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain.writing",
+          "old": "            if root.state is None:\n                self._begin(root)\n            yield\n",
+          "new": "            if root.state is None:\n                self._begin(root)\n            try:\n                yield\n            finally:\n                if root.state is not None:\n                    self._finish(root)\n                    root.state = None\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_nested_write_is_retained_until_outer_activity_returns"
+      ]
+    },
+    {
+      "id": "WA_KERNEL_02",
+      "name": "wa kernel 02",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain._begin",
+          "old": "        if state['active'] is not None:\n            lost.append(state['active']['root_id'])",
+          "new": "        if False:\n            lost.append(state['active']['root_id'])"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_abrupt_process_exit_preserves_unknown_and_later_writer_cannot_clear_it"
+      ]
+    },
+    {
+      "id": "WA_KERNEL_03",
+      "name": "wa kernel 03",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "_integer",
+          "old": "return type(value) is int and minimum <= value <= _MAX_INTEGER",
+          "new": "return isinstance(value, int) and minimum <= value <= _MAX_INTEGER"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_strict_state_schema_rejects_boolean_bounds_uuid_shape_and_extra_keys"
+      ]
+    },
+    {
+      "id": "WA_KERNEL_04",
+      "name": "wa kernel 04",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain.barrier",
+          "old": "(state['active'] is not None or state['interrupted_count'])):",
+          "new": "(state['active'] is not None)):"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_abrupt_process_exit_preserves_unknown_and_later_writer_cannot_clear_it"
+      ]
+    },
+    {
+      "id": "WA_KERNEL_05",
+      "name": "wa kernel 05",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "_BarrierLease.view",
+          "old": "        if (not owner.live or owner.thread != threading.get_ident() or\n                getattr(_local, 'root', None) is not owner or self.__token is not owner.token):",
+          "new": "        if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_barrier_view_cannot_be_used_by_another_thread"
+      ]
+    },
+    {
+      "id": "WA_KERNEL_06",
+      "name": "wa kernel 06",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain._locked",
+          "old": "                    locks.enter_context(fileio.locked(\n                        self.control_dir, max(0, deadline - time.monotonic())))",
+          "new": "                    pass"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_process_before_effect_refusal_then_success_after_barrier"
+      ]
+    },
+    {
+      "id": "WA_KERNEL_07",
+      "name": "wa kernel 07",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain._begin",
+          "old": "if state['epoch'] > _MAX_INTEGER - 2:",
+          "new": "if state['epoch'] > _MAX_INTEGER - 1:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_duplicate_json_fields_and_epoch_exhaustion_are_refused"
+      ]
+    },
+    {
+      "id": "WA_KERNEL_08",
+      "name": "wa kernel 08",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain.barrier",
+          "old": "        self._nested('barrier')",
+          "new": "        pass"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_reentrance_refuses_before_effect_and_barrier_view_expires"
+      ]
+    },
+    {
+      "id": "WA_BARRIER_CONTROL",
+      "name": "wa barrier control",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain.in_activity",
+          "old": "return bool(root is not None and\n                    root.domain._key == self._key and root.live)",
+          "new": "return bool(root is not None and root.kind == 'activity' and\n                    root.domain._key == self._key and root.live)"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_host.py",
+        "-k",
+        "test_raw_barrier_reentrant_control_does_not_change_host"
+      ]
+    },
+    {
+      "id": "WA_LOCAL_UNKNOWN",
+      "name": "wa local unknown",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain._retain_failure",
+          "old": "_uncertain[self._key] = cookie",
+          "new": "pass"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_end_ack_loss_and_compensation_failure_keep_local_unknown_latch"
+      ]
+    },
+    {
+      "id": "WA_LEGACY_ROOT",
+      "name": "wa legacy root",
+      "edits": [
+        {
+          "file": "wsflow/common_writes.py",
+          "func": "Service.legacy",
+          "old": "    @writer_method\n    def legacy(",
+          "new": "    def legacy("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_legacy_root_spans_preview_and_apply_without_barrier_gap"
+      ]
+    },
+    {
+      "id": "WA_APPROVE_ROOT",
+      "name": "wa approve root",
+      "edits": [
+        {
+          "file": "wsflow/operations.py",
+          "func": "Store.approve",
+          "old": "    @writer_method\n    def approve(",
+          "new": "    def approve("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_roots.py",
+        "-k",
+        "test_approve_root_includes_committed_result_readback"
+      ]
+    },
+    {
+      "id": "WA_METADATA_RETRY",
+      "name": "wa metadata retry",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain._write",
+          "old": "time.sleep(.01 * 2 ** attempt)",
+          "new": "raise"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_metadata_native_begin_sharing_retry_registers_project_once"
+      ]
+    },
+    {
+      "id": "WA_METADATA_BOUND",
+      "name": "wa metadata bound",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain._write",
+          "old": "attempt == 5",
+          "new": "attempt == 4"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_metadata_permanent_windows_denial_is_bounded_before_effect"
+      ]
+    },
+    {
+      "id": "WA_METADATA_ERRORS",
+      "name": "wa metadata errors",
+      "edits": [
+        {
+          "file": "wsflow/writer_admission.py",
+          "func": "WriterDomain._write",
+          "old": "getattr(error, 'winerror', None) not in (5, 32, 33)",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_writer_admission.py",
+        "-k",
+        "test_metadata_other_error_codes_and_types_do_not_retry"
+      ]
+    }
+  ]
+}

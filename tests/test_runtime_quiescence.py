@@ -179,8 +179,10 @@ class RuntimeHostTests(RuntimeFixture, unittest.TestCase):
         release,thread=self.held_activity()
         self.host.quiesce(0,0)
         self.assertTrue(self.host.resume_activity()['accepting'])
-        with self.services.activity():pass
+        # Resuming host admission does not bypass the cooperative domain's
+        # single-root lease. Let the admitted root complete before a new one.
         release.set();thread.join(3);self.assertFalse(thread.is_alive())
+        with self.services.activity():pass
 
     def test_control_from_an_admitted_thread_leaves_runtime_open(self):
         with self.services.activity():

@@ -39,6 +39,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from wsflow import fileio
+from wsflow.writer_admission import writer_function
 
 VENDOR = Path(__file__).resolve().parent / "vendor" / "jira_worklog"
 from .vendor_loader import load as _load_vendor
@@ -211,6 +212,7 @@ SKELETON = (f"# {{ymd}}\n\n## 진행 메모\n\n{MEMO_START}\n"
             f"{MEMO_END}\n")
 
 
+@writer_function
 def ensure_daily(wf_home: str | Path, ymd: str) -> Path:
     """없으면 **메모 구획만 있는** 파일을 만든다.
 
@@ -225,6 +227,7 @@ def ensure_daily(wf_home: str | Path, ymd: str) -> Path:
     return p
 
 
+@writer_function
 def read_memo(wf_home: str | Path, ymd: str) -> dict:
     daily_path(wf_home, ymd)
     with fileio.locked(wf_home):
@@ -234,6 +237,7 @@ def read_memo(wf_home: str | Path, ymd: str) -> dict:
                 "text": memo, "sha": sha(memo), "parsed": parse_memo(memo)}
 
 
+@writer_function
 def write_memo(wf_home: str | Path, ymd: str, text: str, expected_sha: str,
                document_id: str | None = None) -> dict:
     """메모 구획만 바꾼다. 해시가 다르면 아무것도 쓰지 않고 현재 내용을 돌려준다."""

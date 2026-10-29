@@ -203,7 +203,13 @@
       "spec": "ci/specs/runtime_activity.json",
       "count": 23,
       "source": "rd/module_runtime_contracts.md"
+    },
+    {
+      "stage": "writer_admission",
+      "spec": "ci/specs/writer_admission.json",
+      "count": 34,
+      "source": "rd/module_writer_contracts.md"
     }
   ],
-  "total": 425
+  "total": 459
 }

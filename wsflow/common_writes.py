@@ -9,6 +9,7 @@ import time
 
 from . import fileio, operations
 from .write_context import binding
+from .writer_admission import writer_method
 
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
@@ -25,6 +26,7 @@ class Service:
         self.project=project;self.kind=kind
         self.home=Path(home if kind=='memo' else project['path']).resolve()
         self.store=operations.Store(self.home)
+        self._writer_domain=self.store._writer_domain
         self.binding={**binding(project,self.home),'write_kind':kind}
         self.lock=self.home if kind=='memo' else self.store.path.parent/'common-locks'/operations.digest(str(self.home))
 
@@ -109,6 +111,7 @@ class Service:
                     and op['operation_id']!=exclude and op['status'] in ('executing','uncertain')):
                 raise operations.StateConflict('미확인 작업 '+op['operation_id']+'의 결과를 먼저 확인하십시오')
 
+    @writer_method
     def preview(self,action,payload):
         with fileio.locked(self.lock):
             observed_at=time.time()
@@ -167,6 +170,7 @@ class Service:
                 raise self.memo.MemoConflict(memo,self.memo.sha(memo))
         return {**op['result'],'plan_id':plan['plan_id'],'operation_id':op['operation_id'],'status':op['status'],'reused':reused}
 
+    @writer_method
     def apply(self,plan_id,ident):
         with fileio.locked(self.lock):
             plan,op=self._selected(plan_id,ident)
@@ -222,6 +226,7 @@ class Service:
                 if plan.get('binding')==self.binding:rows.append(self.status(op['operation_id']))
         return rows
 
+    @writer_method
     def check(self,ident):
         with fileio.locked(self.lock):
             observed=self.status(ident);plan,op=self._selected(observed['plan_id'],ident)
@@ -260,6 +265,7 @@ class Service:
             self.store.finish(ident,'succeeded',result)
             return {**self.status(ident),'result':self._result(plan,self.store.get(ident),True),'reconciled':True}
 
+    @writer_method
     def legacy(self,action,payload):
         plan=self.preview(action,payload)
         return {**self.apply(plan['plan_id'],plan['operation_id']),'legacy_single_request':True}

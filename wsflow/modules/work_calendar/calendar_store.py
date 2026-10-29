@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from wsflow import operations, calendar_identity
+from wsflow.writer_admission import writer_method
 from .calendar_query import iso_date
 from .wfhome import wf_home_for
 
@@ -125,6 +126,7 @@ class Store(operations.Store):
         if op.get('identity_version') != calendar_identity.VERSION or op['project_bindings'] != self._bindings(projects, op['bound_project_ids']):
             raise Conflict('프로젝트 연결이 바뀌었거나 이전 계획입니다 — 다시 확인하십시오')
 
+    @writer_method
     def preview(self, request, projects, google_target=None):
         self._storage_boundary(projects)
         if not isinstance(request, dict) or set(request) - {'action','kind','id','expected_revision','payload','rebind_project_ids'}:
@@ -174,6 +176,7 @@ class Store(operations.Store):
         return {'schema_version':2, 'plan_id':plan['plan_id'], 'operation_id':plan['items'][0]['operation_id'],
                 'expires_at':plan['expires_at'], 'item':plan['items'][0]}
 
+    @writer_method
     def apply(self, plan_id, operation_id, projects):
         self._storage_boundary(projects)
         plan = self.plan(plan_id)

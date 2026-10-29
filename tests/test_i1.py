@@ -55,8 +55,15 @@ class MemoSafetyTests(I1Home):
             m=wfhome.read_memo(self.home,'261017')
         self.assertEqual(len(set(backups)),3)
         before=(self.home/'daily/261017.md').read_bytes()
-        with mock.patch('wsflow.fileio.os.replace',side_effect=OSError('interrupted')):
+        replace=os.replace;target=self.home/'daily/261017.md';faults=[]
+        def interrupted(source,destination):
+            if Path(destination)==target:
+                faults.append(destination)
+                raise OSError('interrupted')
+            return replace(source,destination)
+        with mock.patch('wsflow.fileio.os.replace',side_effect=interrupted):
             with self.assertRaises(OSError):wfhome.write_memo(self.home,'261017','must not replace',m['sha'])
+        self.assertEqual(faults,[target])
         self.assertEqual((self.home/'daily/261017.md').read_bytes(),before)
 
     def test_actual_dates_and_document_identity_are_checked(self):
@@ -71,6 +78,8 @@ class MemoSafetyTests(I1Home):
         memo=wfhome.read_memo(self.home,'261017')
         original=fileio.atomic_write
         def outside_edit(path,data,before_replace=None):
+            if Path(path)!=self.home/'daily/261017.md':
+                return original(path,data,before_replace)
             body=Path(path).read_text(encoding='utf-8')
             Path(path).write_text(body.replace(wfhome.MEMO_START,wfhome.MEMO_START+'\nexternal change'),encoding='utf-8')
             return original(path,data,before_replace)

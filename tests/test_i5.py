@@ -124,10 +124,12 @@ class ContextSetupTests(unittest.TestCase):
         self.root_init();p=self.plan();real=ctx.fileio.atomic_write;count=0
         def fail(path,data,**kwargs):
             nonlocal count
+            if not Path(path).is_relative_to(self.root):return real(path,data,**kwargs)
             count+=1
             if count==3:raise OSError('injected write failure')
             return real(path,data,**kwargs)
         with mock.patch.object(ctx.fileio,'atomic_write',side_effect=fail):r=self.apply(p)
+        self.assertEqual(count,3)
         self.assertEqual(r['status'],'uncertain')
         with self.assertRaises(operations.StateConflict):self.apply(p)
         service=ctx.Service(self.store);r=service.apply(self.a['id'],p['plan_id'],p['operation_id'],recover=True)
@@ -137,10 +139,12 @@ class ContextSetupTests(unittest.TestCase):
         self.root_init();p=self.plan();real=ctx.fileio.atomic_write;count=0
         def fail(path,data,**kwargs):
             nonlocal count
+            if not Path(path).is_relative_to(self.root):return real(path,data,**kwargs)
             count+=1
             if count==2:raise OSError('injected')
             return real(path,data,**kwargs)
         with mock.patch.object(ctx.fileio,'atomic_write',side_effect=fail):self.assertEqual(self.apply(p)['status'],'uncertain')
+        self.assertEqual(count,2)
         first=Path(p['actions'][0]['path']);put(first,'LATER USER');before=files(self.root)
         with self.assertRaises(operations.StateConflict):self.apply(p,recover=True)
         self.assertEqual(files(self.root),before)
@@ -201,7 +205,9 @@ class ContextSetupTests(unittest.TestCase):
         self.root_init();p=self.plan();real=ctx.fileio.atomic_write;count=0
         def changed(path,data,**kwargs):
             nonlocal count
-            result=real(path,data,**kwargs);count+=1
+            result=real(path,data,**kwargs)
+            if not Path(path).is_relative_to(self.root):return result
+            count+=1
             if count==1:put(self.root/'skills/alpha/references/a.md','LATE SOURCE USER EDIT')
             return result
         with mock.patch.object(ctx.fileio,'atomic_write',side_effect=changed):r=self.apply(p)

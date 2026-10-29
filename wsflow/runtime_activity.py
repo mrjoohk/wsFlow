@@ -67,7 +67,8 @@ class ActivityGate:
     closed and existing leases intact; pause can be retried or resume requested.
     """
 
-    def __init__(self):
+    def __init__(self, around=None):
+        self._around = normalize_activity(around)
         self._condition = threading.Condition()
         self._local = threading.local()
         self._accepting = True
@@ -88,7 +89,10 @@ class ActivityGate:
                 self._in_flight += 1
             self._local.depth = depth + 1
         try:
-            yield
+            # Only the outer root owns an external context. Its lifetime covers
+            # every nested call, including cleanup and terminal-state writes.
+            with (self._around() if not depth else nullcontext()):
+                yield
         finally:
             with self._condition:
                 self._local.depth -= 1

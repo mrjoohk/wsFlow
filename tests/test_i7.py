@@ -293,10 +293,21 @@ class BatchTests(Home):
 
     def test_concurrent_batches_serialize_without_original_memo_loss(self):
         memo=wfhome.read_memo(self.home,'261018');wfhome.write_memo(self.home,'261018','THREAD PRIVATE',memo['sha']);original=wfhome.read_memo(self.home,'261018')['text']
-        with concurrent.futures.ThreadPoolExecutor(2) as pool:results=list(pool.map(lambda _:self.run_batch(),range(2)))
+        start=threading.Barrier(2)
+        def run(_):
+            start.wait()
+            try:return self.run_batch()
+            except fileio.LockBusy:return None
+        with concurrent.futures.ThreadPoolExecutor(2) as pool:results=list(pool.map(run,range(2)))
+        # A root exceeding the existing five-second lock wait can refuse its
+        # peer before allocating a run. Retry that request once after drain.
+        self.assertGreaterEqual(sum(r is not None for r in results),1)
+        results=[self.run_batch() if r is None else r for r in results]
         self.assertEqual([r['status'] for r in results],['succeeded','succeeded'],results)
         self.assertNotEqual(results[0]['run_id'],results[1]['run_id']);self.assertEqual(wfhome.read_memo(self.home,'261018')['text'],original)
         self.assertIn(wfhome.read_state(self.home)['last_batch']['run_id'],[r['run_id'] for r in results])
+        self.assertEqual({p.name for p in (self.home/'.workflow/batches').iterdir() if p.is_dir()},
+                         {r['run_id'] for r in results})
 
 
 class ReadCreateTests(Home):

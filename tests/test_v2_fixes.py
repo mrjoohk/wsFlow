@@ -131,7 +131,10 @@ class MigrationTests(Home):
             if Path(path)==wfhome.state_path(self.home):raise OSError('response lost after replacement')
         with mock.patch.object(fileio,'atomic_write',side_effect=lost):
             with self.assertRaises(OSError):self.apply_plan(p)
-        with mock.patch.object(fileio,'atomic_write',side_effect=AssertionError('must not replace again')):
+        def no_second_effect(path,*args,**kwargs):
+            if Path(path)==wfhome.state_path(self.home):raise AssertionError('must not replace again')
+            return real(path,*args,**kwargs)
+        with mock.patch.object(fileio,'atomic_write',side_effect=no_second_effect):
             self.assertTrue(self.apply_plan(p)['reconciled'])
         self.assertEqual(wfhome.read_state(self.home),{**self.state,'schema_version':4})
 

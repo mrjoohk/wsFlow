@@ -7,6 +7,7 @@ adopting another implementation's data require a future explicit contract.
 from __future__ import annotations
 
 import copy
+from contextlib import contextmanager
 import hashlib
 import importlib
 import importlib.util
@@ -23,6 +24,7 @@ from uuid import uuid4
 from . import fileio, operations, module_continuity
 from .path_policy import plain_path
 from .runtime_activity import ActivityGate, ActivityUnavailable, admitted, validate_timeout
+from .writer_admission import default_domain, writer_method
 
 HOST_API = 1
 MAX_FILES = 2000
@@ -265,7 +267,8 @@ def _validate_modules(modules):
 class ModuleHost:
     """One immutable active generation and a separately revisioned desired state."""
     def __init__(self, registry):
-        self._activity = ActivityGate()
+        self._writer_domain = default_domain()
+        self._activity = ActivityGate(around=self._writer_domain.activity)
         self._runtime_control = threading.Lock()
         self._runtime_view = threading.Lock()
         self._runtime_phase = 'running'
@@ -390,6 +393,35 @@ class ModuleHost:
         """Admit one host-mediated synchronous operation, including nested work."""
         return self._activity()
 
+    @contextmanager
+    def writer_activity(self):
+        """Keep a promoted write inside the complete host activity root."""
+        with self.activity():
+            with self._writer_domain.writing():
+                yield
+
+    @contextmanager
+    def writer_barrier(self, timeout=5):
+        """Fence one cooperative domain after this host's verified stock stop.
+
+        The returned lexical lease is a domain observation, not a snapshot or
+        activation permit. Other domains and uncooperative writers are excluded.
+        """
+        timeout = validate_timeout(timeout)
+        if self._activity.in_activity() or self._writer_domain.in_activity():
+            raise ActivityUnavailable('reentrant_writer_barrier')
+        if not self._runtime_control.acquire(blocking=False):
+            raise ModuleError('호스트 정지 제어가 진행 중입니다', 409)
+        try:
+            state = self.runtime_snapshot()
+            if (state['phase'] != 'stopped' or not self._stop_started or
+                    not state['stop_verified'] or state['accepting'] or state['in_flight'] != 0):
+                raise ModuleError('검증된 worker 정지와 작업 배출이 필요합니다', 409)
+            with self._writer_domain.barrier(timeout) as lease:
+                yield lease
+        finally:
+            self._runtime_control.release()
+
     def runtime_snapshot(self):
         with self._runtime_view:
             # Read admission before releasing the lifecycle observation lock;
@@ -445,7 +477,7 @@ class ModuleHost:
         """
         drain_timeout = validate_timeout(drain_timeout, 'drain_timeout')
         stop_timeout = validate_timeout(stop_timeout, 'stop_timeout')
-        if self._activity.in_activity():
+        if self._activity.in_activity() or self._writer_domain.in_activity():
             raise ActivityUnavailable('reentrant_pause')
         if not self._runtime_control.acquire(blocking=False):
             raise ModuleError('호스트 정지 제어가 진행 중입니다', 409)
@@ -594,6 +626,7 @@ class ModuleHost:
         self.extensions[record['id']] = service
 
     @admitted
+    @writer_method
     def plan(self, body):
         if self.configuration_error:
             raise ModuleError('손상 구성을 자동 초기화하지 않습니다: ' + self.configuration_error, 409)
@@ -732,6 +765,7 @@ class ModuleHost:
         return pinned
 
     @admitted
+    @writer_method
     def apply(self, plan_id):
         if self.configuration_error:
             raise ModuleError('손상 구성은 자동 변경하지 않습니다', 409)
@@ -796,7 +830,8 @@ class ModuleHost:
             raise ModuleError('외부 확장 API가 없습니다', 404)
         if not callable(getattr(service, 'handle', None)):
             raise ModuleError('이 모듈의 확장 API가 없습니다', 404)
-        return service.handle(method, rest, query, body)
+        with self._writer_domain.writing():
+            return service.handle(method, rest, query, body)
 
     def asset(self, ident, rel):
         if ident in self.errors:
@@ -817,7 +852,7 @@ class ModuleHost:
         if not self._runtime_control.acquire(blocking=False):
             return False
         try:
-            if self._activity.in_activity():
+            if self._activity.in_activity() or self._writer_domain.in_activity():
                 return False
             self._runtime_state('draining')
             if not self._activity.pause(drain_timeout):
