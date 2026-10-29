@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-28T14:31:35.557336+00:00",
+  "created_at": "2026-10-29T00:48:22.834471+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "9c4e1d5116114579583bf77d597b3f6b61c59cca998ce7909afc79b6d87a0f6b",
@@ -50,8 +50,8 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "a2b53f0a14542ea699db2f2fd00c7ec35613a5be5c17544946e474f7171f9007",
-      "sha256": "12b41c273d7ff901ce3843606805423c299b07ab3ed8b40a4b3a8fb91a666dd5"
+      "raw_sha256": "6611bf581c3b34339314812d4a79637a461b8fa3ddcad64f560c760b9b07570f",
+      "sha256": "28067b99f96fe518ecc8eb178197a0a7500693da93b175025cb76791d3122dc9"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "6c77009186cc2a5cf84fda712c76a129fd36e20dc548b669c8be911fbc326a8e",
@@ -938,7 +938,7 @@
       "sha256": "a4889370ca81e24841b2df85c41dc4bf8285b3bfc047cdfbe61a0da36d07b850"
     }
   },
-  "fingerprint": "95058e1af72288f34fa9e96e771f481ab0e1141abf233ab4641e6f3982045c7c",
+  "fingerprint": "932588bd238f8bb96675c2947fde9e49cd5d49c2ba6ae03fccd1ae501133d7cd",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }
