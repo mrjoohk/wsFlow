@@ -191,8 +191,9 @@
       "edits": [
         {
           "file": "wsflow/module_host.py",
-          "old": "            try:\n                stop = getattr(service, 'stop', None)\n                if callable(stop)",
-          "new": "            stop = getattr(service, 'stop', None)\n            try:\n                if callable(stop)"
+          "func": "ModuleHost.close",
+          "old": "                try:\n                    stop = getattr(services[ident], 'stop', None)\n                    stopped = not callable(stop) or stop() is not False",
+          "new": "                stop = getattr(services[ident], 'stop', None)\n                try:\n                    stopped = not callable(stop) or stop() is not False"
         }
       ],
       "test": [

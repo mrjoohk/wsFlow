@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from wsflow.module_services import ApiError
+from wsflow.runtime_activity import admitted, normalize_activity
 from . import gitops
 from .routes import Routes
 
@@ -9,19 +10,28 @@ from .routes import Routes
 class Backend:
     def __init__(self, context):
         self.services = context['services']
+        activity = getattr(self.services, 'activity', None)
+        self._activity = normalize_activity(activity)
+        self._activity_bound = activity is not None
         self.started = False
 
+    @admitted
     def start(self):
         self.started = True
         return True
 
-    def stop(self):
+    def runtime_quiescence(self):
+        return {'api': 1, 'activity_bound': self._activity_bound, 'owns_runtime': True}
+
+    def stop(self, timeout=None):
         self.started = False
         return True
 
+    @admitted
     def summary(self, project):
         return Routes(None, self.services)._summary(project)
 
+    @admitted
     def dispatch(self, request, method, path, query, body):
         try:
             return Routes(request, self.services).dispatch(method, path, query, body)

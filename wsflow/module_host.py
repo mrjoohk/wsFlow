@@ -16,10 +16,13 @@ import os
 from pathlib import Path
 import re
 import sys
+import threading
+import time
 from uuid import uuid4
 
 from . import fileio, operations, module_continuity
 from .path_policy import plain_path
+from .runtime_activity import ActivityGate, ActivityUnavailable, admitted, validate_timeout
 
 HOST_API = 1
 MAX_FILES = 2000
@@ -262,6 +265,12 @@ def _validate_modules(modules):
 class ModuleHost:
     """One immutable active generation and a separately revisioned desired state."""
     def __init__(self, registry):
+        self._activity = ActivityGate()
+        self._runtime_control = threading.Lock()
+        self._runtime_view = threading.Lock()
+        self._runtime_phase = 'running'
+        self._stop_started = False
+        self._stop_verified = False
         self.registry = str(Path(registry).resolve())
         base = Path(os.environ.get('WSFLOW_DATA_DIR') or (Path(os.environ.get('APPDATA') or Path.home() / '.config') / 'wsFlow')).expanduser().absolute()
         self.root = base / 'modules' / operations.digest(self.registry)
@@ -374,7 +383,112 @@ class ModuleHost:
         return {'schema_version': 1, 'revision': desired['revision'], 'active_revision': self._active['revision'],
                 'restart_required': desired['modules'] != self._active['modules'], 'configuration_error': error,
                 'storage_warning': self.storage_warning,
-                'modules': rows, 'catalog': [_bundled_record(ident) for ident in BUILTINS]}
+                'modules': rows, 'catalog': [_bundled_record(ident) for ident in BUILTINS],
+                'runtime_activity': self.runtime_snapshot()}
+
+    def activity(self):
+        """Admit one host-mediated synchronous operation, including nested work."""
+        return self._activity()
+
+    def runtime_snapshot(self):
+        with self._runtime_view:
+            # Read admission before releasing the lifecycle observation lock;
+            # a later verified stop cannot be combined with stale open admission.
+            activity = self._activity.snapshot()
+            return {'schema_version': 1, 'scope': 'host_mediated_runtime', **activity,
+                    'phase': self._runtime_phase, 'stop_verified': self._stop_verified,
+                    'stop_results': dict(self.stop_results), 'snapshot_ready': False}
+
+    def _runtime_state(self, phase, *, started=None, verified=None):
+        with self._runtime_view:
+            self._runtime_phase = phase
+            if started is not None:
+                self._stop_started = started
+            if verified is not None:
+                self._stop_verified = verified
+
+    def _stop_observation(self, ident, complete):
+        with self._runtime_view:
+            self.stop_results[ident] = complete
+        if complete:
+            self.started_backends.discard(ident)
+
+    def _quiescence_participants(self):
+        """Trust only this generation's current stock, owned activity protocol."""
+        if self.configuration_error or self.services is None or getattr(self.services, 'module_host', None) is not self:
+            raise ModuleError('호스트 작업 경계를 확인할 수 없습니다', 409)
+        participants = []
+        for ident in self._dependency_order():
+            record = self._active['modules'][ident]
+            if (ident not in BUILTINS or not record.get('builtin') or
+                    record.get('package_digest') != _bundled_record(ident)['package_digest']):
+                raise ModuleError('이 패키지의 정지 계약은 아직 지원하지 않습니다: ' + ident, 409)
+            backend = self.backends.get(ident)
+            if backend is None or (ident not in self.started_backends and not self._stop_started):
+                raise ModuleError('모듈 기동 상태를 확인할 수 없습니다: ' + ident, 409)
+            try:
+                contract = backend.runtime_quiescence()
+            except Exception as exc:
+                raise ModuleError('모듈 작업 경계를 확인할 수 없습니다: ' + ident, 409) from exc
+            if (not isinstance(contract, dict) or type(contract.get('api')) is not int or contract['api'] != 1 or
+                    contract.get('activity_bound') is not True or contract.get('owns_runtime') is not True):
+                raise ModuleError('호스트가 소유한 작업 정지를 확인할 수 없습니다: ' + ident, 409)
+            participants.append((ident, backend))
+        return participants
+
+    def quiesce(self, drain_timeout=5, stop_timeout=5):
+        """Drain admitted work and verify owned stock workers; no snapshot grant.
+
+        Timeouts are seconds in [0, 30]. A drain timeout starts no stop. Once
+        stop begins this host remains closed, including failures; retry can
+        re-observe completion but resume requires a new host generation.
+        """
+        drain_timeout = validate_timeout(drain_timeout, 'drain_timeout')
+        stop_timeout = validate_timeout(stop_timeout, 'stop_timeout')
+        if self._activity.in_activity():
+            raise ActivityUnavailable('reentrant_pause')
+        if not self._runtime_control.acquire(blocking=False):
+            raise ModuleError('호스트 정지 제어가 진행 중입니다', 409)
+        try:
+            if self._runtime_phase == 'closed':
+                raise ModuleError('종료한 호스트는 새 프로세스에서 다시 기동하십시오', 409)
+            participants = self._quiescence_participants()
+            self._runtime_state('draining', verified=False)
+            if not self._activity.pause(drain_timeout):
+                return self.runtime_snapshot()
+            # An admitted operation may change runtime ownership while draining.
+            # Validate the final participants before starting any stop operation.
+            participants = self._quiescence_participants()
+            self._runtime_state('stopping', started=True)
+            deadline = time.monotonic() + stop_timeout
+            complete = True
+            for ident, backend in reversed(participants):
+                try:
+                    stopped = backend.stop(timeout=max(0, deadline - time.monotonic())) is True
+                    if stopped and self.errors.get(ident, '').startswith('stop failed:'):
+                        self.errors.pop(ident, None)
+                except Exception as exc:
+                    self.errors[ident] = 'stop failed: ' + str(exc)
+                    stopped = False
+                self._stop_observation(ident, stopped)
+                complete = complete and stopped
+            self._runtime_state('stopped' if complete else 'stop_failed', verified=complete)
+            return self.runtime_snapshot()
+        finally:
+            self._runtime_control.release()
+
+    def resume_activity(self):
+        """Cancel a pre-stop pause; a stopped/failed-stop generation cannot resume."""
+        if not self._runtime_control.acquire(blocking=False):
+            raise ModuleError('호스트 정지 제어가 진행 중입니다', 409)
+        try:
+            if self._stop_started or self._runtime_phase == 'closed':
+                raise ModuleError('worker 정지 후에는 새 프로세스에서 다시 기동하십시오', 409)
+            self._activity.resume()
+            self._runtime_state('running', verified=False)
+            return self.runtime_snapshot()
+        finally:
+            self._runtime_control.release()
 
     def _loaded_package(self, record):
         if record.get('source_kind') == 'bundled' and record['builtin']:
@@ -403,6 +517,7 @@ class ModuleHost:
             visit(ident)
         return ordered
 
+    @admitted
     def bind_services(self, services):
         """Bind core API v1 without starting any package-owned worker."""
         if self.services is not None:
@@ -437,6 +552,7 @@ class ModuleHost:
             except Exception as exc:
                 self.errors[ident] = type(exc).__name__ + ': ' + str(exc)
 
+    @admitted
     def start_backends(self):
         for ident in self._dependency_order():
             if not self.active(ident):
@@ -477,6 +593,7 @@ class ModuleHost:
             raise ModuleError('모듈 handle 계약이 없습니다')
         self.extensions[record['id']] = service
 
+    @admitted
     def plan(self, body):
         if self.configuration_error:
             raise ModuleError('손상 구성을 자동 초기화하지 않습니다: ' + self.configuration_error, 409)
@@ -614,6 +731,7 @@ class ModuleHost:
         self._stage_package(source, inspected, pinned)
         return pinned
 
+    @admitted
     def apply(self, plan_id):
         if self.configuration_error:
             raise ModuleError('손상 구성은 자동 변경하지 않습니다', 409)
@@ -664,6 +782,7 @@ class ModuleHost:
             fileio.atomic_write(self.state_path, _bytes(after))
             return self.snapshot()
 
+    @admitted
     def extension_request(self, method, ident, rest, query, body):
         if ident in self.errors:
             raise ModuleError('모듈 기동에 실패했습니다: ' + ident, 503)
@@ -692,23 +811,32 @@ class ModuleHost:
             raise ModuleError('제공하지 않는 모듈 자산입니다', 404)
         return path.read_bytes(), mimetypes.guess_type(path.name)[0] or 'application/octet-stream'
 
-    def close(self):
-        complete = True
-        services = {**self.extensions, **self.backends}
-        for ident in reversed(self._dependency_order()):
-            if ident not in services:
-                continue
-            service = services[ident]
-            try:
-                stop = getattr(service, 'stop', None)
-                if callable(stop) and stop() is False:
-                    complete = False
-                    self.stop_results[ident] = False
-                else:
-                    self.stop_results[ident] = True
-            except Exception as exc:
-                self.errors[ident] = 'stop failed: ' + str(exc)
-                self.stop_results[ident] = False
-                complete = False
-            self.started_backends.discard(ident)
-        return complete
+    def close(self, drain_timeout=5):
+        """Drain before legacy cleanup; legacy stop values are not strict proof."""
+        drain_timeout = validate_timeout(drain_timeout, 'drain_timeout')
+        if not self._runtime_control.acquire(blocking=False):
+            return False
+        try:
+            if self._activity.in_activity():
+                return False
+            self._runtime_state('draining')
+            if not self._activity.pause(drain_timeout):
+                return False
+            self._runtime_state('stopping', started=True, verified=False)
+            complete = True
+            services = {**self.extensions, **self.backends}
+            for ident in reversed(self._dependency_order()):
+                if ident not in services:
+                    continue
+                try:
+                    stop = getattr(services[ident], 'stop', None)
+                    stopped = not callable(stop) or stop() is not False
+                except Exception as exc:
+                    self.errors[ident] = 'stop failed: ' + str(exc)
+                    stopped = False
+                self._stop_observation(ident, stopped)
+                complete = complete and stopped
+            self._runtime_state('closed' if complete else 'stop_failed', verified=False)
+            return complete
+        finally:
+            self._runtime_control.release()

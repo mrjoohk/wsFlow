@@ -15,6 +15,7 @@ from uuid import uuid4
 
 from . import calendar_store, google_calendar as google
 from wsflow import operations
+from wsflow.runtime_activity import admitted, normalize_activity
 
 
 def ensure(db):
@@ -120,13 +121,16 @@ def on_local_save(db, current, record, op):
 
 
 class Engine:
-    def __init__(self, local, service):
+    def __init__(self, local, service, activity=None):
+        self._activity = normalize_activity(activity)
         self.local,self.google = local,service
 
+    @admitted
     def links(self):
         with self.local.connection() as db:
             return links_in(db)
 
+    @admitted
     def scope(self):
         """Account/selection identifiers for linked project filters, without HTTP."""
         token=self.google.credentials.load()
@@ -134,6 +138,7 @@ class Engine:
         return {'events':[],'sources':[{'source_id':'google:'+operations.digest([token['sub'],cid]),'kind':'google'} for cid in selected],
                 'complete':True,'connected':bool(token)}
 
+    @admitted
     def operation(self, ident):
         with self.local.connection() as db:
             if db is None or not db.execute("SELECT 1 FROM sqlite_master WHERE name='calendar_outbox'").fetchone():
@@ -144,6 +149,7 @@ class Engine:
         return {'id':row['id'],'intent':json.loads(row['intent']),'state':row['state'],
                 'result':json.loads(row['result']) if row['result'] else None,'error':row['error']}
 
+    @admitted
     def status(self):
         token = self.google.credentials.load()
         links = [l for l in self.links() if token and l['account_id']==token['sub']]
@@ -166,6 +172,7 @@ class Engine:
             raise operations.StateConflict('Google 쓰기 권한과 캘린더 권한을 확인하십시오')
         return token
 
+    @admitted
     def target(self, calendar):
         if not isinstance(calendar,str) or not calendar:
             raise ValueError('저장할 캘린더를 선택하십시오')
@@ -181,6 +188,7 @@ class Engine:
                 return None
             raise
 
+    @admitted
     def preview(self, request, projects):
         self.local._storage_boundary(projects)
         if not isinstance(request,dict) or set(request)-{'action','local_id','expected_revision','calendar_id','resolution','remote_etag'}:
@@ -227,6 +235,7 @@ class Engine:
             return {'plan_id':plan['plan_id'],'operation_id':plan['items'][0]['operation_id'],
                     'expires_at':plan['expires_at'],'item':plan['items'][0]}
 
+    @admitted
     def apply(self, plan_id, operation_id, projects):
         self.local._storage_boundary(projects)
         plan=self.local.plan(plan_id)
@@ -371,6 +380,7 @@ class Engine:
                 pass  # known success stays durable; the next successful sync refreshes this cache
         return self.operation(ident)
 
+    @admitted
     def run(self, ident):
         with self.google.locked():
             op=self.operation(ident);intent=op['intent']
@@ -423,6 +433,7 @@ class Engine:
                     return self._state(ident,'error',error=str(exc))
                 return current
 
+    @admitted
     def reconcile(self, ident):
         with self.google.locked():
             op=self.operation(ident);intent=op['intent']
@@ -439,6 +450,7 @@ class Engine:
                 return self._state(ident,'error',error='미반영 상태 확인 — 같은 ID로 명시 재시도할 수 있습니다')
             return self._conflict(ident,link,remote,'불확실 결과 대조에서 다른 Google 내용 발견')
 
+    @admitted
     def pull(self):
         with self.google.locked():
             token=self.google.credentials.load()
@@ -474,6 +486,7 @@ class Engine:
                 if conflict:self._conflict(link.get('pending'),link,remote,'로컬/Google 변경 비교 필요')
             return results
 
+    @admitted
     def after_sync(self):
         self.pull()
         sent=[]

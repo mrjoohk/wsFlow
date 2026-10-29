@@ -4,6 +4,7 @@ This facade carries core registry and module discovery. Domain implementations
 are owned by packages, including their workers, exceptions and write adapters.
 """
 from pathlib import Path
+from .runtime_activity import admitted, normalize_activity
 
 
 class ApiError(Exception):
@@ -19,6 +20,11 @@ class ModuleServices:
         self.store = store
         self.module_host = module_host
         self.google_transport = google_transport
+        self._activity = normalize_activity(getattr(module_host, 'activity', None))
+
+    def activity(self):
+        """Enter this host's complete synchronous business activity."""
+        return self._activity()
 
     def feature(self, module_id):
         if not self.module_host.builtin_active(module_id) or module_id not in self.module_host.started_backends:
@@ -33,6 +39,7 @@ class ModuleServices:
             raise ApiError(410, f"경로가 사라졌습니다: {project['path']}")
         return project
 
+    @admitted
     def summary(self, project):
         workspace = self.feature('workspace-operations')
         if workspace is not None:

@@ -88,6 +88,7 @@ from . import __version__, fileio, operations, pickdir
 from .builtin_modules import route_owner, WORK_CALENDAR
 from .module_host import ModuleError, ModuleHost
 from .module_services import ApiError, ModuleServices
+from .runtime_activity import ActivityUnavailable
 from .store import Store
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / 'static'
@@ -253,6 +254,9 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                 self._json({'error': str(exc), **exc.extra}, exc.status)
             except ModuleError as exc:
                 self._json({'error': str(exc)}, exc.status)
+            except ActivityUnavailable as exc:
+                self._json({'error': '호스트 업무 작업이 일시 중지되었습니다. 상태를 확인한 뒤 다시 시도하십시오',
+                            'runtime_reason': exc.reason}, 503)
             except (operations.StateConflict, fileio.LockBusy) as exc:
                 self._json({'error': str(exc)}, 409)
             except (ValueError, KeyError) as exc:
@@ -262,6 +266,15 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                             **{key:getattr(exc,key) for key in ('plan_id','operation_id') if hasattr(exc,key)}}, 500)
 
         def _route(self, method, path, query):
+            segments = [s for s in path.split('/') if s][1:]
+            control_read = method == 'GET' and (segments in (['config'], ['v1','modules']) or
+                (len(segments) >= 5 and segments[:2] == ['v1','modules'] and segments[3] == 'assets'))
+            if control_read:
+                return self._route_admitted(method, path, query)
+            with services.activity():
+                return self._route_admitted(method, path, query)
+
+        def _route_admitted(self, method, path, query):
             segments = [s for s in path.split('/') if s][1:]
             body = self._body() if method in ('POST','PUT','PATCH','DELETE') else {}
             if segments[:2] == ['v1','modules']:
@@ -315,8 +328,9 @@ def serve(store_file: str | Path, host: str = '127.0.0.1', port: int = 8765,
             stopping.set()
             try:
                 modules.close()
-                self.module_shutdown = {ident:{'workers_stopped':status} for ident,status in modules.stop_results.items()}
-                external = [value for ident,value in modules.stop_results.items() if ident not in modules.backends]
+                participants = set(modules.backends) | set(modules.extensions) | set(modules.stop_results)
+                self.module_shutdown = {ident:{'workers_stopped':modules.stop_results.get(ident,False)} for ident in participants}
+                external = [modules.stop_results.get(ident, False) for ident in modules.extensions]
                 self.module_shutdown['extensions'] = {'workers_stopped':all(external)}
             finally:
                 super().server_close()

@@ -1,0 +1,658 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_runtime_activity.py",
+    "-k",
+    "test_root_exception_releases_lease_and_preserves_original_error"
+  ],
+  "timeout": 45,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "id": "RA_PAUSED_ROOT",
+      "name": "paused root must not reach effect",
+      "edits": [
+        {
+          "file": "wsflow/runtime_activity.py",
+          "func": "ActivityGate.activity",
+          "old": "if not depth and not self._accepting:",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_activity.py",
+        "-k",
+        "test_admitted_root_finishes_nested_work_after_pause_but_new_root_is_denied"
+      ]
+    },
+    {
+      "id": "RA_NESTED",
+      "name": "existing same-thread nested work survives pause",
+      "edits": [
+        {
+          "file": "wsflow/runtime_activity.py",
+          "func": "ActivityGate.activity",
+          "old": "if not depth and not self._accepting:",
+          "new": "if not self._accepting:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_activity.py",
+        "-k",
+        "test_admitted_root_finishes_nested_work_after_pause_but_new_root_is_denied"
+      ]
+    },
+    {
+      "id": "RA_FINALLY_DRAIN",
+      "name": "root finally releases drain count",
+      "edits": [
+        {
+          "file": "wsflow/runtime_activity.py",
+          "func": "ActivityGate.activity",
+          "old": "self._in_flight -= 1",
+          "new": "self._in_flight -= 0"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_activity.py",
+        "-k",
+        "test_root_exception_releases_lease_and_preserves_original_error"
+      ]
+    },
+    {
+      "id": "RA_REENTRANT_PAUSE",
+      "name": "reentrant pause leaves admission unchanged",
+      "edits": [
+        {
+          "file": "wsflow/runtime_activity.py",
+          "func": "ActivityGate.pause",
+          "old": "if self.in_activity():",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_activity.py",
+        "-k",
+        "test_reentrant_pause_is_rejected_before_admission_changes"
+      ]
+    },
+    {
+      "id": "RA_DRAIN_BEFORE_STOP",
+      "name": "active work prevents strict stop",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.quiesce",
+          "old": "if not self._activity.pause(drain_timeout):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_timeout_starts_no_stop_and_existing_nested_work_finishes"
+      ]
+    },
+    {
+      "id": "RA_LEGACY_CLOSE_DRAIN",
+      "name": "legacy close defers cleanup with active work",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.close",
+          "old": "if not self._activity.pause(drain_timeout):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_close_timeout_defers_cleanup"
+      ]
+    },
+    {
+      "id": "RA_STRICT_TRUE",
+      "name": "implicit stop return cannot confirm completion",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.quiesce",
+          "old": "stopped = backend.stop(timeout=max(0, deadline - time.monotonic())) is True",
+          "new": "stopped = backend.stop(timeout=max(0, deadline - time.monotonic())) is not False"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_implicit_stop_result_is_not_strict_true"
+      ]
+    },
+    {
+      "id": "RA_UNVERIFIED_PACKAGE",
+      "name": "unverified package rejected before pause",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost._quiescence_participants",
+          "old": "if (ident not in BUILTINS or not record.get('builtin') or\n                    record.get('package_digest') != _bundled_record(ident)['package_digest']):",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_unverified_package_digest_is_rejected_before_pause"
+      ]
+    },
+    {
+      "id": "RA_CALLER_OWNED",
+      "name": "caller-owned runtime cannot be strictly stopped",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost._quiescence_participants",
+          "old": "contract.get('owns_runtime') is not True",
+          "new": "False"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_caller_owned_runtime_is_rejected_before_pause_or_stop"
+      ]
+    },
+    {
+      "id": "RA_POST_STOP_RESUME",
+      "name": "stop failure leaves generation closed",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.resume_activity",
+          "old": "if self._stop_started or self._runtime_phase == 'closed':",
+          "new": "if False:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_failed_stop_keeps_generation_closed_and_can_be_rechecked"
+      ]
+    },
+    {
+      "id": "RA_SNAPSHOT_FALSE",
+      "name": "worker stop cannot promote snapshot readiness",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.runtime_snapshot",
+          "old": "'snapshot_ready': False",
+          "new": "'snapshot_ready': True"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_owned_runtime_quiesces_without_promoting_snapshot"
+      ]
+    },
+    {
+      "id": "RA_POST_DRAIN_RECHECK",
+      "name": "ownership changed by admitted work is checked after drain",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.quiesce",
+          "old": "participants = self._quiescence_participants()\n            self._runtime_state('stopping', started=True)",
+          "new": "self._runtime_state('stopping', started=True)"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_ownership_changed_by_admitted_work_is_rechecked_after_drain"
+      ]
+    },
+    {
+      "id": "RA_HTTP_ROUTE",
+      "name": "HTTP root gate protects core picker admission",
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "func": "make_handler.Handler._route",
+          "old": "with services.activity():",
+          "new": "if True:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_real_http_get_writer_and_registry_are_blocked_while_control_reads_remain"
+      ]
+    },
+    {
+      "id": "RA_BACKEND_DISPATCH",
+      "name": "workspace registry dispatch holds activity",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/backend.py",
+          "func": "Backend.dispatch",
+          "old": "    @admitted\n    def dispatch(",
+          "new": "    def dispatch("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_activity.py",
+        "-k",
+        "test_workspace_actual_registry_dispatch_and_summary_are_admitted"
+      ]
+    },
+    {
+      "id": "RA_GOOGLE_LOCKED",
+      "name": "Google lock wait is included in activity",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/google_calendar.py",
+          "func": "Service.locked",
+          "old": "with self._activity():",
+          "new": "if True:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_activity.py",
+        "-k",
+        "test_google_locked_enters_activity_before_mutex"
+      ]
+    },
+    {
+      "id": "RA_ENGINE_PREVIEW",
+      "name": "Engine preview admits before plan work",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/calendar_sync.py",
+          "func": "Engine.preview",
+          "old": "    @admitted\n    def preview(",
+          "new": "    def preview("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_activity.py",
+        "-k",
+        "test_engine_event_holds_lease_through_plan_and_outbox_effects"
+      ]
+    },
+    {
+      "id": "RA_OAUTH_CALLBACK",
+      "name": "OAuth callback admits before consuming pending state",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/google_calendar.py",
+          "func": "Service.connect.Callback.do_GET",
+          "old": "with service._activity():",
+          "new": "if True:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_activity.py",
+        "-k",
+        "test_oauth_callback_pause_rejects_before_pending_consumption"
+      ]
+    },
+    {
+      "id": "RA_REFRESH_START",
+      "name": "paused service cannot start a refresh worker",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/google_calendar.py",
+          "func": "Service.start_refresh",
+          "old": "    @admitted\n    def start_refresh(",
+          "new": "    def start_refresh("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_package_activity.py",
+        "-k",
+        "test_google_public_calls_reject_before_provider_or_storage"
+      ]
+    },
+    {
+      "id": "RA_OBSERVATION",
+      "name": "lifecycle view cannot combine stale accepting with verified stop",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.runtime_snapshot",
+          "old": "        with self._runtime_view:\n            # Read admission before releasing the lifecycle observation lock;\n            # a later verified stop cannot be combined with stale open admission.\n            activity = self._activity.snapshot()",
+          "new": "        activity = self._activity.snapshot()\n        with self._runtime_view:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_runtime_observation_cannot_mix_open_admission_with_verified_stop"
+      ]
+    },
+    {
+      "id": "RA_CALENDAR_DISPATCH",
+      "name": "direct calendar dispatch admits actual memo effect",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/backend.py",
+          "func": "Service.dispatch",
+          "old": "    @admitted\n    def dispatch(",
+          "new": "    def dispatch("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_boundaries.py",
+        "-k",
+        "test_direct_calendar_dispatch_holds_actual_memo_effect_and_rejects_new_root"
+      ]
+    },
+    {
+      "id": "RA_EXTENSION_DIRECT",
+      "name": "direct installed extension admits complete handle effect",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.extension_request",
+          "old": "    @admitted\n    def extension_request(",
+          "new": "    def extension_request("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_boundaries.py",
+        "-k",
+        "test_direct_installed_extension_holds_effect_through_close_and_rejects_new_root"
+      ]
+    },
+    {
+      "id": "RA_STOP_ORDER",
+      "name": "reverse dependency order for owned backend stop",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.quiesce",
+          "old": "for ident, backend in reversed(participants):",
+          "new": "for ident, backend in participants:"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_stop_order_and_shared_remaining_budget"
+      ]
+    },
+    {
+      "id": "RA_STOP_BUDGET",
+      "name": "remaining join budget is shared across participants",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.quiesce",
+          "old": "backend.stop(timeout=max(0, deadline - time.monotonic()))",
+          "new": "backend.stop(timeout=stop_timeout)"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_runtime_quiescence.py",
+        "-k",
+        "test_stop_order_and_shared_remaining_budget"
+      ]
+    }
+  ]
+}

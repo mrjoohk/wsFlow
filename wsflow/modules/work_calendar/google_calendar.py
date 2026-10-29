@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 
 from . import auth, calendar_query
 from wsflow import fileio, operations
+from wsflow.runtime_activity import ActivityUnavailable, admitted, normalize_activity
 
 AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -144,7 +145,8 @@ class MirrorStore(operations.Store):
 
 
 class Service:
-    def __init__(self, registry, transport=None, projects=None):
+    def __init__(self, registry, transport=None, projects=None, activity=None):
+        self._activity = normalize_activity(activity)
         self.registry = Path(registry).resolve()
         self.store = MirrorStore(self.registry)
         self.home = self.store.path.with_suffix('')
@@ -176,10 +178,12 @@ class Service:
 
     @contextmanager
     def locked(self):
-        self._check_paths()
-        with self.mutex, fileio.locked(self.home, timeout=5):
-            yield
+        with self._activity():
+            self._check_paths()
+            with self.mutex, fileio.locked(self.home, timeout=5):
+                yield
 
+    @admitted
     def client(self):
         path = Path(os.environ.get('WSFLOW_GOOGLE_CLIENT_FILE') or self.store.path.parent.parent / 'google-client.json').expanduser().resolve()
         self._check_paths(path)
@@ -194,6 +198,7 @@ class Service:
     def _key(self, token, kind, ident=''):
         return operations.encoded([token['sub'], kind, ident])
 
+    @admitted
     def status(self):
         self._check_paths()
         configured, setup_error = True, None
@@ -258,6 +263,7 @@ class Service:
             seen.add(page)
         raise GoogleError(502)
 
+    @admitted
     def calendars(self):
         with self.locked():
             token = self._token()
@@ -267,6 +273,7 @@ class Service:
             self.store.put({self._key(token,'calendars'):values})
             return {'calendars':values,'complete':True,'account_id':token['sub']}
 
+    @admitted
     def select(self, ids):
         if not isinstance(ids,list) or any(not isinstance(i,str) for i in ids) or len(set(ids)) != len(ids):
             raise ValueError('캘린더 ID 목록을 선택하십시오')
@@ -279,10 +286,12 @@ class Service:
             self.store.put({self._key(token,'selected'):sorted(ids)})
             return self.status()
 
+    @admitted
     def mirror(self, cid):
         token = self.credentials.load()
         return self.store.get_value(self._key(token,'mirror',cid), {}) if token else {}
 
+    @admitted
     def sync(self):
         with self.locked():
             try:
@@ -333,6 +342,7 @@ class Service:
                 result['writes'] = self.after_sync()
             return result
 
+    @admitted
     def range(self, start, end, zone='Asia/Seoul', force=False):
         first,last = calendar_query.validate_query(start,end,zone)
         with self.mutex:
@@ -406,6 +416,7 @@ class Service:
             record.update(start_at=left.isoformat(),end_at=right.isoformat(),timezone=start.get('timeZone',calendar.get('timeZone','UTC')))
         return record
 
+    @admitted
     def connect(self, write=False):
         if type(write) is not bool:
             raise ValueError('쓰기 권한 선택이 올바르지 않습니다')
@@ -423,6 +434,15 @@ class Service:
                 def log_message(self,*args):
                     pass  # authorization code/state must never enter access logs
                 def do_GET(self):
+                    try:
+                        with service._activity():
+                            self._handle_callback()
+                    except ActivityUnavailable:
+                        raw = 'Google 연결 처리가 잠시 중지되었습니다.'.encode('utf-8')
+                        self.send_response(503);self.send_header('Content-Type','text/plain; charset=utf-8')
+                        self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(raw)))
+                        self.end_headers();self.wfile.write(raw)
+                def _handle_callback(self):
                     with service.mutex:
                         expected = '127.0.0.1:'+str(self.server.server_port)
                         url = urlsplit(self.path)
@@ -507,6 +527,7 @@ class Service:
             self.listener[1].set()
             self.listener = None
 
+    @admitted
     def disconnect(self):
         with self.locked():
             self._stop_listener()
@@ -545,6 +566,7 @@ class Service:
             self.background_error = 'Google 작업 종료 미확인 — 진행 중 원격 요청의 결과를 확인하십시오'
         return self.workers_stopped
 
+    @admitted
     def refresh_if_due(self):
         """Called by the app's bounded worker, independent of the visible tab."""
         status = self.status()
@@ -554,14 +576,19 @@ class Service:
                 return self.sync()
         return None
 
+    @admitted
     def start_refresh(self):
         def run():
             while not self.refresh_stop.wait(CACHE_SECONDS):
                 try:
-                    self.refresh_if_due()
-                    self.background_error = None
-                except Exception:  # keep the worker alive; explicit UI requests report failures
-                    self.background_error = 'Google 자동 수집 확인 필요 — 마지막 수집 시각을 확인하십시오'
+                    with self._activity():
+                        try:
+                            self.refresh_if_due()
+                            self.background_error = None
+                        except Exception:  # keep the worker alive; explicit UI requests report failures
+                            self.background_error = 'Google 자동 수집 확인 필요 — 마지막 수집 시각을 확인하십시오'
+                except ActivityUnavailable:
+                    continue
         with self.worker_mutex:
             if self.refresh_stop.is_set():
                 raise ValueError('종료된 Google 서비스의 자동 수집을 다시 시작할 수 없습니다')

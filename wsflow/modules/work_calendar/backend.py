@@ -4,6 +4,7 @@ from __future__ import annotations
 import threading
 
 from wsflow.module_services import ApiError
+from wsflow.runtime_activity import admitted, normalize_activity
 from . import calendar_store, calendar_sync, google_calendar, jirawrite, newtask, wfhome, workflow
 from .routes import Routes
 
@@ -11,6 +12,9 @@ from .routes import Routes
 class Service:
     def __init__(self, context):
         self.services = context['services']
+        activity = getattr(self.services, 'activity', None)
+        self._activity = normalize_activity(activity)
+        self._activity_bound = activity is not None
         self.google = None
         self.google_error = None
         self.writer = None
@@ -20,6 +24,7 @@ class Service:
         self.closing = False
         self.owns_runtime = True
 
+    @admitted
     def use_runtime(self, google, google_error=None, writer=None):
         """Attach a caller-owned runtime for the legacy make_handler API.
 
@@ -30,6 +35,7 @@ class Service:
         self.owns_runtime = False
         self.started = True
 
+    @admitted
     def start(self):
         """Start this package's local worker after the active generation is bound."""
         if self.closing:
@@ -40,21 +46,27 @@ class Service:
         try:
             self.google = google_calendar.Service(
                 store.file, transport=self.services.google_transport,
-                projects=lambda: store.snapshot()['projects'])
+                projects=lambda: store.snapshot()['projects'], activity=self._activity)
         except ValueError as exc:
             self.google_error = str(exc)
-        self.writer = calendar_sync.Engine(calendar_store.Store(store.file), self.google) if self.google is not None else None
+        self.writer = calendar_sync.Engine(calendar_store.Store(store.file), self.google, activity=self._activity) if self.google is not None else None
         if self.writer is not None:
             self.google.after_sync = self.writer.after_sync
         if self.google is not None:
             self.google.start_refresh()
         self.started = True
 
-    def stop(self):
+    def runtime_quiescence(self):
+        return {'api': 1, 'activity_bound': self._activity_bound, 'owns_runtime': self.owns_runtime}
+
+    def stop(self, timeout=None):
         """Stop workers locally; never disconnect or revoke external credentials."""
         self.closing = True
-        return self.google.close() if self.owns_runtime and self.google is not None else True
+        if self.owns_runtime and self.google is not None:
+            return self.google.close() if timeout is None else self.google.close(timeout=timeout)
+        return True
 
+    @admitted
     def dispatch(self, request, method, path, query, body):
         try:
             return Routes(request, self.services, self).dispatch(method, path, query, body)
@@ -67,9 +79,11 @@ class Service:
         except newtask.NewTaskError as exc:
             raise ApiError(422, str(exc)) from exc
 
+    @admitted
     def workflow_status(self, day):
         return workflow.overview(self.services.store.snapshot()['projects'], day)
 
+    @admitted
     def calendar_status(self):
         """Read-only dashboard contribution; no other module's implementation import."""
         result = {'state': 'unknown', 'warnings': [], 'outbox_counts': {}, 'last_sync': None}
