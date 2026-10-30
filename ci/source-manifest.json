@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-30T02:37:59.939116+00:00",
+  "created_at": "2026-10-30T05:19:34.425308+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "9c4e1d5116114579583bf77d597b3f6b61c59cca998ce7909afc79b6d87a0f6b",
@@ -34,8 +34,8 @@
       "sha256": "9d5dd7cb0797e64087970ce1b060f57e31b939317bece54c192f60146fb00c13"
     },
     "ci/profile-baseline.json": {
-      "raw_sha256": "eee0894782deb074ff636669309697388c9066aa898a6a807931196c0d04bd6f",
-      "sha256": "5620a3ee6a20e8f6f8ea6da85e82f93fb1b8990106cdfc4f69ecf5b36cd67fde"
+      "raw_sha256": "d7ae3eef85886fb10adf1b76a4d9aee30672faaa12a63374e6c573b633470d5b",
+      "sha256": "205f7ecfca0949d4cedc33836679e36b0b88830eff46d34cbf092a05a8f8760d"
     },
     "ci/python-requirements.txt": {
       "raw_sha256": "4300e5e4d59a547918e2c8b6bfa494651017cfd6669708c888cfa97690f22e2e",
@@ -50,8 +50,8 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "5cb6164d771b064b624778aff90c492cabe7a9ceb999b07c9893095fa39e9201",
-      "sha256": "47daf6701084bfd5891d7f3d00188d6382b1203375f27e843ac617686e22087e"
+      "raw_sha256": "cb7e304de37d622d85fa71175ca5e21edd0c4cc151cc4ae29f97858aeba31f69",
+      "sha256": "219692cda27ac5abf9159c6bc611bd5cd1d545dff0293101c95753e782369676"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "6c77009186cc2a5cf84fda712c76a129fd36e20dc548b669c8be911fbc326a8e",
@@ -160,6 +160,10 @@
     "ci/specs/v2_fixes_ui.json": {
       "raw_sha256": "9962c7eac4378f648d2768c51670e6857e8ec1810e3f5eb4485e2f9951aa71ea",
       "sha256": "9962c7eac4378f648d2768c51670e6857e8ec1810e3f5eb4485e2f9951aa71ea"
+    },
+    "ci/specs/workflow_writer.json": {
+      "raw_sha256": "426f5c1e736411c9cc6f1deb5e03c162f241727cb1bfff1123f50efb74b0965e",
+      "sha256": "bb780ce082dffe3072fa656a9744ae92044b1a7051ef782f45ee9284af042252"
     },
     "ci/specs/workspace_writer.json": {
       "raw_sha256": "6199db98659901a88db9739a940468ce812dda2eb1e11a880940d823d57b086d",
@@ -553,6 +557,10 @@
       "raw_sha256": "edbc08c6f60efe7256d77d6753edf240c2c461b190df4e0bfcb4490ee95b7ee4",
       "sha256": "edbc08c6f60efe7256d77d6753edf240c2c461b190df4e0bfcb4490ee95b7ee4"
     },
+    "tests/test_workflow_writer.py": {
+      "raw_sha256": "aecc1e4af27dcfa6e0c7652e94e74d0508ec52d408aac1d16d0d7ba557feedc2",
+      "sha256": "9aaee3d2f8ad097c230bbb19b2d846fe199965e2cf1d38c6d431f572ba02a3b7"
+    },
     "tests/test_workspace_package.py": {
       "raw_sha256": "94af860cf17035ea8618be02d040690316ef0f0ef92221632f818dd0f5332539",
       "sha256": "94af860cf17035ea8618be02d040690316ef0f0ef92221632f818dd0f5332539"
@@ -862,12 +870,12 @@
       "sha256": "a19f002ec8f285cf42d43b5b757ec22e627b34395caaf20228e9ec6148d2e577"
     },
     "wsflow/modules/work_calendar/wfinit.py": {
-      "raw_sha256": "e4a0884ac5c617b8f60ccc4d55fbaab17300880b3ff2ab652b66f2cd1422ee1f",
-      "sha256": "cd1f070d80b93c334302011b245a52265ba95fe9a3cd1cc815cd2814205a2a7c"
+      "raw_sha256": "ac57de03d152c070f050ed68195be1555e8ea54280a2695818288c828b4146bf",
+      "sha256": "83d969ecc2b690545ae8708dab968a0ab8ae92af3ffce592d7cb3765af686655"
     },
     "wsflow/modules/work_calendar/workflow.py": {
-      "raw_sha256": "ddd2feecf84cf8e64a976a55773b99aaf83501127da3b24e32b96cf87f47df45",
-      "sha256": "68e7bc6bcbfa650a9dd0772081755a53a7044eb63f5d4a7fe86293460996f2de"
+      "raw_sha256": "059552448c482b37478c6df7cac255d892f0509fa35c25ed7508716eccfd08fe",
+      "sha256": "3082d0f68d64f46c259017b8b0763ba2f906c48fbd2b75dacb65b9b8f612f2b5"
     },
     "wsflow/modules/work_calendar/writeplans.py": {
       "raw_sha256": "f0dad83825e779c7fe511188688c0dd74cbc51367932f078677ba330fff627b2",
@@ -998,7 +1006,7 @@
       "sha256": "8bf9ecf8d757f6e80d2a0e603db31f61cd76ad01ffb74ae73807c0a6d27d07ff"
     }
   },
-  "fingerprint": "86e765ddd0c3be32ff67b79636fd118c387db43c8dbcee4ff55d489285ca806e",
+  "fingerprint": "4f620187cfa015cce1a9fe70117a48a2ce377ee44595efc603ae4ad0de5c7bcf",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }

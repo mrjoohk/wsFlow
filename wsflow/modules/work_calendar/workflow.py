@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 
 from . import calendar_query, jiraapi, wfhome
 from wsflow import fileio, operations
+from wsflow.writer_admission import writer_function
 
 STAGES = ('prepare', 'collect', 'aggregate', 'render', 'checks', 'publish', 'commit')
 VENDOR = Path(__file__).resolve().parent / 'vendor/jira_worklog'
@@ -85,6 +86,7 @@ def _command(run_dir, script, args):
         raise ValueError(f'{script} 검사 실패 (exit {cp.returncode}) — {cp.stdout[-2000:]} {cp.stderr[-1000:]}')
 
 
+@writer_function
 def run(home, creds, *, send=None, clock=None, checkpoint=None):
     """Collect → aggregate → render → checks → publish → state commit.
 

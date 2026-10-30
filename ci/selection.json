@@ -215,7 +215,13 @@
       "spec": "ci/specs/workspace_writer.json",
       "count": 9,
       "source": "rd/module_workspace_writer_contracts.md"
+    },
+    {
+      "stage": "workflow_writer",
+      "spec": "ci/specs/workflow_writer.json",
+      "count": 10,
+      "source": "rd/module_workflow_writer_contracts.md"
     }
   ],
-  "total": 468
+  "total": 478
 }

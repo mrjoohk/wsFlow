@@ -32,6 +32,7 @@ import re
 from pathlib import Path
 
 from . import jiraapi, wfhome
+from wsflow.writer_admission import writer_function
 
 # 구 /rest/api/3/issue/createmeta 는 사용 중단됐다. 프로젝트별로 나눠 부른다.
 ISSUETYPES = "/rest/api/3/issue/createmeta/{key}/issuetypes"
@@ -200,6 +201,7 @@ def preview(wf_home: str | Path, new_state: dict) -> dict:
                           "roots": len(new_state.get("roots") or {})}}
 
 
+@writer_function
 def write_state(wf_home: str | Path, new_state: dict) -> str:
     from wsflow import fileio
     sp = fileio.within(wf_home, wfhome.state_path(wf_home))
@@ -233,6 +235,7 @@ def gitignore_report(project_path: str | Path) -> dict:
             "reason": "" if not missing else "업무 기록이 커밋될 수 있습니다"}
 
 
+@writer_function
 def gitignore_apply(project_path: str | Path) -> dict:
     """빠진 줄만 덧붙인다. 기존 내용은 건드리지 않는다."""
     rep = gitignore_report(project_path)

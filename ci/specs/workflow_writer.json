@@ -1,0 +1,325 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_workflow_writer.py",
+    "-k",
+    "test_raw_three_roots_refuse_before_owner_effects_then_release"
+  ],
+  "timeout": 90,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "id": "FW_STATE",
+      "name": "fw state",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/wfinit.py",
+          "func": "write_state",
+          "old": "@writer_function\ndef write_state(",
+          "new": "def write_state("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_raw_three_roots_refuse_before_owner_effects_then_release"
+      ]
+    },
+    {
+      "id": "FW_IGNORE",
+      "name": "fw ignore",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/wfinit.py",
+          "func": "gitignore_apply",
+          "old": "@writer_function\ndef gitignore_apply(",
+          "new": "def gitignore_apply("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_raw_three_roots_refuse_before_owner_effects_then_release"
+      ]
+    },
+    {
+      "id": "FW_BATCH",
+      "name": "fw batch",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/workflow.py",
+          "func": "run",
+          "old": "@writer_function\ndef run(",
+          "new": "def run("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_raw_three_roots_refuse_before_owner_effects_then_release"
+      ]
+    },
+    {
+      "id": "FW_IGNORE_LATE_REPORT",
+      "name": "fw ignore late report",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/wfinit.py",
+          "func": "gitignore_apply",
+          "old": "@writer_function\ndef gitignore_apply(project_path: str | Path) -> dict:\n    \"\"\"빠진 줄만 덧붙인다. 기존 내용은 건드리지 않는다.\"\"\"\n    rep = gitignore_report(project_path)\n    if not rep[\"applicable\"] or not rep[\"missing\"]:\n        return {**rep, \"added\": []}\n    gi = Path(project_path) / \".gitignore\"\n    body = gi.read_text(encoding=\"utf-8\", errors=\"replace\") if gi.is_file() else \"\"\n    if body and not body.endswith(\"\\n\"):\n        body += \"\\n\"\n    body += \"\\n# jira-worklog: 업무 기록은 소스가 아니다.\\n\" + \"\\n\".join(rep[\"missing\"]) + \"\\n\"\n    gi.write_text(body, encoding=\"utf-8\")\n    return {**gitignore_report(project_path), \"added\": rep[\"missing\"]}\n",
+          "new": "def gitignore_apply(project_path: str | Path) -> dict:\n    @writer_function\n    def admitted_prefix():\n        \"\"\"빠진 줄만 덧붙인다. 기존 내용은 건드리지 않는다.\"\"\"\n        rep = gitignore_report(project_path)\n        if not rep[\"applicable\"] or not rep[\"missing\"]:\n            return {**rep, \"added\": []}\n        gi = Path(project_path) / \".gitignore\"\n        body = gi.read_text(encoding=\"utf-8\", errors=\"replace\") if gi.is_file() else \"\"\n        if body and not body.endswith(\"\\n\"):\n            body += \"\\n\"\n        body += \"\\n# jira-worklog: 업무 기록은 소스가 아니다.\\n\" + \"\\n\".join(rep[\"missing\"]) + \"\\n\"\n        gi.write_text(body, encoding=\"utf-8\")\n        return rep\n    rep = admitted_prefix()\n    return {**gitignore_report(project_path), \"added\": rep[\"missing\"]}\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_gitignore_actual_append_and_late_report_keep_root"
+      ]
+    },
+    {
+      "id": "FW_BATCH_LATE_RECEIPT",
+      "name": "fw batch late receipt",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/workflow.py",
+          "func": "run",
+          "old": "@writer_function\ndef run(home, creds, *, send=None, clock=None, checkpoint=None):\n    \"\"\"Collect → aggregate → render → checks → publish → state commit.\n\n    Args: home Path; credentials dict; optional transport/clock/failure seam for tests.\n    Returns: receipt dict with UUID, stages, committed flag and durable artifact paths.\n    Failure never writes state before all gates pass. A post-commit receipt failure\n    is resolved by the run UUID in state, never by advancing the watermark again.\n    \"\"\"\n    home = Path(home).resolve()\n    with fileio.locked(home):\n        run_id = str(uuid4())\n        directory = fileio.within(home, home / '.workflow/batches' / run_id)\n        directory.mkdir(parents=True, exist_ok=False)\n        receipt_path = directory / 'receipt.json'\n        receipt = {'schema_version': 1, 'run_id': run_id, 'run_dir': str(directory),\n                   'created_at': operations.now(), 'status': 'executing', 'stages': [], 'committed': False}\n        _write(receipt_path, receipt)\n        state_file = fileio.within(home, wfhome.state_path(home))\n        phase = 'prepare'\n        try:\n            for phase in STAGES:\n                receipt['current_stage'] = phase\n                _write(receipt_path, receipt)\n                if checkpoint:\n                    checkpoint(phase)\n                if phase == 'prepare':\n                    original_state = state_file.read_bytes()\n                    state = json.loads(original_state.decode('utf-8-sig'))\n                    if state.get('schema_version') != wfhome.SCHEMA_VERSION:\n                        raise ValueError('지원하지 않는 업무 schema입니다')\n                    supported = support(state)\n                    if not supported['supported']:\n                        raise ValueError(supported['error'])\n                    provenance = vendor_status()\n                    if not provenance['identical']:\n                        raise ValueError('vendor 원본 hash가 다릅니다 — 모체에서 다시 이관해야 합니다')\n                    me = jiraapi.myself(creds, jiraapi.site_url(state), send)\n                    if not me.get('accountId') or not me.get('timeZone'):\n                        raise ValueError('Jira 계정과 timeZone을 확인해야 합니다')\n                    zone = ZoneInfo(me['timeZone'])\n                    instant = clock() if clock else datetime.now(timezone.utc)\n                    if instant.tzinfo is None or instant.utcoffset() is None:\n                        raise ValueError('실행 시각에 UTC offset이 필요합니다')\n                    captured = instant.astimezone(zone)\n                    previous = datetime.fromisoformat(state['watermark'])\n                    if previous.tzinfo is None or captured < previous:\n                        raise ValueError('watermark 시각/offset이 잘못되었거나 실행 시계가 후퇴했습니다')\n                    day = captured.date().isoformat()\n                    if not 2000 <= captured.year <= 2099:\n                        raise ValueError('지원 업무 연도는 2000~2099입니다')\n                    ymd = captured.strftime('%y%m%d')\n                    daily = wfhome.daily_path(home, ymd)\n                    original_daily = _read(daily)\n                    memo = _memo(original_daily)\n                    stage = directory / 'work'\n                    staged_state = stage / '.workflow/state.json'\n                    staged_daily = stage / 'daily' / (ymd + '.md')\n                    staged_agg = stage / '.workflow/agg' / (ymd + '.json')\n                    publish_agg = fileio.within(home, home / '.workflow/agg' / (ymd + '.json'))\n                    original_agg = _read(publish_agg)\n                    fileio.atomic_write(directory / 'original/state.json', original_state)\n                    if original_daily is not None:\n                        fileio.atomic_write(directory / 'original/daily.md', original_daily)\n                        fileio.atomic_write(staged_daily, original_daily)\n                    if original_agg is not None:\n                        fileio.atomic_write(directory / 'original/aggregate.json', original_agg)\n                    # Legacy locally-created roots predate aggregate's first_seen field.\n                    for root in state.get('roots', {}).values():\n                        root.setdefault('first_seen', day)\n                        root.setdefault('last_seen', day)\n                    _write(staged_state, state)\n                    receipt.update(date=day, watermark_in=state['watermark'], watermark_out=captured.isoformat(),\n                                   support=supported, vendor=provenance)\n                elif phase == 'collect':\n                    since = (previous.astimezone(timezone.utc) - timedelta(minutes=2)).replace(second=0, microsecond=0)\n                    collected = jiraapi.fetch(state, stage, run_id, creds, send, since=since)\n                    receipt['incremental_since_utc'] = since.isoformat()\n                    receipt['queries'] = collected['queries']\n                    if any(q['truncated'] for q in collected['queries']):\n                        raise ValueError('완전한 Jira 조회가 아닙니다 — watermark를 유지합니다')\n                    raw = {q['kind']: p for q, p in zip(collected['queries'], collected['files'])}\n                    for path in raw.values():\n                        if not jiraapi.fields_complete(_json(path)['issues'],state):\n                            raise ValueError('완전한 Jira 필드 응답이 아닙니다 — 설정/권한을 확인하십시오')\n                elif phase == 'aggregate':\n                    args = ['--changes', raw['changes'], '--open', raw['open'], '--state', staged_state,\n                            '--out', staged_agg, '--date', day]\n                    if raw.get('orphans'):\n                        args += ['--orphans', raw['orphans']]\n                    _command(directory, 'aggregate.py', args)\n                    agg = _json(staged_agg)\n                    counts = agg['counts']\n                    narrative = (f\"원본 집계: 신규 {counts['new']}건, 이어서 {counts['continuing']}건, \"\n                                 f\"정체 {counts['stalled']}건. 변동 조회 {len(_json(raw['changes'])['issues'])}건.\\n\"\n                                 '이 목록은 예정 업무이며, 수행 기록은 아래 진행 메모에서 따로 남깁니다.\\n')\n                    fileio.atomic_write(directory / 'narrative.txt', narrative.encode('utf-8'))\n                elif phase == 'render':\n                    _command(directory, 'render_daily.py', ['--agg', staged_agg, '--narrative', directory / 'narrative.txt',\n                             '--out', staged_daily, '--state', staged_state, '--version', 'wsFlow-I7'])\n                    if memo is not None:\n                        # Vendor text-mode I/O normalizes CRLF; restore the exact memo string.\n                        head, _, tail = wfhome._split(staged_daily.read_bytes().decode('utf-8'))\n                        fileio.atomic_write(staged_daily, (head + memo + tail).encode('utf-8'))\n                        rec = _json(staged_state.parent / 'last_render.json')\n                        rec.update(memo_hash_before=wfhome.sha(memo)[:16], memo_hash_after=wfhome.sha(_memo(staged_daily.read_bytes()))[:16])\n                        _write(staged_state.parent / 'last_render.json', rec)\n                    if memo is not None and _memo(staged_daily.read_bytes()) != memo:\n                        raise ValueError('원본 메모 대조 실패')\n                elif phase == 'checks':\n                    _command(directory, 'loop_checks.py', ['--daily', staged_daily, '--agg', staged_agg,\n                             '--state', staged_state, '--evidence', directory / 'checks.json'])\n                    checks = _json(directory / 'checks.json')\n                    if checks.get('exit_code') != 0 or checks.get('violations'):\n                        raise ValueError('일일 불변식 검사 실패')\n                elif phase == 'publish':\n                    _same(state_file, original_state)\n                    _same(daily, original_daily)\n                    _same(publish_agg, original_agg)\n                    daily_data = staged_daily.read_bytes()\n                    agg_data = staged_agg.read_bytes()\n                    fileio.atomic_write(publish_agg, agg_data, lambda: _same(publish_agg, original_agg))\n                    fileio.atomic_write(daily, daily_data, lambda: (_same(state_file, original_state), _same(daily, original_daily)))\n                elif phase == 'commit':\n                    final = _json(staged_state)\n                    marker = {'run_id': run_id, 'date': day, 'captured_at': captured.isoformat(),\n                              'config_hash': operations.digest(config(state)),\n                              'aggregate_sha256': hashlib.sha256(agg_data).hexdigest(),\n                              'daily_sha256': hashlib.sha256(daily_data).hexdigest(),\n                              'changes_count': len(_json(raw['changes'])['issues']), 'run_dir': str(directory)}\n                    final.update(watermark=captured.isoformat(), last_success=operations.now(), last_batch=marker)\n                    def final_gate():\n                        _same(state_file, original_state)\n                        _same(daily, daily_data)\n                        _same(publish_agg, agg_data)\n                    final_gate()\n                    # The watermark and proof marker share one final atomic replacement.\n                    fileio.atomic_write(state_file, json.dumps(final, ensure_ascii=False, indent=2).encode('utf-8'), final_gate)\n                receipt['stages'].append({'stage': phase, 'status': 'succeeded', 'at': operations.now()})\n                if phase != 'commit':\n                    _write(receipt_path, receipt)\n            receipt.update(status='succeeded', committed=True)\n        except Exception as exc:\n            # A failed receipt write after state replacement cannot turn success into a failed batch.\n            try:committed = _json(state_file).get('last_batch', {}).get('run_id') == run_id\n            except (OSError,ValueError,TypeError,AttributeError):committed = False\n            receipt.update(status='succeeded' if committed else 'failed', committed=committed,\n                           failed_stage=None if committed else phase, error=None if committed else str(exc))\n        try:\n            _write(receipt_path, receipt)\n        except OSError:\n            receipt['receipt_warning'] = '작업 기록 저장 실패 — state의 run marker로 결과를 확인하십시오'\n        return receipt\n",
+          "new": "def run(home, creds, *, send=None, clock=None, checkpoint=None):\n    @writer_function\n    def admitted_prefix(home):\n        \"\"\"Collect → aggregate → render → checks → publish → state commit.\n\n        Args: home Path; credentials dict; optional transport/clock/failure seam for tests.\n        Returns: receipt dict with UUID, stages, committed flag and durable artifact paths.\n        Failure never writes state before all gates pass. A post-commit receipt failure\n        is resolved by the run UUID in state, never by advancing the watermark again.\n        \"\"\"\n        home = Path(home).resolve()\n        with fileio.locked(home):\n            run_id = str(uuid4())\n            directory = fileio.within(home, home / '.workflow/batches' / run_id)\n            directory.mkdir(parents=True, exist_ok=False)\n            receipt_path = directory / 'receipt.json'\n            receipt = {'schema_version': 1, 'run_id': run_id, 'run_dir': str(directory),\n                       'created_at': operations.now(), 'status': 'executing', 'stages': [], 'committed': False}\n            _write(receipt_path, receipt)\n            state_file = fileio.within(home, wfhome.state_path(home))\n            phase = 'prepare'\n            try:\n                for phase in STAGES:\n                    receipt['current_stage'] = phase\n                    _write(receipt_path, receipt)\n                    if checkpoint:\n                        checkpoint(phase)\n                    if phase == 'prepare':\n                        original_state = state_file.read_bytes()\n                        state = json.loads(original_state.decode('utf-8-sig'))\n                        if state.get('schema_version') != wfhome.SCHEMA_VERSION:\n                            raise ValueError('지원하지 않는 업무 schema입니다')\n                        supported = support(state)\n                        if not supported['supported']:\n                            raise ValueError(supported['error'])\n                        provenance = vendor_status()\n                        if not provenance['identical']:\n                            raise ValueError('vendor 원본 hash가 다릅니다 — 모체에서 다시 이관해야 합니다')\n                        me = jiraapi.myself(creds, jiraapi.site_url(state), send)\n                        if not me.get('accountId') or not me.get('timeZone'):\n                            raise ValueError('Jira 계정과 timeZone을 확인해야 합니다')\n                        zone = ZoneInfo(me['timeZone'])\n                        instant = clock() if clock else datetime.now(timezone.utc)\n                        if instant.tzinfo is None or instant.utcoffset() is None:\n                            raise ValueError('실행 시각에 UTC offset이 필요합니다')\n                        captured = instant.astimezone(zone)\n                        previous = datetime.fromisoformat(state['watermark'])\n                        if previous.tzinfo is None or captured < previous:\n                            raise ValueError('watermark 시각/offset이 잘못되었거나 실행 시계가 후퇴했습니다')\n                        day = captured.date().isoformat()\n                        if not 2000 <= captured.year <= 2099:\n                            raise ValueError('지원 업무 연도는 2000~2099입니다')\n                        ymd = captured.strftime('%y%m%d')\n                        daily = wfhome.daily_path(home, ymd)\n                        original_daily = _read(daily)\n                        memo = _memo(original_daily)\n                        stage = directory / 'work'\n                        staged_state = stage / '.workflow/state.json'\n                        staged_daily = stage / 'daily' / (ymd + '.md')\n                        staged_agg = stage / '.workflow/agg' / (ymd + '.json')\n                        publish_agg = fileio.within(home, home / '.workflow/agg' / (ymd + '.json'))\n                        original_agg = _read(publish_agg)\n                        fileio.atomic_write(directory / 'original/state.json', original_state)\n                        if original_daily is not None:\n                            fileio.atomic_write(directory / 'original/daily.md', original_daily)\n                            fileio.atomic_write(staged_daily, original_daily)\n                        if original_agg is not None:\n                            fileio.atomic_write(directory / 'original/aggregate.json', original_agg)\n                        # Legacy locally-created roots predate aggregate's first_seen field.\n                        for root in state.get('roots', {}).values():\n                            root.setdefault('first_seen', day)\n                            root.setdefault('last_seen', day)\n                        _write(staged_state, state)\n                        receipt.update(date=day, watermark_in=state['watermark'], watermark_out=captured.isoformat(),\n                                       support=supported, vendor=provenance)\n                    elif phase == 'collect':\n                        since = (previous.astimezone(timezone.utc) - timedelta(minutes=2)).replace(second=0, microsecond=0)\n                        collected = jiraapi.fetch(state, stage, run_id, creds, send, since=since)\n                        receipt['incremental_since_utc'] = since.isoformat()\n                        receipt['queries'] = collected['queries']\n                        if any(q['truncated'] for q in collected['queries']):\n                            raise ValueError('완전한 Jira 조회가 아닙니다 — watermark를 유지합니다')\n                        raw = {q['kind']: p for q, p in zip(collected['queries'], collected['files'])}\n                        for path in raw.values():\n                            if not jiraapi.fields_complete(_json(path)['issues'],state):\n                                raise ValueError('완전한 Jira 필드 응답이 아닙니다 — 설정/권한을 확인하십시오')\n                    elif phase == 'aggregate':\n                        args = ['--changes', raw['changes'], '--open', raw['open'], '--state', staged_state,\n                                '--out', staged_agg, '--date', day]\n                        if raw.get('orphans'):\n                            args += ['--orphans', raw['orphans']]\n                        _command(directory, 'aggregate.py', args)\n                        agg = _json(staged_agg)\n                        counts = agg['counts']\n                        narrative = (f\"원본 집계: 신규 {counts['new']}건, 이어서 {counts['continuing']}건, \"\n                                     f\"정체 {counts['stalled']}건. 변동 조회 {len(_json(raw['changes'])['issues'])}건.\\n\"\n                                     '이 목록은 예정 업무이며, 수행 기록은 아래 진행 메모에서 따로 남깁니다.\\n')\n                        fileio.atomic_write(directory / 'narrative.txt', narrative.encode('utf-8'))\n                    elif phase == 'render':\n                        _command(directory, 'render_daily.py', ['--agg', staged_agg, '--narrative', directory / 'narrative.txt',\n                                 '--out', staged_daily, '--state', staged_state, '--version', 'wsFlow-I7'])\n                        if memo is not None:\n                            # Vendor text-mode I/O normalizes CRLF; restore the exact memo string.\n                            head, _, tail = wfhome._split(staged_daily.read_bytes().decode('utf-8'))\n                            fileio.atomic_write(staged_daily, (head + memo + tail).encode('utf-8'))\n                            rec = _json(staged_state.parent / 'last_render.json')\n                            rec.update(memo_hash_before=wfhome.sha(memo)[:16], memo_hash_after=wfhome.sha(_memo(staged_daily.read_bytes()))[:16])\n                            _write(staged_state.parent / 'last_render.json', rec)\n                        if memo is not None and _memo(staged_daily.read_bytes()) != memo:\n                            raise ValueError('원본 메모 대조 실패')\n                    elif phase == 'checks':\n                        _command(directory, 'loop_checks.py', ['--daily', staged_daily, '--agg', staged_agg,\n                                 '--state', staged_state, '--evidence', directory / 'checks.json'])\n                        checks = _json(directory / 'checks.json')\n                        if checks.get('exit_code') != 0 or checks.get('violations'):\n                            raise ValueError('일일 불변식 검사 실패')\n                    elif phase == 'publish':\n                        _same(state_file, original_state)\n                        _same(daily, original_daily)\n                        _same(publish_agg, original_agg)\n                        daily_data = staged_daily.read_bytes()\n                        agg_data = staged_agg.read_bytes()\n                        fileio.atomic_write(publish_agg, agg_data, lambda: _same(publish_agg, original_agg))\n                        fileio.atomic_write(daily, daily_data, lambda: (_same(state_file, original_state), _same(daily, original_daily)))\n                    elif phase == 'commit':\n                        final = _json(staged_state)\n                        marker = {'run_id': run_id, 'date': day, 'captured_at': captured.isoformat(),\n                                  'config_hash': operations.digest(config(state)),\n                                  'aggregate_sha256': hashlib.sha256(agg_data).hexdigest(),\n                                  'daily_sha256': hashlib.sha256(daily_data).hexdigest(),\n                                  'changes_count': len(_json(raw['changes'])['issues']), 'run_dir': str(directory)}\n                        final.update(watermark=captured.isoformat(), last_success=operations.now(), last_batch=marker)\n                        def final_gate():\n                            _same(state_file, original_state)\n                            _same(daily, daily_data)\n                            _same(publish_agg, agg_data)\n                        final_gate()\n                        # The watermark and proof marker share one final atomic replacement.\n                        fileio.atomic_write(state_file, json.dumps(final, ensure_ascii=False, indent=2).encode('utf-8'), final_gate)\n                    receipt['stages'].append({'stage': phase, 'status': 'succeeded', 'at': operations.now()})\n                    if phase != 'commit':\n                        _write(receipt_path, receipt)\n                receipt.update(status='succeeded', committed=True)\n            except Exception as exc:\n                # A failed receipt write after state replacement cannot turn success into a failed batch.\n                try:committed = _json(state_file).get('last_batch', {}).get('run_id') == run_id\n                except (OSError,ValueError,TypeError,AttributeError):committed = False\n                receipt.update(status='succeeded' if committed else 'failed', committed=committed,\n                               failed_stage=None if committed else phase, error=None if committed else str(exc))\n            return receipt_path, receipt\n    receipt_path, receipt = admitted_prefix(home)\n    try:\n        _write(receipt_path, receipt)\n    except OSError:\n        receipt['receipt_warning'] = '작업 기록 저장 실패 — state의 run marker로 결과를 확인하십시오'\n    return receipt\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_real_batch_state_and_terminal_receipt_windows_cover_vendor_completion"
+      ]
+    },
+    {
+      "id": "FW_IGNORE_NOOP",
+      "name": "fw ignore noop",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/wfinit.py",
+          "func": "gitignore_report",
+          "old": "def gitignore_report(project_path: str | Path) -> dict:\n    p = Path(project_path)\n    if not (p / \".git\").exists():\n        return {\"applicable\": False, \"missing\": [], \"reason\": \"git 저장소가 아닙니다\"}\n    gi = p / \".gitignore\"\n    have = set()\n    if gi.is_file():\n        have = {ln.strip() for ln in gi.read_text(encoding=\"utf-8\", errors=\"replace\").splitlines()}\n    missing = [n for n in wfhome.GITIGNORE_NEEDED if n not in have]\n    return {\"applicable\": True, \"missing\": missing, \"path\": str(gi),\n            \"reason\": \"\" if not missing else \"업무 기록이 커밋될 수 있습니다\"}\n",
+          "new": "def gitignore_report(project_path: str | Path) -> dict:\n    p = Path(project_path)\n    if not (p / \".git\").exists():\n        return {\"applicable\": False, \"missing\": [], \"reason\": \"git 저장소가 아닙니다\"}\n    gi = p / \".gitignore\"\n    have = set()\n    if gi.is_file():\n        have = {ln.strip() for ln in gi.read_text(encoding=\"utf-8\", errors=\"replace\").splitlines()}\n    missing = [n for n in wfhome.GITIGNORE_NEEDED if n not in have]\n    return {\"applicable\": True, \"missing\": missing, \"path\": str(gi),\n            \"reason\": \"\" if not missing else \"업무 기록이 커밋될 수 있습니다\"}\n\n\ndef _skip_empty_writer(function):\n    admitted = writer_function(function)\n    def invoke(project_path):\n        report = gitignore_report(project_path)\n        if not report['applicable'] or not report['missing']:\n            return function(project_path)\n        return admitted(project_path)\n    return invoke\n"
+        },
+        {
+          "file": "wsflow/modules/work_calendar/wfinit.py",
+          "func": "gitignore_apply",
+          "old": "@writer_function\n",
+          "new": "@_skip_empty_writer\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_gitignore_both_noops_are_admitted_without_owner_changes"
+      ]
+    },
+    {
+      "id": "FW_HTTP_NO_OUTER",
+      "name": "fw http no outer",
+      "edits": [
+        {
+          "file": "wsflow/module_host.py",
+          "func": "ModuleHost.__init__",
+          "old": "self._activity = ActivityGate(around=self._writer_domain.activity)",
+          "new": "self._activity = ActivityGate()"
+        },
+        {
+          "file": "wsflow/modules/work_calendar/backend.py",
+          "func": "Service.dispatch",
+          "old": "with (self._writing() if method != 'GET' else nullcontext()):",
+          "new": "with nullcontext():"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_stock_http_setup_compound_keeps_one_root_through_final_detect"
+      ]
+    },
+    {
+      "id": "FW_READER_PROMOTED",
+      "name": "fw reader promoted",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/workflow.py",
+          "func": "status",
+          "old": "def status(home):",
+          "new": "@writer_function\ndef status(home):"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_nested_current_domain_and_actual_readers_do_not_add_roots"
+      ]
+    },
+    {
+      "id": "FW_BATCH_BUDGET",
+      "name": "fw batch budget",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/workflow.py",
+          "func": "_command",
+          "old": "def _command(run_dir, script, args):\n    cp = subprocess.run([sys.executable, '-X', 'utf8', str(VENDOR / script), *map(str, args)],\n                        stdin=subprocess.DEVNULL, capture_output=True, encoding='utf-8', errors='replace', timeout=60)\n    fileio.atomic_write(run_dir / (script + '.txt'), (cp.stdout + cp.stderr).encode('utf-8'))\n    if cp.returncode:\n        raise ValueError(f'{script} 검사 실패 (exit {cp.returncode}) — {cp.stdout[-2000:]} {cp.stderr[-1000:]}')\n",
+          "new": "def _command(run_dir, script, args):\n    cp = subprocess.run([sys.executable, '-X', 'utf8', str(VENDOR / script), *map(str, args)],\n                        stdin=subprocess.DEVNULL, capture_output=True, encoding='utf-8', errors='replace', timeout=60)\n    fileio.atomic_write(run_dir / (script + '.txt'), (cp.stdout + cp.stderr).encode('utf-8'))\n    if cp.returncode:\n        raise ValueError(f'{script} 검사 실패 (exit {cp.returncode}) — {cp.stdout[-2000:]} {cp.stderr[-1000:]}')\n\n\ndef _slow_batch_writer(function):\n    from wsflow.writer_admission import default_domain\n    def invoke(*args, **kwargs):\n        with default_domain().writing(timeout=8):\n            return function(*args, **kwargs)\n    return invoke\n"
+        },
+        {
+          "file": "wsflow/modules/work_calendar/workflow.py",
+          "func": "run",
+          "old": "@writer_function\n",
+          "new": "@_slow_batch_writer\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_owned_process_raw_batch_refuses_default_budget_then_completes"
+      ]
+    },
+    {
+      "id": "FW_STATE_LATE_RESPONSE",
+      "name": "state response outside admitted prefix",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/wfinit.py",
+          "func": "write_state",
+          "old": "@writer_function\ndef write_state(wf_home: str | Path, new_state: dict) -> str:\n    from wsflow import fileio\n    sp = fileio.within(wf_home, wfhome.state_path(wf_home))\n    with fileio.locked(wf_home):\n        value = dict(new_state)\n        if sp.is_file():\n            current = wfhome.read_state(wf_home)\n            value = {**current, **value}\n            value.update({k: current[k] for k in ('roots', 'watermark', 'last_success', 'last_batch') if k in current})\n        fileio.atomic_write(sp, json.dumps(value, ensure_ascii=False, indent=1).encode('utf-8'))\n        return str(sp)\n",
+          "new": "def write_state(wf_home: str | Path, new_state: dict) -> str:\n    @writer_function\n    def admitted_prefix(wf_home, new_state):\n        from wsflow import fileio\n        sp = fileio.within(wf_home, wfhome.state_path(wf_home))\n        with fileio.locked(wf_home):\n            value = dict(new_state)\n            if sp.is_file():\n                current = wfhome.read_state(wf_home)\n                value = {**current, **value}\n                value.update({k: current[k] for k in ('roots', 'watermark', 'last_success', 'last_batch') if k in current})\n            fileio.atomic_write(sp, json.dumps(value, ensure_ascii=False, indent=1).encode('utf-8'))\n            return sp\n    sp = admitted_prefix(wf_home, new_state)\n    return str(sp)\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workflow_writer.py",
+        "-k",
+        "test_state_actual_write_through_response_preserves_progress_and_merge"
+      ]
+    }
+  ]
+}
