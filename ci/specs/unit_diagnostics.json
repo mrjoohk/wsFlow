@@ -1,0 +1,498 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "ci/tests",
+    "-p",
+    "test_unit_diagnostics.py",
+    "-k",
+    "test_failure_error_skip_and_subtest_counters_match_completed_evidence"
+  ],
+  "timeout": 90,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "id": "OBS_START",
+      "name": "obs start",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "func": "_unit_diagnostics",
+          "old": "emit('start', test=test.id(), tests_run=self.testsRun)",
+          "new": "emit('ignored_start', test=test.id(), tests_run=self.testsRun)"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py",
+        "-k",
+        "test_failure_error_skip_and_subtest_counters_match_completed_evidence"
+      ]
+    },
+    {
+      "id": "OBS_STOP",
+      "name": "obs stop",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "func": "_unit_diagnostics",
+          "old": "emit('stop', test=test.id(), seconds=",
+          "new": "emit('ignored_stop', test=test.id(), seconds="
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py",
+        "-k",
+        "test_failure_error_skip_and_subtest_counters_match_completed_evidence"
+      ]
+    },
+    {
+      "id": "OBS_FLUSH",
+      "name": "obs flush",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "func": "_unit_diagnostics",
+          "old": "progress.flush()",
+          "new": "pass  # intermediate flush removed"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py",
+        "-k",
+        "test_live_progress_survives_real_timeout_without_completion"
+      ]
+    },
+    {
+      "id": "OBS_CANCEL",
+      "name": "obs cancel",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "func": "_unit_diagnostics",
+          "old": "faulthandler.cancel_dump_traceback_later()",
+          "new": "pass  # owned timer cancellation removed"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py",
+        "-k",
+        "test_short_stack_timer_is_cancelled_and_files_closed_on_exception"
+      ]
+    },
+    {
+      "id": "OBS_COMPLETE",
+      "name": "obs complete",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "func": "_run",
+          "old": "emit('suite_complete', tests_run=ev['tests_run']",
+          "new": "emit('ignored_complete', tests_run=ev['tests_run']"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py",
+        "-k",
+        "test_failure_error_skip_and_subtest_counters_match_completed_evidence"
+      ]
+    },
+    {
+      "id": "OBS_CI_CONNECTION",
+      "name": "obs ci connection",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "func": "run",
+          "old": "root, out / 'unit.log', unit_env)",
+          "new": "root, out / 'unit.log', env)"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py",
+        "-k",
+        "test_actual_runner_preserves_partial_unit_diagnostics_on_timeout"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_TIMESTAMP_ZERO",
+      "name": "review reversion timestamp_zero",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "old": "at=time.time(),",
+          "new": "at=0,",
+          "func": "_unit_diagnostics"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_DURATION_ZERO",
+      "name": "review reversion duration_zero",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "old": "seconds=round(time.monotonic() - self._case_started, 6),",
+          "new": "seconds=0,",
+          "func": "_unit_diagnostics"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_ELAPSED_ZERO",
+      "name": "review reversion elapsed_zero",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "old": "elapsed_seconds=round(time.monotonic() - started, 6),",
+          "new": "elapsed_seconds=0,",
+          "func": "_unit_diagnostics"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_STACK_NONPERIODIC",
+      "name": "review reversion stack_nonperiodic",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "old": "repeat=True, file=stacks",
+          "new": "repeat=False, file=stacks",
+          "func": "_unit_diagnostics"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_STACK_DEFAULT_NEVER",
+      "name": "review reversion stack_default_never",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "old": "def _unit_diagnostics(directory, interval=120):",
+          "new": "def _unit_diagnostics(directory, interval=86400):",
+          "func": "_unit_diagnostics"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_NORMAL_CANCEL_REMOVED",
+      "name": "review reversion normal_cancel_removed",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "old": "faulthandler.cancel_dump_traceback_later()",
+          "new": "if sys.exc_info()[0] is not None:\n                faulthandler.cancel_dump_traceback_later()",
+          "func": "_unit_diagnostics"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_START_COUNTER_ZERO",
+      "name": "review reversion start_counter_zero",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "old": "emit('start', test=test.id(), tests_run=self.testsRun)",
+          "new": "emit('start', test=test.id(), tests_run=0)",
+          "func": "_unit_diagnostics"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_EARLY_STOP_COUNTERS_ZERO",
+      "name": "review reversion early_stop_counters_zero",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "old": "tests_run=self.testsRun, failures=len(self.failures), errors=len(self.errors),\n                         skipped=len(self.skipped))",
+          "new": "tests_run=self.testsRun, failures=len(self.failures) if self.testsRun == 5 else 0, errors=len(self.errors) if self.testsRun == 5 else 0,\n                         skipped=len(self.skipped) if self.testsRun == 5 else 0)",
+          "func": "_unit_diagnostics"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_DIAGNOSTICS_ALWAYS_ON",
+      "name": "review reversion diagnostics_always_on",
+      "edits": [
+        {
+          "file": "tests/run_tests.py",
+          "old": "os.environ.get('WSFLOW_UNIT_DIAGNOSTICS')",
+          "new": "os.environ.get('WSFLOW_UNIT_DIAGNOSTICS') or str(ROOT/'always-diagnostics')",
+          "func": "main"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_PROCESS_LIE_PID",
+      "name": "review reversion process_lie_pid",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "'pid': child.pid, 'timeout_seconds'",
+          "new": "'pid': 1, 'timeout_seconds'",
+          "func": "command"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_PROCESS_TIMEOUT_LIE",
+      "name": "review reversion process_timeout_lie",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": "'pid': child.pid, 'timeout_seconds': timeout",
+          "new": "'pid': child.pid, 'timeout_seconds': 900",
+          "func": "command"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    },
+    {
+      "id": "OBS_REVIEW_AMBIENT_ENV_KEPT",
+      "name": "review reversion ambient_env_kept",
+      "edits": [
+        {
+          "file": "tools/ci/runner.py",
+          "old": ", 'WSFLOW_UNIT_DIAGNOSTICS')",
+          "new": ")"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ci/tests",
+        "-p",
+        "test_unit_diagnostics.py"
+      ]
+    }
+  ]
+}

@@ -15,9 +15,11 @@ async function googleAction(action,body={}) {
       GCAL.authTimer=setInterval(async()=>{
         if(GCAL.busy)return;
         if(!calendarVisible()){clearInterval(GCAL.authTimer);return;}
+        GCAL.busy=true;drawGoogle();
         try {const s=await api('GET','/api/v2/calendar/google/status');GCAL.status=s;
           if(!s.pending){clearInterval(GCAL.authTimer);GCAL.error=s.auth_error;await refreshGoogle();if(calendarVisible())$('#gAuthorization').replaceChildren();await loadCalendar();}
-        } catch(e){GCAL.error=e.message;clearInterval(GCAL.authTimer);}drawGoogle();
+        } catch(e){GCAL.error=e.message;clearInterval(GCAL.authTimer);}
+        finally{GCAL.busy=false;drawGoogle();}
       },2000);
     } else {
       const result=await api('POST','/api/v2/calendar/google/'+action,body);

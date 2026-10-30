@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-30T05:19:34.425308+00:00",
+  "created_at": "2026-10-30T13:32:02.992570+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "9c4e1d5116114579583bf77d597b3f6b61c59cca998ce7909afc79b6d87a0f6b",
@@ -34,8 +34,8 @@
       "sha256": "9d5dd7cb0797e64087970ce1b060f57e31b939317bece54c192f60146fb00c13"
     },
     "ci/profile-baseline.json": {
-      "raw_sha256": "d7ae3eef85886fb10adf1b76a4d9aee30672faaa12a63374e6c573b633470d5b",
-      "sha256": "205f7ecfca0949d4cedc33836679e36b0b88830eff46d34cbf092a05a8f8760d"
+      "raw_sha256": "ed3d267972c903b42b6b209c576097eaafa49cf6171eaa90f24c776e2908306c",
+      "sha256": "ed3d267972c903b42b6b209c576097eaafa49cf6171eaa90f24c776e2908306c"
     },
     "ci/python-requirements.txt": {
       "raw_sha256": "4300e5e4d59a547918e2c8b6bfa494651017cfd6669708c888cfa97690f22e2e",
@@ -50,8 +50,8 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "cb7e304de37d622d85fa71175ca5e21edd0c4cc151cc4ae29f97858aeba31f69",
-      "sha256": "219692cda27ac5abf9159c6bc611bd5cd1d545dff0293101c95753e782369676"
+      "raw_sha256": "ad9f1b93fd74ff6949157ba517cc9b6614d62b1407c3632df9346c58b3062a2e",
+      "sha256": "ad9f1b93fd74ff6949157ba517cc9b6614d62b1407c3632df9346c58b3062a2e"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "6c77009186cc2a5cf84fda712c76a129fd36e20dc548b669c8be911fbc326a8e",
@@ -69,9 +69,17 @@
       "raw_sha256": "d4abef5a15fca63b4bde94ed04c32ceee537be14506f671c83fd7379bab420a9",
       "sha256": "d4abef5a15fca63b4bde94ed04c32ceee537be14506f671c83fd7379bab420a9"
     },
+    "ci/specs/deploy_writer.json": {
+      "raw_sha256": "ddcf6dc66a45d2c899358363fc33c31c8b9eb9c592d883ca64044c42c17d03ec",
+      "sha256": "6738af90c143bf318520eee6e0de9a563cd854ad3402fbebeccb6814023fd1fa"
+    },
     "ci/specs/fixture_reliability.json": {
       "raw_sha256": "bf231ec39503f3b5e471730e2aa860c77b38d65abf43efb4c1be3a57c50e7b9d",
       "sha256": "1043c8569b18feef2c5788167122e4c40826c20b883faa7758be82f647913698"
+    },
+    "ci/specs/google_auth_refresh.json": {
+      "raw_sha256": "16d47bb6cf9ce1afcf3bc542c3a58fab2fb260353574a9fc96d0f35b5f9834d2",
+      "sha256": "28204ba3c745b44b77c4ccc887ba7b6bd4589e9fa498b9f951b14330b68ee456"
     },
     "ci/specs/i0.json": {
       "raw_sha256": "d6e0debc23ea6c1e2a9cf372a392132183096124f6d8c1e4c9572726da368ac6",
@@ -153,6 +161,10 @@
       "raw_sha256": "a9c1ff8613acedf93b8554cd21e4ca156ca4940df69b8c7aff639c005667c0a1",
       "sha256": "324b0a2ea2830407a58fc0f1b18095968d7b0e7ad198fbab435d43f644a99d05"
     },
+    "ci/specs/unit_diagnostics.json": {
+      "raw_sha256": "a2b1cfe631684ae02e442fbbb63ad0239c872af231fc60ae8a9b48518bc1407c",
+      "sha256": "2b642eaa49c9a4ae6b8f54486f07fdc85899a3f3145b9550578a7e426a52025e"
+    },
     "ci/specs/v2_fixes.json": {
       "raw_sha256": "531c15a5bf1cb46304a87a5059c8b914cfacff65829b97eee60f9a72de0e2b49",
       "sha256": "db5d72a8f885a1c1bdd6812594827480ee829711ef4b4d09273343f147847d05"
@@ -181,6 +193,10 @@
       "raw_sha256": "35f514e2ab3662a77b784aef399b713fad84d1189cb3ed22c6af75599e08c291",
       "sha256": "35f514e2ab3662a77b784aef399b713fad84d1189cb3ed22c6af75599e08c291"
     },
+    "ci/tests/test_google_auth_refresh.py": {
+      "raw_sha256": "e654241ad19b45c810b7585dd784606bbc36f0ae16056d7c49478fa68216cc97",
+      "sha256": "3149978bce8e9430fb17e3a23cbd1a75aac0643eb80bd8b284fab142ea010582"
+    },
     "ci/tests/test_module_evidence.py": {
       "raw_sha256": "b994dd58c9c481be25791257bc4cf70ef791f4cbc1e5ed1cdb0df6d6569da7dc",
       "sha256": "b994dd58c9c481be25791257bc4cf70ef791f4cbc1e5ed1cdb0df6d6569da7dc"
@@ -188,6 +204,10 @@
     "ci/tests/test_runner.py": {
       "raw_sha256": "5ba6a2db89ce0979c871dfecd54eb834a46304e6198d1cfdb3faba5e3227ec60",
       "sha256": "5ba6a2db89ce0979c871dfecd54eb834a46304e6198d1cfdb3faba5e3227ec60"
+    },
+    "ci/tests/test_unit_diagnostics.py": {
+      "raw_sha256": "46f44a1b6303dd9b3e915367fcc800769d5127cedab0cafb3e79729e3ce4aec1",
+      "sha256": "46f44a1b6303dd9b3e915367fcc800769d5127cedab0cafb3e79729e3ce4aec1"
     },
     "examples/erp_demo/README.md": {
       "raw_sha256": "ebcdcb902c7746b293752056cb1ead5215387c237c6e95122d119a1b1523d916",
@@ -325,6 +345,10 @@
       "raw_sha256": "bcd584e27ebfce0d643e26afd4a7d40672fa12c109b489cc7b0e3f9c30d38f1d",
       "sha256": "bcd584e27ebfce0d643e26afd4a7d40672fa12c109b489cc7b0e3f9c30d38f1d"
     },
+    "tests/google_auth_refresh.cjs": {
+      "raw_sha256": "3a1becf484e7846b28203030869cf833d2f46f78d863dca666e860f6f34b3932",
+      "sha256": "6b90c48eac37327d61f580151804eaaedda82f1cffdb303ebda6ff9509f4b6d9"
+    },
     "tests/helpers.py": {
       "raw_sha256": "62be1994cb041750fdacfc4953ccd46957cdbd1406adb38eb62b697dfb870011",
       "sha256": "62be1994cb041750fdacfc4953ccd46957cdbd1406adb38eb62b697dfb870011"
@@ -398,8 +422,8 @@
       "sha256": "b04c3650ad049ecb1083875629de6ad9257043d17f204802a1c658212eba913f"
     },
     "tests/run_tests.py": {
-      "raw_sha256": "cf8faf55c35e13ce3b1738bbe56dd9e18d31f7df13acd3e810398f0eb9d816d3",
-      "sha256": "cf8faf55c35e13ce3b1738bbe56dd9e18d31f7df13acd3e810398f0eb9d816d3"
+      "raw_sha256": "a7ba263be20709984a76241ae6a69807fbb8454096a4a7da8305a43b94c20a25",
+      "sha256": "a7ba263be20709984a76241ae6a69807fbb8454096a4a7da8305a43b94c20a25"
     },
     "tests/test_builtin_package_update.py": {
       "raw_sha256": "36f7c74cb509a37c67049da4e77650709b68aa764115aecad50cd71459e939ea",
@@ -420,6 +444,10 @@
     "tests/test_deploy.py": {
       "raw_sha256": "d258fc7d0f21377801f2dc414c3aca76ac29a5d0952bc7725030715beae49e83",
       "sha256": "d258fc7d0f21377801f2dc414c3aca76ac29a5d0952bc7725030715beae49e83"
+    },
+    "tests/test_deploy_writer.py": {
+      "raw_sha256": "80a54154900e302727ac51f266feab5eb4d4cf2e920284e77fa571d53dd4dc46",
+      "sha256": "80a54154900e302727ac51f266feab5eb4d4cf2e920284e77fa571d53dd4dc46"
     },
     "tests/test_gitops.py": {
       "raw_sha256": "b09da48a30156f6eb852100d36b4d8f5ebd6670c460155b867ad6e46903995ed",
@@ -606,8 +634,8 @@
       "sha256": "b616676e32222cca2232bf7609245b3736bf99e9c9cbe6e338783ce2f6ee5a90"
     },
     "tools/ci/runner.py": {
-      "raw_sha256": "276e7513fd42904000f0ef2bca3491ddf20c69172bb41e30141bbd24f99c6aaa",
-      "sha256": "276e7513fd42904000f0ef2bca3491ddf20c69172bb41e30141bbd24f99c6aaa"
+      "raw_sha256": "ac9d249d7ec6b9356ee2b5cc8a34cf199da47c1798e78d3bf7aae6aee1a9af33",
+      "sha256": "ac9d249d7ec6b9356ee2b5cc8a34cf199da47c1798e78d3bf7aae6aee1a9af33"
     },
     "tools/graph_checks.py": {
       "raw_sha256": "e5bc369c4542bbe999fd0a00f7b9ecb93b70546303b418db3d82ecdf36414cb7",
@@ -814,8 +842,8 @@
       "sha256": "915988d075c585594779564d323b21cb0a8209812a35a251d8461a69cfdada87"
     },
     "wsflow/modules/work_calendar/ui.js": {
-      "raw_sha256": "9e966fe8cb1c404e29c6b7f76f6936e5f63ccc8d5e22641f4ee1e12e5810b865",
-      "sha256": "c02353df9ed96212511fcbad8fe87529e578fcb58c89aa7a1dc6185b49398d9a"
+      "raw_sha256": "1792f8b6cba683b5527992a04e7f6626f316386af39f4421624badeb888a988b",
+      "sha256": "d732a6b1e7ad5288de47967ada9aa9eee4191f4c79d8c50ef23ef6abdb68f50a"
     },
     "wsflow/modules/work_calendar/vendor/jira_worklog/aggregate.py": {
       "raw_sha256": "eac86fd095048fb9dd55ddb3f05caf8ce72ef08b6355bcf85972f289d6da5666",
@@ -906,8 +934,8 @@
       "sha256": "a6a9848268dcab9be7c79edb4b178b46af5626e7ae83c2d58c5ca4be0c32ea79"
     },
     "wsflow/modules/workspace_operations/deploy.py": {
-      "raw_sha256": "086d55db9c24e6e8b60bad76da56b578734a5b1265f798458a8efc53aaed5eee",
-      "sha256": "a58d00496e61b7f431b2adc64e4d35ba3764eedef1935d472d71f4f36314a49b"
+      "raw_sha256": "69241802261e6f2bebb11f4d20bbb7465f1ec0eb47239380161d55e34a66aeb8",
+      "sha256": "e36e99f781e5ed944bbf0e0e8ae7bd85935d277c003aef732335c8a0947a8767"
     },
     "wsflow/modules/workspace_operations/gitops.py": {
       "raw_sha256": "2d40cc24632dc8570596aff7f8e3724cd42dce980bd9097c2c5ae380f8f95a56",
@@ -1006,7 +1034,7 @@
       "sha256": "8bf9ecf8d757f6e80d2a0e603db31f61cd76ad01ffb74ae73807c0a6d27d07ff"
     }
   },
-  "fingerprint": "4f620187cfa015cce1a9fe70117a48a2ce377ee44595efc603ae4ad0de5c7bcf",
+  "fingerprint": "b6ba6f5c5d9cab53a0e2b70a35deac2f1740f81824561d086f91ce223c6edf0c",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }

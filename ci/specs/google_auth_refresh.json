@@ -1,0 +1,87 @@
+{
+  "copy": [
+    "wsflow/modules/work_calendar/ui.js",
+    "tests/google_auth_refresh.cjs",
+    "ci/tests/test_google_auth_refresh.py"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "ci/tests",
+    "-p",
+    "test_google_auth_refresh.py",
+    "-k",
+    "test_actual_ui_auth_refresh_contract"
+  ],
+  "timeout": 60,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "id": "GA01_ENTRY",
+      "name": "remove OAuth poll admission guard",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/ui.js",
+          "old": "        GCAL.busy=true;drawGoogle();\n        try {const s=await api('GET','/api/v2/calendar/google/status');",
+          "new": "        try {const s=await api('GET','/api/v2/calendar/google/status');"
+        }
+      ]
+    },
+    {
+      "id": "GA01_RELEASE",
+      "name": "remove OAuth poll admission release",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/ui.js",
+          "old": "        finally{GCAL.busy=false;drawGoogle();}",
+          "new": "        finally{drawGoogle();}"
+        }
+      ]
+    },
+    {
+      "id": "GA01_RELEASE_DRAW_REMOVED",
+      "name": "round 3 release_draw_removed",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/ui.js",
+          "old": "        finally{GCAL.busy=false;drawGoogle();}",
+          "new": "        finally{GCAL.busy=false;}"
+        }
+      ]
+    },
+    {
+      "id": "GA01_RELEASE_DRAW_SUCCESS_ONLY",
+      "name": "round 3 release_draw_success_only",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/ui.js",
+          "old": "        finally{GCAL.busy=false;drawGoogle();}",
+          "new": "        finally{GCAL.busy=false;if(!GCAL.error)drawGoogle();}"
+        }
+      ]
+    },
+    {
+      "id": "GA01_RELEASE_ONLY_WHEN_DONE",
+      "name": "round 3 release_only_when_done",
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/ui.js",
+          "old": "        finally{GCAL.busy=false;drawGoogle();}",
+          "new": "        finally{if(!GCAL.status?.pending){GCAL.busy=false;drawGoogle();}}"
+        }
+      ]
+    }
+  ]
+}

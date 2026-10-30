@@ -1,0 +1,9 @@
+# Unit diagnostic evidence contract
+
+The application unit suite retains the existing 900-second supervisor limit, skip cap and assertions. CI explicitly enables progress JSONL and periodic stacks in a fresh owned artifact directory for the unit child. Ambient diagnostic destinations are removed. Diagnostic files are retained on failure by the existing artifact export.
+
+Progress records identify suite and test start/stop, wall-clock timestamps, monotonic elapsed time, test durations and counters. Start counters are 1 through N; each stop contains the cumulative failure/error/skip counts at that case. Each event is flushed before the next test stage. Partial progress is not a completed unit result. Stack collection defaults to a repeating 120-second interval and is observation, not a second watchdog. Completed unit evidence and the original success/failure exit semantics remain authoritative.
+
+The observer cancels its timer and closes owned files on normal and exceptional exits. Existing diagnostic files are not overwritten. Failed diagnostic setup or writing must not silently yield a successful qualification. Process metadata describes the owned direct PID, termination attempts and reap result; it does not claim recovery of unknown descendants.
+
+Tiny actual subprocess fixtures test success/failure/skip/subtest, live progress, stack timing, collisions, interruption/timeout and runner artifact retention. Independent oracles use a controlled sleep, the child-reported actual PID, the requested timeout, whole-owned-root file observations and a real non-unit child's environment. Recorded values are not validated solely against another record from the same producer. They are CI self-tests and are not counted as application unit cases. Qualification still requires complete original provider evidence for each declared runtime.

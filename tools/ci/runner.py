@@ -29,7 +29,7 @@ CONTEXT = ('.gitignore', 'GLOBAL_RULES.md', 'PROJECT_RULES.md', 'README.md',
            'rd/v0_v1_contracts.md', 'rd/ci_fixture_reliability_contracts.md', 'evidence_pack/metrics.yaml')
 BROWSER_COUNTS = (11, 11, 7, 11, 11, 14, 17)
 OUTPUT_ENV = ('WSFLOW_BROWSER_OUTPUT', 'WSFLOW_RUN_EVIDENCE_DIR', 'WSFLOW_TEST_EVIDENCE_DIR',
-              'WSFLOW_GRAPH_EVIDENCE', 'WSFLOW_MODULES_BROWSER_BASE')
+              'WSFLOW_GRAPH_EVIDENCE', 'WSFLOW_MODULES_BROWSER_BASE', 'WSFLOW_UNIT_DIAGNOSTICS')
 
 
 def plain(path):
@@ -203,23 +203,35 @@ def command(args, cwd, log, env=None, timeout=900):
     with log.open('wb') as stream:
         child = subprocess.Popen(args, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
                                  stdout=stream, stderr=subprocess.STDOUT, start_new_session=os.name != 'nt')
+        process = {'pid': child.pid, 'timeout_seconds': timeout, 'termination': None,
+                   'descendants_verified': False}
         try:
             code = child.wait(timeout=timeout)
         except BaseException as exc:
+            termination = {'reason': 'timeout' if isinstance(exc, subprocess.TimeoutExpired) else 'interrupted',
+                           'error_type': type(exc).__name__, 'owned_handle_fallback': False}
+            process['termination'] = termination
             if os.name == 'nt':
                 try:
-                    subprocess.run(['taskkill', '/PID', str(child.pid), '/T', '/F'], stdout=stream, stderr=stream, timeout=10)
-                except (OSError, subprocess.TimeoutExpired):
-                    pass
+                    stopped = subprocess.run(['taskkill', '/PID', str(child.pid), '/T', '/F'], stdout=stream, stderr=stream, timeout=10)
+                    termination['tree_stop_returncode'] = stopped.returncode
+                except (OSError, subprocess.TimeoutExpired) as stop_error:
+                    termination['tree_stop_error_type'] = type(stop_error).__name__
             else:
                 os.killpg(child.pid, signal.SIGKILL)
+                termination['process_group_signal'] = 'SIGKILL'
             if child.poll() is None:
+                termination['owned_handle_fallback'] = True
                 child.kill()  # Only our Popen handle; fallback when taskkill cannot access the tree.
             child.wait(timeout=15)
             if not isinstance(exc, subprocess.TimeoutExpired):
                 raise
             code = 124
-    return {'command': args, 'exit_code': code, 'seconds': round(time.monotonic() - start, 3), 'log': str(log)}
+        finally:
+            process.update(returncode=child.poll(), direct_child_reaped=child.returncode is not None)
+            save(log.with_suffix('.process.json'), process)
+    return {'command': args, 'exit_code': code, 'seconds': round(time.monotonic() - start, 3),
+            'log': str(log), 'process': process}
 
 
 def accepted(step):
@@ -415,7 +427,8 @@ def run(root, out, expected_python, step, jobs):
             import ctypes
             result['environment']['elevated'] = bool(ctypes.windll.shell32.IsUserAnAdmin())
         if step in ('all', 'unit'):
-            r = command([sys.executable, '-X', 'utf8', 'tests/run_tests.py'], root, out / 'unit.log', env)
+            unit_env = dict(env, WSFLOW_UNIT_DIAGNOSTICS=str(logs / 'unit_diagnostics'))
+            r = command([sys.executable, '-X', 'utf8', 'tests/run_tests.py'], root, out / 'unit.log', unit_env)
             result['steps'].append(r); accepted(r)
             unit = read(next((logs / 'unit').glob('*_evidence.json')))
             if not unit['ok'] or unit['tests_run'] < 415 or unit['failures'] or unit['errors'] or unit['skipped'] > 1:

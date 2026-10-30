@@ -140,88 +140,106 @@
       "stage": "fixture_reliability"
     },
     {
-      "stage": "common_writes",
+      "count": 23,
+      "source": "rd/common_write_contracts.md",
       "spec": "ci/specs/common_writes.json",
-      "count": 23,
-      "source": "rd/common_write_contracts.md"
+      "stage": "common_writes"
     },
     {
-      "stage": "common_writes_ui",
-      "spec": "ci/specs/common_writes_ui.json",
       "count": 3,
-      "source": "rd/common_write_contracts.md"
+      "source": "rd/common_write_contracts.md",
+      "spec": "ci/specs/common_writes_ui.json",
+      "stage": "common_writes_ui"
     },
     {
-      "stage": "calendar_identity",
-      "spec": "ci/specs/calendar_identity.json",
       "count": 27,
-      "source": "rd/261026_P045_uid_binding_contract.md"
+      "source": "rd/261026_P045_uid_binding_contract.md",
+      "spec": "ci/specs/calendar_identity.json",
+      "stage": "calendar_identity"
     },
     {
-      "stage": "calendar_identity_ui",
-      "spec": "ci/specs/calendar_identity_ui.json",
       "count": 4,
-      "source": "rd/261026_P045_uid_binding_contract.md"
+      "source": "rd/261026_P045_uid_binding_contract.md",
+      "spec": "ci/specs/calendar_identity_ui.json",
+      "stage": "calendar_identity_ui"
     },
     {
-      "stage": "reader_scope",
-      "spec": "ci/specs/reader_scope.json",
       "count": 13,
-      "source": "rd/reader_scope_contracts.md"
+      "source": "rd/reader_scope_contracts.md",
+      "spec": "ci/specs/reader_scope.json",
+      "stage": "reader_scope"
     },
     {
-      "stage": "modules",
-      "spec": "ci/specs/modules.json",
       "count": 20,
-      "source": "rd/261028_P055_packaged_modules_contract.md"
+      "source": "rd/261028_P055_packaged_modules_contract.md",
+      "spec": "ci/specs/modules.json",
+      "stage": "modules"
     },
     {
-      "stage": "module_evidence",
-      "spec": "ci/specs/module_evidence.json",
       "count": 15,
-      "source": "rd/module_ci_contracts.md"
+      "source": "rd/module_ci_contracts.md",
+      "spec": "ci/specs/module_evidence.json",
+      "stage": "module_evidence"
     },
     {
-      "stage": "registry_atomic",
-      "spec": "ci/specs/registry_atomic.json",
       "count": 2,
-      "source": "rd/module_ci_contracts.md"
+      "source": "rd/module_ci_contracts.md",
+      "spec": "ci/specs/registry_atomic.json",
+      "stage": "registry_atomic"
     },
     {
-      "stage": "module_bootstrap_ui",
-      "spec": "ci/specs/module_bootstrap_ui.json",
       "count": 1,
-      "source": "rd/module_ci_contracts.md"
+      "source": "rd/module_ci_contracts.md",
+      "spec": "ci/specs/module_bootstrap_ui.json",
+      "stage": "module_bootstrap_ui"
     },
     {
-      "stage": "module_continuity",
+      "count": 28,
       "spec": "ci/specs/module_continuity.json",
-      "count": 28
+      "stage": "module_continuity"
     },
     {
-      "stage": "runtime_activity",
-      "spec": "ci/specs/runtime_activity.json",
       "count": 23,
-      "source": "rd/module_runtime_contracts.md"
+      "source": "rd/module_runtime_contracts.md",
+      "spec": "ci/specs/runtime_activity.json",
+      "stage": "runtime_activity"
     },
     {
-      "stage": "writer_admission",
-      "spec": "ci/specs/writer_admission.json",
       "count": 34,
-      "source": "rd/module_writer_contracts.md"
+      "source": "rd/module_writer_contracts.md",
+      "spec": "ci/specs/writer_admission.json",
+      "stage": "writer_admission"
     },
     {
-      "stage": "workspace_writer",
-      "spec": "ci/specs/workspace_writer.json",
       "count": 9,
-      "source": "rd/module_workspace_writer_contracts.md"
+      "source": "rd/module_workspace_writer_contracts.md",
+      "spec": "ci/specs/workspace_writer.json",
+      "stage": "workspace_writer"
     },
     {
-      "stage": "workflow_writer",
-      "spec": "ci/specs/workflow_writer.json",
       "count": 10,
-      "source": "rd/module_workflow_writer_contracts.md"
+      "source": "rd/module_workflow_writer_contracts.md",
+      "spec": "ci/specs/workflow_writer.json",
+      "stage": "workflow_writer"
+    },
+    {
+      "count": 5,
+      "source": "rd/module_deploy_writer_contracts.md",
+      "spec": "ci/specs/deploy_writer.json",
+      "stage": "deploy_writer"
+    },
+    {
+      "count": 18,
+      "source": "rd/ci_unit_diagnostics_contracts.md",
+      "spec": "ci/specs/unit_diagnostics.json",
+      "stage": "unit_diagnostics"
+    },
+    {
+      "count": 5,
+      "source": "rd/module_google_auth_refresh_contracts.md",
+      "spec": "ci/specs/google_auth_refresh.json",
+      "stage": "google_auth_refresh"
     }
   ],
-  "total": 478
+  "total": 506
 }

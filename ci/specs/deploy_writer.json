@@ -1,0 +1,183 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_deploy_writer.py",
+    "-k",
+    "test_raw_apply_refuses_before_callback_or_owner_effects"
+  ],
+  "timeout": 90,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "id": "DP_CURRENT_BYTES",
+      "name": "remove current-byte cache invalidation",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/deploy.py",
+          "func": "_entries",
+          "old": "                filecmp.clear_cache()\n",
+          "new": ""
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_deploy_writer.py",
+        "-k",
+        "test_current_bytes_override_same_stat_cache_for_plan_and_apply"
+      ]
+    },
+    {
+      "id": "DP_WHOLE_ROOT",
+      "name": "remove raw whole-root admission",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/deploy.py",
+          "func": "apply",
+          "old": "@writer_function\ndef apply(",
+          "new": "def apply("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_deploy_writer.py",
+        "-k",
+        "test_raw_apply_refuses_before_callback_or_owner_effects"
+      ]
+    },
+    {
+      "id": "DP_COMPARE_BOUNDARY",
+      "name": "clear only once per apply leaves duplicate project stale",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/deploy.py",
+          "func": "_entries",
+          "old": "                filecmp.clear_cache()\n",
+          "new": ""
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/deploy.py",
+          "func": "apply",
+          "old": "    results = []\n",
+          "new": "    filecmp.clear_cache()\n    results = []\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_deploy_writer.py",
+        "-k",
+        "test_repeated_and_duplicate_projects_copy_once"
+      ]
+    },
+    {
+      "id": "DP_EMPTY_ADMISSION",
+      "name": "bypass admission for empty public apply",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/deploy.py",
+          "func": "apply",
+          "old": "@writer_function\ndef apply(",
+          "new": "def _nonempty_writer(function):\n    guarded = writer_function(function)\n    def invoke(sources, projects, dest_rel, template_for):\n        if not sources or not projects:\n            return function(sources, projects, dest_rel, template_for)\n        return guarded(sources, projects, dest_rel, template_for)\n    return invoke\n\n\n@_nonempty_writer\ndef apply("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_deploy_writer.py",
+        "-k",
+        "test_noop_errors_protection_plan_and_nested_domain"
+      ]
+    },
+    {
+      "id": "DP_LATE_RESPONSE",
+      "name": "release raw root after copied results but before actual final sum",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/deploy.py",
+          "old": "from wsflow.writer_admission import writer_function",
+          "new": "from wsflow.writer_admission import writer_function, default_domain"
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/deploy.py",
+          "func": "apply",
+          "old": "@writer_function\ndef apply(sources: list[str], projects: list[dict], dest_rel: str,\n          template_for: Callable[[str], Path | None]) -> dict:\n    \"\"\"plan 과 같은 계산을 다시 하고 new/changed 만 복사한다(항상 덮어쓰기, 백업 없음).\"\"\"\n    results = []\n    for p in projects:\n        e = _entries(sources, p, template_for(p[\"path\"]), dest_rel)\n        copied, failed = [], []\n        for it in ([] if e['errors'] else e[\"items\"]):\n            if it[\"status\"] == \"same\":\n                continue\n            try:\n                conflict = protected_destination(it['dest'], p['path'])\n                if conflict:\n                    raise ValueError(conflict)\n                Path(it[\"dest\"]).parent.mkdir(parents=True, exist_ok=True)\n                shutil.copy2(it[\"src\"], it[\"dest\"])\n                copied.append(it[\"rel\"])\n            except (OSError, ValueError) as ex:\n                failed.append({\"rel\": it[\"rel\"], \"error\": str(ex)})\n        results.append({\"id\": e[\"id\"], \"alias\": e[\"alias\"], \"copied\": copied, \"skipped_same\": e[\"counts\"][\"same\"],\n                        \"failed\": failed, \"errors\": e[\"errors\"]})\n    return {\"results\": results, \"copied_total\": sum(len(r[\"copied\"]) for r in results)}\n",
+          "new": "def apply(sources: list[str], projects: list[dict], dest_rel: str,\n          template_for: Callable[[str], Path | None]) -> dict:\n    \"\"\"plan 과 같은 계산을 다시 하고 new/changed 만 복사한다(항상 덮어쓰기, 백업 없음).\"\"\"\n    with default_domain().writing():\n        results = []\n        for p in projects:\n            e = _entries(sources, p, template_for(p[\"path\"]), dest_rel)\n            copied, failed = [], []\n            for it in ([] if e['errors'] else e[\"items\"]):\n                if it[\"status\"] == \"same\":\n                    continue\n                try:\n                    conflict = protected_destination(it['dest'], p['path'])\n                    if conflict:\n                        raise ValueError(conflict)\n                    Path(it[\"dest\"]).parent.mkdir(parents=True, exist_ok=True)\n                    shutil.copy2(it[\"src\"], it[\"dest\"])\n                    copied.append(it[\"rel\"])\n                except (OSError, ValueError) as ex:\n                    failed.append({\"rel\": it[\"rel\"], \"error\": str(ex)})\n            results.append({\"id\": e[\"id\"], \"alias\": e[\"alias\"], \"copied\": copied, \"skipped_same\": e[\"counts\"][\"same\"],\n                            \"failed\": failed, \"errors\": e[\"errors\"]})\n    return {\"results\": results, \"copied_total\": sum(len(r[\"copied\"]) for r in results)}\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_deploy_writer.py",
+        "-k",
+        "test_copy_and_final_response_windows_keep_whole_raw_root"
+      ]
+    }
+  ]
+}

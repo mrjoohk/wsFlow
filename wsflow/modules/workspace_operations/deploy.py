@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Callable
 
 from wsflow.path_policy import protected_destination
+from wsflow.writer_admission import writer_function
 
 SKIP_DIRS = {".git", "__pycache__"}
 
@@ -73,6 +74,7 @@ def _entries(sources: list[str], project: dict, template_dir: Path | None, dest_
                 errors.append(f"{dest}: {conflict}")
                 continue
             if dest.exists():
+                filecmp.clear_cache()
                 status = "same" if filecmp.cmp(f, dest, shallow=False) else "changed"
             else:
                 status = "new"
@@ -92,6 +94,7 @@ def plan(sources: list[str], projects: list[dict], dest_rel: str,
             "total": {k: sum(p["counts"][k] for p in out) for k in ("new", "changed", "same")}}
 
 
+@writer_function
 def apply(sources: list[str], projects: list[dict], dest_rel: str,
           template_for: Callable[[str], Path | None]) -> dict:
     """plan 과 같은 계산을 다시 하고 new/changed 만 복사한다(항상 덮어쓰기, 백업 없음)."""
