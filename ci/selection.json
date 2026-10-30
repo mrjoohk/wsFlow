@@ -209,7 +209,13 @@
       "spec": "ci/specs/writer_admission.json",
       "count": 34,
       "source": "rd/module_writer_contracts.md"
+    },
+    {
+      "stage": "workspace_writer",
+      "spec": "ci/specs/workspace_writer.json",
+      "count": 9,
+      "source": "rd/module_workspace_writer_contracts.md"
     }
   ],
-  "total": 459
+  "total": 468
 }

@@ -15,6 +15,7 @@ from uuid import uuid4
 
 from . import context_skills as skills
 from wsflow import fileio, operations
+from wsflow.writer_admission import writer_method
 from wsflow.path_policy import protected_destination  # Compatibility export for existing callers.
 
 BEGIN = b'<!-- WSFLOW:BEGIN v1 -->'
@@ -93,6 +94,7 @@ class Service:
     def __init__(self, registry):
         self.registry = registry
         self.ops = operations.Store(str(registry.file.resolve()) + '.context')
+        self._writer_domain = self.ops._writer_domain
         self.lock_home = self.ops.path.parent / ('context-' + operations.digest(str(registry.file.resolve())))
 
     def _binding(self, pid):
@@ -165,6 +167,7 @@ class Service:
     def _public(op):
         return {k:op.get(k) for k in ('operation_id','plan_id','project_id','owner','status','result','error')}
 
+    @writer_method
     def preview(self, pid, body):
         if not isinstance(body,dict) or set(body)-{'kind','backend','selected_skills','adopt_existing'}:
             raise ValueError('지원하지 않는 초기화 payload')
@@ -420,6 +423,7 @@ class Service:
     def _matches(current, expected):
         return current['kind']==expected['kind'] and (current['kind'] in ('absent','dir') or current.get('sha256')==expected.get('sha256'))
 
+    @writer_method
     def apply(self, pid, plan_id, ident, recover=False):
         """Apply only server intent. Explicit recovery never overwrites later edits."""
         with fileio.locked(self.lock_home):

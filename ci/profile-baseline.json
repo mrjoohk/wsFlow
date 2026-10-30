@@ -6,11 +6,11 @@
   ],
   "node": "v24.14.0",
   "playwright": "1.62.1",
-  "unit": 770,
+  "unit": 779,
   "selftests": 44,
   "historical_browser_cases": 82,
   "module_browser_cases": 14,
   "module_fixture_starts": 8,
-  "mutants": 459,
+  "mutants": 468,
   "maximum_unit_skips": 1
 }

@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-29T22:49:10.830995+00:00",
+  "created_at": "2026-10-30T02:37:59.939116+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "9c4e1d5116114579583bf77d597b3f6b61c59cca998ce7909afc79b6d87a0f6b",
@@ -34,8 +34,8 @@
       "sha256": "9d5dd7cb0797e64087970ce1b060f57e31b939317bece54c192f60146fb00c13"
     },
     "ci/profile-baseline.json": {
-      "raw_sha256": "903d500c13e5af29289a1b69c4edeb3cd9e6d0a2843421e0b30018bfa95710f1",
-      "sha256": "44fbeedf0df8093f9675eb8d3d4b810af39a00e35cb7410df9f83cbeecb3773d"
+      "raw_sha256": "eee0894782deb074ff636669309697388c9066aa898a6a807931196c0d04bd6f",
+      "sha256": "5620a3ee6a20e8f6f8ea6da85e82f93fb1b8990106cdfc4f69ecf5b36cd67fde"
     },
     "ci/python-requirements.txt": {
       "raw_sha256": "4300e5e4d59a547918e2c8b6bfa494651017cfd6669708c888cfa97690f22e2e",
@@ -50,8 +50,8 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "38f0020d7d0ff61656d0743f2da915f02e53c302ae43131064ddefc470f62327",
-      "sha256": "f98111a0d9785715647f81c3ca1517e9cd21fb631f7c2f8130f5dca6ae765038"
+      "raw_sha256": "5cb6164d771b064b624778aff90c492cabe7a9ceb999b07c9893095fa39e9201",
+      "sha256": "47daf6701084bfd5891d7f3d00188d6382b1203375f27e843ac617686e22087e"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "6c77009186cc2a5cf84fda712c76a129fd36e20dc548b669c8be911fbc326a8e",
@@ -160,6 +160,10 @@
     "ci/specs/v2_fixes_ui.json": {
       "raw_sha256": "9962c7eac4378f648d2768c51670e6857e8ec1810e3f5eb4485e2f9951aa71ea",
       "sha256": "9962c7eac4378f648d2768c51670e6857e8ec1810e3f5eb4485e2f9951aa71ea"
+    },
+    "ci/specs/workspace_writer.json": {
+      "raw_sha256": "6199db98659901a88db9739a940468ce812dda2eb1e11a880940d823d57b086d",
+      "sha256": "96df9e07ea7ce5b53e141801e5c042d8d04282de2bf49110d77f70ab993744ae"
     },
     "ci/specs/writer_admission.json": {
       "raw_sha256": "c679f2f4b05a18a126774be4eca82046b9c70e3d576f86184dd4fb69f5c5e14d",
@@ -553,6 +557,10 @@
       "raw_sha256": "94af860cf17035ea8618be02d040690316ef0f0ef92221632f818dd0f5332539",
       "sha256": "94af860cf17035ea8618be02d040690316ef0f0ef92221632f818dd0f5332539"
     },
+    "tests/test_workspace_writer.py": {
+      "raw_sha256": "b38a4b0ea0017ddecb31f3009316a369da689c034dedf254ccbd78899e92a781",
+      "sha256": "5ab22b65a5d464e240f7145181db9b1bb12b8fab52fc3953ff3dfd4cf85d8494"
+    },
     "tests/test_writer_admission.py": {
       "raw_sha256": "b59142c6240d4dc03d688e3dbe0a9372bd2b1c673e0d3a4be8d2833ab277ec9e",
       "sha256": "b59142c6240d4dc03d688e3dbe0a9372bd2b1c673e0d3a4be8d2833ab277ec9e"
@@ -878,8 +886,8 @@
       "sha256": "d2a7f5202f3af1d1040845bcd78ad8a089b92a95cecd685e4357d93170877029"
     },
     "wsflow/modules/workspace_operations/context_projection.py": {
-      "raw_sha256": "cbe355417edc0495df36ee124e0bb24c1b4cb1e7cfecc010616413591d1540dc",
-      "sha256": "82e5c6c1034fae4670b821dbcd54e40e9490eb79e669a6c8ff4118709d46370a"
+      "raw_sha256": "5812f0ade7acdf6e4b195fb7726535e13c2d639b5b71722e167229204793b566",
+      "sha256": "da8fa7033c3bc3865528f7a50c9126e0329eece3aa8ddaaf170d14e8db592b2f"
     },
     "wsflow/modules/workspace_operations/context_rules.py": {
       "raw_sha256": "df7ffaf6fb1adac6b9e498f92c00a2147db714acddf6c3d60bb4dd5f98a8131b",
@@ -910,8 +918,8 @@
       "sha256": "7998227102ed26d08d90ba90306725edf2fd21b9091a9fed5557a30a9fd332cb"
     },
     "wsflow/modules/workspace_operations/session_prep.py": {
-      "raw_sha256": "10d8e1a3de73c194a89f9f1541b9823b257a3911b4de35303bcca41dd3211413",
-      "sha256": "86c7883deb84016452da9a1df7f24f1f72f481b32342335fa8f81d99ce0c85cc"
+      "raw_sha256": "70436bc4dc523228e2e40097be52ed57389df8e6cc86dc2769b76d962387b304",
+      "sha256": "222b6553980b7152228da78d7075a40f2ac846d26845de52b534d13fda9873f0"
     },
     "wsflow/modules/workspace_operations/ui.js": {
       "raw_sha256": "92e11cff5b9acb6964d557d9961c5ef5dc9385b09ccb98b894b95937fe4164b1",
@@ -990,7 +998,7 @@
       "sha256": "8bf9ecf8d757f6e80d2a0e603db31f61cd76ad01ffb74ae73807c0a6d27d07ff"
     }
   },
-  "fingerprint": "415f952d6754b8566b81be8f6842e9f5c458a83e4c01417f9d1b1fea73159b55",
+  "fingerprint": "86e765ddd0c3be32ff67b79636fd118c387db43c8dbcee4ff55d489285ca806e",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }

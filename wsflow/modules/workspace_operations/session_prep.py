@@ -6,6 +6,7 @@ describe submitted evidence; they are not independent attestations of a tool.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from functools import wraps
 import json
 from pathlib import Path
 import platform
@@ -15,6 +16,7 @@ from uuid import uuid4
 
 from . import context_projection as projection, context_skills as skills
 from wsflow import fileio, operations
+from wsflow.writer_admission import writer_method
 from wsflow.readmodel import Reader
 
 TOOLS = {'codex':('AGENTS.md','.agents/skills'), 'claude':('CLAUDE.md','.claude/skills')}
@@ -40,11 +42,21 @@ def bounded_text(value,limit,name):
     return value.strip()
 
 
+def _storage_checked(function):
+    """Reject invalid storage before admission can create its control files."""
+    @wraps(function)
+    def invoke(self,*args,**kwargs):
+        self._storage()
+        return function(self,*args,**kwargs)
+    return invoke
+
+
 class Service:
     def __init__(self, registry):
         self.registry=registry
         self.context=projection.Service(registry)
         self.ops=operations.Store(str(registry.file.resolve())+'.sessions')
+        self._writer_domain = self.ops._writer_domain
         self.evidence_dir=self.ops.path.parent.parent/'session-evidence'/operations.digest(str(registry.file.resolve()))
 
     def _storage(self):
@@ -208,6 +220,8 @@ class Service:
         result['snapshot_id']=operations.digest({k:result.get(k) for k in ('project_id','tool','cwd','root_path','root_uid','project_uid','binding','blockers')} | {'sources':observations})
         return result
 
+    @_storage_checked
+    @writer_method
     def prepare(self,pid,body):
         if not isinstance(body,dict) or set(body)!={'tool','version','surface'}:raise ValueError('tool/version/surface만 제출하십시오')
         tool=body['tool'];version=bounded_text(body['version'],100,'도구 버전')
@@ -234,6 +248,8 @@ class Service:
             'observed_sources':[],'observed_skills':[],'notes':'실제로 확인한 출처 ID/sha256와 스킬 ID/tree_hash만 입력하세요.'}
         return packet
 
+    @_storage_checked
+    @writer_method
     def upload(self,content):
         if not isinstance(content,str) or not content or len(content.encode('utf-8'))>MAX_EVIDENCE:raise ValueError('증거는 256KiB 이하 UTF-8 텍스트입니다')
         self._storage();skills.plain_path(self.evidence_dir,self.ops.path.parent.parent)
@@ -252,6 +268,8 @@ class Service:
         if raw is None or len(raw)>MAX_EVIDENCE or projection.sha(raw)!=meta['sha256'] or not reader.finish():raise ValueError('evidence_changed')
         return meta,raw
 
+    @_storage_checked
+    @writer_method
     def observe(self,pid,body):
         if not isinstance(body,dict) or set(body)-{'packet_id','evidence_id','evidence_kind','attest_tool_output'} or not {'packet_id','evidence_id','evidence_kind'}.issubset(body):raise ValueError('packet/evidence ID와 관측 종류만 제출하십시오')
         kind=body['evidence_kind']

@@ -1,0 +1,292 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_workspace_writer.py",
+    "-k",
+    "test_invalid_session_storage_refuses_all_writers_without_control_files"
+  ],
+  "timeout": 60,
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "id": "WW_CONTEXT_PREVIEW",
+      "name": "ww context preview",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
+          "func": "Service.preview",
+          "old": "    @writer_method\n    def preview(",
+          "new": "    def preview("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace_writer.py",
+        "-k",
+        "test_context_preview_holds_real_saved_plan_through_response"
+      ]
+    },
+    {
+      "id": "WW_CONTEXT_APPLY",
+      "name": "ww context apply",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
+          "func": "Service.apply",
+          "old": "    @writer_method\n    def apply(",
+          "new": "    def apply("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace_writer.py",
+        "-k",
+        "test_recover_barrier_refuses_before_owner_lockfile_file_and_sql_effects"
+      ]
+    },
+    {
+      "id": "WW_SESSION_PREPARE",
+      "name": "ww session prepare",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
+          "func": "Service.prepare",
+          "old": "    @writer_method\n    def prepare(",
+          "new": "    def prepare("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace_writer.py",
+        "-k",
+        "test_prepare_holds_real_packet_plan_through_template_response"
+      ]
+    },
+    {
+      "id": "WW_SESSION_UPLOAD",
+      "name": "ww session upload",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
+          "func": "Service.upload",
+          "old": "    @writer_method\n    def upload(",
+          "new": "    def upload("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace_writer.py",
+        "-k",
+        "test_upload_holds_committed_metadata_until_actual_evidence_bytes"
+      ]
+    },
+    {
+      "id": "WW_SESSION_OBSERVE",
+      "name": "ww session observe",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
+          "func": "Service.observe",
+          "old": "    @writer_method\n    def observe(",
+          "new": "    def observe("
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace_writer.py",
+        "-k",
+        "test_observe_holds_actual_receipt_commit_through_final_reader"
+      ]
+    },
+    {
+      "id": "WW_STORAGE_PREFLIGHT",
+      "name": "session preflight follows admission effects",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
+          "func": "_storage_checked",
+          "old": "        self._storage()",
+          "new": "        pass"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace_writer.py",
+        "-k",
+        "test_invalid_session_storage_refuses_all_writers_without_control_files"
+      ]
+    },
+    {
+      "id": "WW_PREPARE_RESPONSE",
+      "name": "template response released after saved plan",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
+          "func": "Service.prepare",
+          "old": "    @_storage_checked\n    @writer_method\n    def prepare(self,pid,body):\n        if not isinstance(body,dict) or set(body)!={'tool','version','surface'}:raise ValueError('tool/version/surface만 제출하십시오')\n        tool=body['tool'];version=bounded_text(body['version'],100,'도구 버전')\n        if not isinstance(tool,str) or tool not in TOOLS or body['surface'] not in ('cli','desktop','ide'):raise ValueError('도구와 surface를 확인하십시오')\n        self._storage();snapshot=self.inspect(pid,tool)\n        profile={'tool':tool,'version':version,'surface':body['surface'],**runtime(),\n                 'discovery_path':TOOLS[tool][1],'version_provenance':'user_declared'}\n        profile['profile_id']=operations.digest(profile)\n        packet={**snapshot,'kind':'session_packet','profile':profile,'recognition':'unknown','observation_kind':'static_only',\n                'packet_id':None,'startup_text':'','scope_complete':False}\n        if not snapshot['ready']:return packet\n        text='새 세션을 다음 checkout에서 시작하세요: '+snapshot['cwd']+'\\n도구: '+tool+' '+version+' ('+body['surface']+')\\n'\n        text+='관측 결부 snapshot_id: '+snapshot['snapshot_id']+'\\nprofile_id: '+profile['profile_id']+'\\n'\n        text+='아래 정본/진입점을 읽고 선택 스킬 목록을 확인하세요. 파일 연결 확인은 실제 로딩/준수의 증명이 아닙니다.\\n'\n        text+='\\n'.join(s['id']+': '+s['path']+' [sha256 '+s['sha256']+']' for s in snapshot['expected_sources'])\n        text+='\\n선택 스킬:\\n'+'\\n'.join(s['id']+': '+s['exposed_path']+' [tree '+s['tree_hash']+']' for s in snapshot['expected_skills'])\n        text+='\\n실제로 확인한 문서/스킬만 보고하세요. 자체 보고는 agent_reported이며 tool_observed로 바꾸지 마세요. 개인/플러그인 범위는 미확인입니다.'\n        text+='\\n보고 JSON 필드: schema_version=1, origin=agent_report, session_ref, captured_at(실제 관측 시각·ISO offset), snapshot_id, profile_id, cwd, observed_sources([{id,sha256}]), observed_skills([{id,tree_hash}]), notes. 미확인 항목은 배열에서 제외하세요.'\n        packet['startup_text']=text\n        saved=self.ops.save_plan(packet,[])\n        packet.update(packet_id=saved['plan_id'],created_at=saved['created_at'])\n        packet['observation_template']={'schema_version':1,'origin':'agent_report','session_ref':'실제 세션 식별자',\n            'captured_at':operations.now(),'snapshot_id':packet['snapshot_id'],'profile_id':profile['profile_id'],'cwd':packet['cwd'],\n            'observed_sources':[],'observed_skills':[],'notes':'실제로 확인한 출처 ID/sha256와 스킬 ID/tree_hash만 입력하세요.'}\n        return packet\n",
+          "new": "    @_storage_checked\n    def prepare(self,pid,body):\n        with self._writer_domain.writing():\n            if not isinstance(body,dict) or set(body)!={'tool','version','surface'}:raise ValueError('tool/version/surface만 제출하십시오')\n            tool=body['tool'];version=bounded_text(body['version'],100,'도구 버전')\n            if not isinstance(tool,str) or tool not in TOOLS or body['surface'] not in ('cli','desktop','ide'):raise ValueError('도구와 surface를 확인하십시오')\n            self._storage();snapshot=self.inspect(pid,tool)\n            profile={'tool':tool,'version':version,'surface':body['surface'],**runtime(),\n                     'discovery_path':TOOLS[tool][1],'version_provenance':'user_declared'}\n            profile['profile_id']=operations.digest(profile)\n            packet={**snapshot,'kind':'session_packet','profile':profile,'recognition':'unknown','observation_kind':'static_only',\n                    'packet_id':None,'startup_text':'','scope_complete':False}\n            if not snapshot['ready']:return packet\n            text='새 세션을 다음 checkout에서 시작하세요: '+snapshot['cwd']+'\\n도구: '+tool+' '+version+' ('+body['surface']+')\\n'\n            text+='관측 결부 snapshot_id: '+snapshot['snapshot_id']+'\\nprofile_id: '+profile['profile_id']+'\\n'\n            text+='아래 정본/진입점을 읽고 선택 스킬 목록을 확인하세요. 파일 연결 확인은 실제 로딩/준수의 증명이 아닙니다.\\n'\n            text+='\\n'.join(s['id']+': '+s['path']+' [sha256 '+s['sha256']+']' for s in snapshot['expected_sources'])\n            text+='\\n선택 스킬:\\n'+'\\n'.join(s['id']+': '+s['exposed_path']+' [tree '+s['tree_hash']+']' for s in snapshot['expected_skills'])\n            text+='\\n실제로 확인한 문서/스킬만 보고하세요. 자체 보고는 agent_reported이며 tool_observed로 바꾸지 마세요. 개인/플러그인 범위는 미확인입니다.'\n            text+='\\n보고 JSON 필드: schema_version=1, origin=agent_report, session_ref, captured_at(실제 관측 시각·ISO offset), snapshot_id, profile_id, cwd, observed_sources([{id,sha256}]), observed_skills([{id,tree_hash}]), notes. 미확인 항목은 배열에서 제외하세요.'\n            packet['startup_text']=text\n            saved=self.ops.save_plan(packet,[])\n            packet.update(packet_id=saved['plan_id'],created_at=saved['created_at'])\n        packet['observation_template']={'schema_version':1,'origin':'agent_report','session_ref':'실제 세션 식별자',\n            'captured_at':operations.now(),'snapshot_id':packet['snapshot_id'],'profile_id':profile['profile_id'],'cwd':packet['cwd'],\n            'observed_sources':[],'observed_skills':[],'notes':'실제로 확인한 출처 ID/sha256와 스킬 ID/tree_hash만 입력하세요.'}\n        return packet\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace_writer.py",
+        "-k",
+        "test_prepare_holds_real_packet_plan_through_template_response"
+      ]
+    },
+    {
+      "id": "WW_OBSERVE_REUSE",
+      "name": "duplicate receipt response escapes public root",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
+          "func": "_storage_checked",
+          "old": "    return invoke\n",
+          "new": "    return invoke\n\n\ndef _first_receipt_writer(function):\n    admitted = writer_method(function)\n    @wraps(function)\n    def invoke(self,pid,body):\n        if isinstance(body,dict) and {'packet_id','evidence_id','evidence_kind'}.issubset(body):\n            ident='R-'+operations.digest([body['packet_id'],body['evidence_id'],body['evidence_kind'],body.get('attest_tool_output',False)])\n            if self.ops.get(ident):\n                return function(self,pid,body)\n        return admitted(self,pid,body)\n    return invoke\n"
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/session_prep.py",
+          "func": "Service.observe",
+          "old": "    @writer_method\n",
+          "new": "    @_first_receipt_writer\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace_writer.py",
+        "-k",
+        "test_observe_holds_actual_receipt_commit_through_final_reader"
+      ]
+    },
+    {
+      "id": "WW_APPLY_BUDGET",
+      "name": "workspace root changes admission wait to eight seconds",
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
+          "func": "validate_staging_handle",
+          "old": "    skills.plain_path(actual,Path(owner))\n",
+          "new": "    skills.plain_path(actual,Path(owner))\n\n\ndef _slow_apply_writer(function):\n    def invoke(self,*args,**kwargs):\n        with self._writer_domain.writing(timeout=8):\n            return function(self,*args,**kwargs)\n    return invoke\n"
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/context_projection.py",
+          "func": "Service.apply",
+          "old": "    @writer_method\n",
+          "new": "    @_slow_apply_writer\n"
+        }
+      ],
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_workspace_writer.py",
+        "-k",
+        "test_owned_process_raw_recover_refuses_five_second_budget_then_succeeds"
+      ]
+    }
+  ]
+}
