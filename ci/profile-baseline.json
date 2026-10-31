@@ -3,7 +3,7 @@
   "maximum_unit_skips": 1,
   "module_browser_cases": 14,
   "module_fixture_starts": 8,
-  "mutants": 506,
+  "mutants": 512,
   "node": "v24.14.0",
   "playwright": "1.62.1",
   "python": [
@@ -11,6 +11,6 @@
     "3.14.3"
   ],
   "schema_version": 1,
-  "selftests": 55,
+  "selftests": 56,
   "unit": 796
 }

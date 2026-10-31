@@ -1,5 +1,6 @@
 """Actual tiny unit children and producer artifacts for optional unit diagnostics."""
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -125,6 +126,42 @@ class Tiny(unittest.TestCase):
         self.assertGreater(stops[0]['elapsed_seconds'] - starts[0]['elapsed_seconds'], .1)
         for start, stop in zip(starts, stops):
             self.assertAlmostEqual(stop['elapsed_seconds'] - start['elapsed_seconds'], stop['seconds'], delta=.01)
+
+    def test_event_duration_matches_start_stop_samples_with_clock_jitter(self):
+        subject_spec = importlib.util.spec_from_file_location('timed_subject', self.root/'tests/run_tests.py')
+        subject = importlib.util.module_from_spec(subject_spec)
+        with mock.patch.object(sys, 'path', list(sys.path)):
+            subject_spec.loader.exec_module(subject)
+        for label, samples, expected in (
+            ('uneven', [100, 100.015625, 100.03125, 100.3125, 100.328125, 100.34375],
+             (.03125, .3125, .28125, .015625)),
+            ('zero', [0, 0, 0, .125, .140625, .375], (0, .125, .125, 0)),
+            ('six_decimals', [100, 100.012345, 100.012346, 100.123457, 100.2, 100.3],
+             (.012346, .123457, .111111, .012345)),
+        ):
+            with self.subTest(clock=label):
+                clock = mock.Mock(monotonic=mock.Mock(side_effect=samples), time=time.time)
+                folder = self.diagnostics/label
+                with mock.patch.object(subject, 'time', clock):
+                    with subject._unit_diagnostics(folder) as (result_type, emit):
+                        result = result_type(io.StringIO(), True, 0)
+                        case = unittest.FunctionTestCase(lambda: None)
+                        result.startTest(case)
+                        result.stopTest(case)
+                events = self.events(folder)
+                start = next(value for value in events if value['event'] == 'start')
+                stop = next(value for value in events if value['event'] == 'stop')
+                self.assertEqual(start['tests_run'], 1)
+                self.assertEqual(stop['tests_run'], 1)
+                self.assertEqual(start['test'], stop['test'])
+                self.assertGreaterEqual(start['elapsed_seconds'], 0)
+                self.assertGreater(stop['seconds'], 0)
+                self.assertEqual(start['elapsed_seconds'], expected[0])
+                self.assertEqual(stop['elapsed_seconds'], expected[1])
+                self.assertEqual(stop['seconds'], expected[2])
+                suite_start = next(value for value in events if value['event'] == 'suite_start')
+                self.assertEqual(suite_start['elapsed_seconds'], expected[3])
+                self.assertAlmostEqual(stop['elapsed_seconds'] - start['elapsed_seconds'], stop['seconds'], delta=.000001)
 
     def test_live_progress_survives_real_timeout_without_completion(self):
         self.fixture('import unittest,time\nclass Tiny(unittest.TestCase):\n def test_wait(self): time.sleep(5)\n')

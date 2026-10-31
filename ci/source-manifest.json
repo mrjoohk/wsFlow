@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-30T13:32:02.992570+00:00",
+  "created_at": "2026-10-31T00:28:49.102580+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "9c4e1d5116114579583bf77d597b3f6b61c59cca998ce7909afc79b6d87a0f6b",
@@ -34,8 +34,8 @@
       "sha256": "9d5dd7cb0797e64087970ce1b060f57e31b939317bece54c192f60146fb00c13"
     },
     "ci/profile-baseline.json": {
-      "raw_sha256": "ed3d267972c903b42b6b209c576097eaafa49cf6171eaa90f24c776e2908306c",
-      "sha256": "ed3d267972c903b42b6b209c576097eaafa49cf6171eaa90f24c776e2908306c"
+      "raw_sha256": "62245701c91a0fdae618572e0dd603323e7825775533c77bd2ec57a53f03e595",
+      "sha256": "62245701c91a0fdae618572e0dd603323e7825775533c77bd2ec57a53f03e595"
     },
     "ci/python-requirements.txt": {
       "raw_sha256": "4300e5e4d59a547918e2c8b6bfa494651017cfd6669708c888cfa97690f22e2e",
@@ -50,8 +50,8 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "ad9f1b93fd74ff6949157ba517cc9b6614d62b1407c3632df9346c58b3062a2e",
-      "sha256": "ad9f1b93fd74ff6949157ba517cc9b6614d62b1407c3632df9346c58b3062a2e"
+      "raw_sha256": "59503cb4db3eaf85e31280326b506684c24ca79cf7f3e321926f4b3d4ba10a5a",
+      "sha256": "59503cb4db3eaf85e31280326b506684c24ca79cf7f3e321926f4b3d4ba10a5a"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "6c77009186cc2a5cf84fda712c76a129fd36e20dc548b669c8be911fbc326a8e",
@@ -162,8 +162,8 @@
       "sha256": "324b0a2ea2830407a58fc0f1b18095968d7b0e7ad198fbab435d43f644a99d05"
     },
     "ci/specs/unit_diagnostics.json": {
-      "raw_sha256": "a2b1cfe631684ae02e442fbbb63ad0239c872af231fc60ae8a9b48518bc1407c",
-      "sha256": "2b642eaa49c9a4ae6b8f54486f07fdc85899a3f3145b9550578a7e426a52025e"
+      "raw_sha256": "ee71471679c47448301d1a91b0dea003508cba41129e74535d90f7da94982101",
+      "sha256": "ee71471679c47448301d1a91b0dea003508cba41129e74535d90f7da94982101"
     },
     "ci/specs/v2_fixes.json": {
       "raw_sha256": "531c15a5bf1cb46304a87a5059c8b914cfacff65829b97eee60f9a72de0e2b49",
@@ -206,8 +206,8 @@
       "sha256": "5ba6a2db89ce0979c871dfecd54eb834a46304e6198d1cfdb3faba5e3227ec60"
     },
     "ci/tests/test_unit_diagnostics.py": {
-      "raw_sha256": "46f44a1b6303dd9b3e915367fcc800769d5127cedab0cafb3e79729e3ce4aec1",
-      "sha256": "46f44a1b6303dd9b3e915367fcc800769d5127cedab0cafb3e79729e3ce4aec1"
+      "raw_sha256": "d807558606db0f3fe6dade3fd9a15fc9fc241ac44117c58bd0122a0d93a7d70f",
+      "sha256": "d807558606db0f3fe6dade3fd9a15fc9fc241ac44117c58bd0122a0d93a7d70f"
     },
     "examples/erp_demo/README.md": {
       "raw_sha256": "ebcdcb902c7746b293752056cb1ead5215387c237c6e95122d119a1b1523d916",
@@ -422,8 +422,8 @@
       "sha256": "b04c3650ad049ecb1083875629de6ad9257043d17f204802a1c658212eba913f"
     },
     "tests/run_tests.py": {
-      "raw_sha256": "a7ba263be20709984a76241ae6a69807fbb8454096a4a7da8305a43b94c20a25",
-      "sha256": "a7ba263be20709984a76241ae6a69807fbb8454096a4a7da8305a43b94c20a25"
+      "raw_sha256": "164a2475b48b90ee4d15a480c5409f5021e6785e19ac4652cd4f2d853be2115d",
+      "sha256": "164a2475b48b90ee4d15a480c5409f5021e6785e19ac4652cd4f2d853be2115d"
     },
     "tests/test_builtin_package_update.py": {
       "raw_sha256": "36f7c74cb509a37c67049da4e77650709b68aa764115aecad50cd71459e939ea",
@@ -1034,7 +1034,7 @@
       "sha256": "8bf9ecf8d757f6e80d2a0e603db31f61cd76ad01ffb74ae73807c0a6d27d07ff"
     }
   },
-  "fingerprint": "b6ba6f5c5d9cab53a0e2b70a35deac2f1740f81824561d086f91ce223c6edf0c",
+  "fingerprint": "5021b8be9c2f47d92668c3cbf1e9ab19e356e34a8be1a8ea34d63cdb3e98bc55",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }

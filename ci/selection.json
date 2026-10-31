@@ -229,7 +229,7 @@
       "stage": "deploy_writer"
     },
     {
-      "count": 18,
+      "count": 24,
       "source": "rd/ci_unit_diagnostics_contracts.md",
       "spec": "ci/specs/unit_diagnostics.json",
       "stage": "unit_diagnostics"
@@ -241,5 +241,5 @@
       "stage": "google_auth_refresh"
     }
   ],
-  "total": 506
+  "total": 512
 }

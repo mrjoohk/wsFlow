@@ -34,22 +34,24 @@ def _unit_diagnostics(directory, interval=120):
             (folder / 'tracebacks.log').open('xb') as stacks:
         started = time.monotonic()
 
-        def emit(event, **fields):
+        def emit(event, observed_at=None, **fields):
+            observed_at = time.monotonic() if observed_at is None else observed_at
             progress.write(json.dumps(dict(event=event, at=time.time(),
-                elapsed_seconds=round(time.monotonic() - started, 6), **fields)) + '\n')
+                elapsed_seconds=round(observed_at - started, 6), **fields)) + '\n')
             progress.flush()
 
         class ObservedResult(unittest.TextTestResult):
             def startTest(self, test):
                 super().startTest(test)
                 self._case_started = time.monotonic()
-                emit('start', test=test.id(), tests_run=self.testsRun)
+                emit('start', test=test.id(), tests_run=self.testsRun, observed_at=self._case_started)
 
             def stopTest(self, test):
                 try:
-                    emit('stop', test=test.id(), seconds=round(time.monotonic() - self._case_started, 6),
+                    stopped = time.monotonic()
+                    emit('stop', test=test.id(), seconds=round(stopped - self._case_started, 6),
                          tests_run=self.testsRun, failures=len(self.failures), errors=len(self.errors),
-                         skipped=len(self.skipped))
+                         skipped=len(self.skipped), observed_at=stopped)
                 finally:
                     super().stopTest(test)
 
