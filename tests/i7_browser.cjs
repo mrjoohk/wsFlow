@@ -71,7 +71,11 @@ async function main(){
         window.__workflowDateRefreshes.push({date,promise});return promise;
       };
     });holdDate=true;await page.locator('#wfDate').fill('2026-10-17');await page.locator('#wfDate').dispatchEvent('change');await page.waitForFunction(()=>document.querySelector('#wfRows').textContent.includes('상태 읽는 중'));
-    await bounded((async()=>{while(!releaseDate)await page.waitForTimeout(20);})(),'date request observed');await page.locator('#wfDate').fill('2026-10-18');await page.locator('#wfDate').dispatchEvent('change');await page.locator('#wfRows').filter({hasText:'당일 완전 배치 확인'}).waitFor();releaseDate();const completedDateHandlers=await bounded(page.evaluate(async()=>{
+    await bounded((async()=>{while(!releaseDate)await page.waitForTimeout(20);})(),'date request observed');await page.locator('#wfDate').fill('2026-10-18');await page.locator('#wfDate').dispatchEvent('change');await bounded(page.evaluate(async()=>{
+      const newer=window.__workflowDateRefreshes.filter(job=>job.date==='2026-10-18');
+      if(!newer.length)throw Error('selected-day refresh required before old response release');
+      await Promise.all(newer.map(job=>job.promise));
+    }),'selected date handlers complete');await page.locator('#wfRows').filter({hasText:'당일 완전 배치 확인'}).waitFor();releaseDate();const completedDateHandlers=await bounded(page.evaluate(async()=>{
       const jobs=window.__workflowDateRefreshes;
       const dates=jobs.map(job=>job.date);if(!dates.includes('2026-10-17')||!dates.includes('2026-10-18')||dates.some(date=>!['2026-10-17','2026-10-18'].includes(date)))throw Error('old/new workflow refreshes required: '+JSON.stringify(dates));
       await Promise.all(jobs.map(job=>job.promise));return {dates,completed:jobs.length};
