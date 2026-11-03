@@ -1,0 +1,240 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONIOENCODING": "utf-8",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def fetch(",
+          "old": "@_git_writer\ndef fetch("
+        }
+      ],
+      "id": "GT_FETCH_ENTRY",
+      "name": "fetch skips cooperative admission",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_writer.py",
+        "-k",
+        "test_barrier_rejects_both_before_git_or_sync_effects"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def pull_ff(",
+          "old": "@_git_writer\ndef pull_ff("
+        }
+      ],
+      "id": "GT_PULL_ENTRY",
+      "name": "pull skips cooperative admission",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_writer.py",
+        "-k",
+        "test_barrier_rejects_both_before_git_or_sync_effects"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def fetch(",
+          "old": "@_git_writer\ndef fetch("
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "_fetch",
+          "new": "cp = writer_function(run_git)(repo, 'fetch', '--all', check=False)",
+          "old": "cp = run_git(repo, 'fetch', '--all', check=False)"
+        }
+      ],
+      "id": "GT_FETCH_GIT_ONLY",
+      "name": "fetch root ends before sync metadata",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_writer.py",
+        "-k",
+        "test_fetch_holds_sync_json_replacement"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def _outside_status(function):\n    def invoke(repo):\n        result = writer_function(function)(repo)\n        if callable(result.get('status')):\n            result['status'] = result['status']()\n        return result\n    return invoke\n\n\n@_outside_status\ndef pull_ff(",
+          "old": "@_git_writer\ndef pull_ff("
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "pull_ff",
+          "new": "'command': 'git ' + ' '.join(args), 'status': lambda: status(repo), 'sync': fetched['sync']",
+          "old": "'command': 'git ' + ' '.join(args), 'status': status(repo), 'sync': fetched['sync']"
+        }
+      ],
+      "id": "GT_PULL_FINAL_STATUS",
+      "name": "pull root ends before final status",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_writer.py",
+        "-k",
+        "test_pull_holds_final_status_after_real_ff"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "pull_ff",
+          "new": "'no_upstream' if not st['upstream'] else None)",
+          "old": "'no_upstream' if not st['upstream'] else 'dirty' if not st['clean'] else None)"
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "pull_ff",
+          "new": "if False:",
+          "old": "if not st['clean']:"
+        }
+      ],
+      "id": "GT_PULL_DIRTY",
+      "name": "pull ignores both dirty guards",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_writer.py",
+        "-k",
+        "test_dirty_and_non_ff_preserve_user_files_index_and_head"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "pull_ff",
+          "new": "'pull', '--ff', '--no-rebase', '--no-autostash'",
+          "old": "'pull', '--ff-only', '--no-rebase', '--no-autostash'"
+        }
+      ],
+      "id": "GT_PULL_OPTIONS",
+      "name": "pull weakens ff-only option",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_writer.py",
+        "-k",
+        "test_pull_retains_fixed_safe_git_options"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "_git_writer",
+          "new": "        pass\n",
+          "old": "        _sync_path(repo)\n"
+        }
+      ],
+      "id": "GT_STORAGE_BEFORE_ADMISSION",
+      "name": "admission creates control files in invalid userdata",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_writer.py",
+        "-k",
+        "test_invalid_userdata_refuses_before_control_or_git_files"
+      ]
+    }
+  ],
+  "test": [
+    "python",
+    "-B",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_git_writer.py",
+    "-k",
+    "test_barrier_rejects_both_before_git_or_sync_effects"
+  ],
+  "timeout": 90
+}

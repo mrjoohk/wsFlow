@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+from functools import wraps
 import os
 import json
 import subprocess
@@ -17,6 +18,7 @@ import time
 from pathlib import Path
 
 from wsflow import fileio, operations
+from wsflow.writer_admission import writer_function
 
 GIT_TIMEOUT = 120  # push 등 네트워크 명령 상한(초)
 _ENV_BASE = {"GIT_TERMINAL_PROMPT": "0", "LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"}
@@ -140,14 +142,34 @@ def _fetch(repo):
     return {**result, 'sync': record}
 
 
+def _git_writer(function):
+    """Validate storage without effects before admission creates control files."""
+    admitted = writer_function(function)
+
+    @wraps(function)
+    def invoke(repo):
+        _sync_path(repo)
+        return admitted(repo)
+    return invoke
+
+
+@_git_writer
 def fetch(repo):
-    """Explicit remote-ref refresh, serialized outside the user's checkout."""
+    """Refresh refs and sync metadata inside one cooperative writer root.
+
+    Admission may raise WriterUnavailable before Git or metadata effects.
+    """
     with fileio.locked(_sync_path(repo).parent):
         return _fetch(repo)
 
 
+@_git_writer
 def pull_ff(repo):
-    """Fetch then fixed ff-only pull; never stash, rebase, merge or reset user work."""
+    """Keep fetch, ff-only pull and final status in one cooperative writer root.
+
+    Never stash, rebase, merge or reset user work. Admission refusal precedes
+    Git or metadata effects; existing Git results and save errors propagate.
+    """
     with fileio.locked(_sync_path(repo).parent):
         st = status(repo)
         reason = ('conflict' if st['conflicted'] else 'detached' if st['detached'] else
