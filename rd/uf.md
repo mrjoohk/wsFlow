@@ -90,3 +90,7 @@ P-021의 UF-I7-01~05와 Gate G2는 [i7_contracts.md](i7_contracts.md)에 둔다.
 ## P072 raw Git 쓰기 보호
 
 UF-GT-01/02와 Gate G2는 [261103_P072_git_writer_contracts.md](261103_P072_git_writer_contracts.md)를 따른다. 기존 UF-I7-01의 전체 실행 경계를 확장하고 정상 응답·기존 Git 보호를 유지한다.
+
+## P073 OAuth 완료 관측
+
+UF-PA-T01과 Gate G2는 [261104_P073_oauth_completion_contract.md](261104_P073_oauth_completion_contract.md)를 따른다. 기존 콜백 시험의 클라이언트 응답과 서버 활동 종료 관측을 연결한다.

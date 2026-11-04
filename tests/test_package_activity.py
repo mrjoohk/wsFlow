@@ -231,7 +231,10 @@ class PackageActivityTests(unittest.TestCase):
         thread,result=self.launch(callback);self.assertTrue(entered.wait(1))
         self.assertEqual(gate.snapshot()['in_flight'],1);self.assertFalse(gate.pause(.01))
         self.assert_paused(service.status);release.set();thread.join(2)
+        self.assertFalse(thread.is_alive())
         self.assertEqual(result.get('value'),200);self.assertEqual(len(self.credentials_saves),1)
+        # A received HTTP response can precede the server's activity finally.
+        self.assertTrue(gate.pause(2))
         self.assertEqual(gate.snapshot()['in_flight'],0);self.assertTrue(service.close(timeout=.5))
 
     def test_oauth_partial_header_close_timeout_then_socket_release_retry(self):

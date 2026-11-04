@@ -46,3 +46,7 @@ P-021: [i7_contracts.md](i7_contracts.md)의 UF01→05, UF02→03→04→05가 G
 ## P072 raw Git 쓰기 보호
 
 [261103_P072_git_writer_contracts.md](261103_P072_git_writer_contracts.md)의 UF-GT-01/02를 UF-I7-01 및 GT01~05에 연결했다. 진입 전 거절·실제 Git/기록/최종 상태·중첩/실패·사용자 bytes 보존 책임이 연결되며 범위 내 UNCOVERED/REDUNDANT 없음. Gate G2 PASS(설계 연결, 실행 검증 별도).
+
+## P073 OAuth 완료 관측
+
+[261104_P073_oauth_completion_contract.md](261104_P073_oauth_completion_contract.md)의 UF-PA-T01은 기존 모듈 pause/콜백 완료 책임을 같은 시험에 연결한다. Gate G2 PASS, 범위 내 누락/중복 없음. 제품 변경과 전체 CI 수용은 별도다.
