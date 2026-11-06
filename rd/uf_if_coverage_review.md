@@ -54,3 +54,7 @@ P-021: [i7_contracts.md](i7_contracts.md)의 UF01→05, UF02→03→04→05가 G
 ## P074 로컬 Git 전체 호출
 
 [261105_P074_git_local_writer_contracts.md](261105_P074_git_local_writer_contracts.md)의 UF-GL-01~03을 UF-I7-01에 연결했다. userdata 선검사→config/index/objects/refs 효과→임시 메시지 정리→최종 조회/반환과 lock 조사/skip/삭제의 수명 검증을 연결한다. Gate G2 PASS, 범위 내 누락/중복 없음. push/tool/Jira/C3는 이 게이트 밖의 후속 범위다.
+
+## P075 Git push 전체 호출
+
+[261106_P075_push_writer_contracts.md](261106_P075_push_writer_contracts.md)의 UF-GP-01은 raw push의 협조 writer 진입→자식→결과 구성에, GP-02는 기존 CW-01~04의 claim/효과/receipt/SQL/명시 readback·재전송 차단에 연결한다. Gate G2 PASS, 범위 내 누락/중복 없음. raw에 durable 작업 ID가 생긴다고 주장하지 않는다.

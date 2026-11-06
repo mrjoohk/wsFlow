@@ -250,7 +250,13 @@
       "count": 7,
       "spec": "ci/specs/git_local_writer.json",
       "stage": "git_local_writer"
+    },
+    {
+      "count": 5,
+      "source": "rd/261106_P075_push_writer_contracts.md",
+      "spec": "ci/specs/git_push_writer.json",
+      "stage": "git_push_writer"
     }
   ],
-  "total": 526
+  "total": 531
 }

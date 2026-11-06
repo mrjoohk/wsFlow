@@ -1,0 +1,164 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONIOENCODING": "utf-8",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def push(",
+          "old": "@_git_writer\ndef push("
+        }
+      ],
+      "id": "GP_PUSH_ENTRY",
+      "name": "raw push skips cooperative admission",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_push_writer.py",
+        "-k",
+        "test_raw_barrier_refuses_before_git_or_remote_effect"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "from wsflow.writer_admission import writer_function, default_domain",
+          "old": "from wsflow.writer_admission import writer_function"
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def push(",
+          "old": "@_git_writer\ndef push("
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "push",
+          "new": "    with default_domain().writing():\n        cp = run_git(repo, *args, check=False)",
+          "old": "    cp = run_git(repo, *args, check=False)"
+        }
+      ],
+      "id": "GP_PUSH_GIT_ONLY",
+      "name": "raw push root ends before result field construction",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_push_writer.py",
+        "-k",
+        "test_raw_root_includes_result_fields_after_real_push"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "push",
+          "new": "    run_git(repo, *args, check=False)\n    cp = run_git(repo, *args, check=False)",
+          "old": "    cp = run_git(repo, *args, check=False)"
+        }
+      ],
+      "id": "GP_PUSH_REPLAY",
+      "name": "raw push sends the same request twice",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_push_writer.py",
+        "-k",
+        "test_raw_root_includes_result_fields_after_real_push"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "push",
+          "new": "        pass",
+          "old": "        if branch.startswith(\"-\"):\n            raise GitError(f\"잘못된 브랜치 이름: {branch!r}\")"
+        }
+      ],
+      "id": "GP_PUSH_BRANCH_GUARD",
+      "name": "raw push accepts option-like branch before Git",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_push_writer.py",
+        "-k",
+        "test_raw_invalid_names_preserve_existing_errors_before_git"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def push(repo: str | Path, remote: str = \"origin\", branch: str | None = None, set_upstream: bool = False) -> dict:\n    _sync_path(repo)\n    @writer_function\n    def send():\n        _check_name(remote)\n        args = [\"push\"]\n        if set_upstream:\n            args.append(\"-u\")\n        args.append(remote)\n        if branch:\n            if branch.startswith(\"-\"):\n                raise GitError(f\"잘못된 브랜치 이름: {branch!r}\")\n            args.append(branch)\n        cp = run_git(repo, *args, check=False)\n        return cp, cp.returncode, args\n    cp, code, args = send()\n    return {\"ok\": code == 0, \"returncode\": code, \"stdout\": cp.stdout, \"stderr\": cp.stderr,\n            \"command\": \"git \" + \" \".join(args)}",
+          "old": "@_git_writer\ndef push(repo: str | Path, remote: str = \"origin\", branch: str | None = None, set_upstream: bool = False) -> dict:\n    \"\"\"Retain one cooperative root through push and result construction.\n\n    This legacy adapter does not create an operation ID or retry an uncertain\n    remote effect. The common write service owns durable plans and readback.\n    \"\"\"\n    _check_name(remote)\n    args = [\"push\"]\n    if set_upstream:\n        args.append(\"-u\")\n    args.append(remote)\n    if branch:\n        if branch.startswith(\"-\"):\n            raise GitError(f\"잘못된 브랜치 이름: {branch!r}\")\n        args.append(branch)\n    cp = run_git(repo, *args, check=False)\n    return {\"ok\": cp.returncode == 0, \"returncode\": cp.returncode, \"stdout\": cp.stdout, \"stderr\": cp.stderr,\n            \"command\": \"git \" + \" \".join(args)}"
+        }
+      ],
+      "id": "GP_PUSH_RETURN_CODE_ONLY",
+      "name": "raw push ends after returncode before stdout stderr",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_push_writer.py",
+        "-k",
+        "test_raw_root_includes_result_fields_after_real_push"
+      ]
+    }
+  ]
+}

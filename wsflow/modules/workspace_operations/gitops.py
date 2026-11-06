@@ -262,7 +262,13 @@ def _check_name(name: str) -> None:
 
 # ---------------------------------------------------------------- push / add / commit
 
+@_git_writer
 def push(repo: str | Path, remote: str = "origin", branch: str | None = None, set_upstream: bool = False) -> dict:
+    """Retain one cooperative root through push and result construction.
+
+    This legacy adapter does not create an operation ID or retry an uncertain
+    remote effect. The common write service owns durable plans and readback.
+    """
     _check_name(remote)
     args = ["push"]
     if set_upstream:

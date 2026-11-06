@@ -98,3 +98,7 @@ UF-PA-T01과 Gate G2는 [261104_P073_oauth_completion_contract.md](261104_P073_o
 ## P074 로컬 Git 전체 호출
 
 UF-GL-01~03과 Gate G2는 [261105_P074_git_local_writer_contracts.md](261105_P074_git_local_writer_contracts.md)를 따른다. 기존 UF-I7-01의 로컬 config/index/commit/lock 공개 호출을 같은 협조 쓰기 보호에 연결한다.
+
+## P075 Git push 전체 호출
+
+UF-GP-01/02와 Gate G2는 [261106_P075_push_writer_contracts.md](261106_P075_push_writer_contracts.md)를 따른다. raw push 전체 호출과 기존 Service의 원격 결과/재전송 차단 검증을 구분한다.
