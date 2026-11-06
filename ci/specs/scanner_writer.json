@@ -1,0 +1,264 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONIOENCODING": "utf-8",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/scanner.py",
+          "new": "def run_tool(",
+          "old": "@_tool_writer\ndef run_tool("
+        }
+      ],
+      "id": "ST_ENTRY",
+      "name": "scanner tool skips cooperative admission",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scanner_writer.py",
+        "-k",
+        "test_barrier_refuses_both_tools_before_spawn_and_effect"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/scanner.py",
+          "new": "        pass",
+          "old": "        operations.Store(project_path)"
+        }
+      ],
+      "id": "ST_STORAGE_PREFLIGHT",
+      "name": "scanner admission creates controls before invalid userdata refusal",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scanner_writer.py",
+        "-k",
+        "test_invalid_userdata_precedes_admission_and_tool_effect"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/scanner.py",
+          "new": "def run_tool(project_path: str | Path, tool: str, timeout: int = 120) -> dict:\n    operations.Store(project_path)\n    p = Path(project_path)\n    if tool == \"validate_worklog\":\n        script = p / \"tools\" / \"worklog\" / \"validate_worklog.py\"\n        args = [str(script), \"logs/files.jsonl\", \"logs/prompts.jsonl\"]\n    elif tool == \"graph_checks\":\n        script = p / \"tools\" / \"graph_checks.py\"\n        args = [str(script)]\n    else:\n        return {\"ok\": False, \"error\": f\"알 수 없는 도구: {tool}\"}\n    if not script.is_file():\n        return {\"ok\": False, \"error\": f\"{script.relative_to(p)} 없음\", \"returncode\": None}\n    @writer_function\n    def execute():\n        cp = subprocess.run([sys.executable, *args], cwd=str(p), capture_output=True, encoding=\"utf-8\",\n                            errors=\"replace\", timeout=timeout, env={**os.environ, \"PYTHONIOENCODING\": \"utf-8\"})\n        return cp, cp.returncode\n    try:\n        cp, code = execute()\n    except subprocess.TimeoutExpired:\n        return {\"ok\": False, \"error\": \"시간 초과\", \"returncode\": 124}\n    return {\"ok\": code == 0, \"returncode\": code, \"stdout\": cp.stdout, \"stderr\": cp.stderr,\n            \"command\": \" \".join([\"python\", *args])}",
+          "old": "@_tool_writer\ndef run_tool(project_path: str | Path, tool: str, timeout: int = 120) -> dict:\n    \"\"\"프로젝트 자체의 검사기를 실행한다. 프로젝트에 파일이 없으면 실행하지 않는다(다른 버전을 섞지 않는다).\"\"\"\n    p = Path(project_path)\n    if tool == \"validate_worklog\":\n        script = p / \"tools\" / \"worklog\" / \"validate_worklog.py\"\n        args = [str(script), \"logs/files.jsonl\", \"logs/prompts.jsonl\"]\n    elif tool == \"graph_checks\":\n        script = p / \"tools\" / \"graph_checks.py\"\n        args = [str(script)]\n    else:\n        return {\"ok\": False, \"error\": f\"알 수 없는 도구: {tool}\"}\n    if not script.is_file():\n        return {\"ok\": False, \"error\": f\"{script.relative_to(p)} 없음\", \"returncode\": None}\n    try:\n        cp = subprocess.run([sys.executable, *args], cwd=str(p), capture_output=True, encoding=\"utf-8\",\n                            errors=\"replace\", timeout=timeout, env={**os.environ, \"PYTHONIOENCODING\": \"utf-8\"})\n    except subprocess.TimeoutExpired:\n        return {\"ok\": False, \"error\": \"시간 초과\", \"returncode\": 124}\n    return {\"ok\": cp.returncode == 0, \"returncode\": cp.returncode, \"stdout\": cp.stdout, \"stderr\": cp.stderr,\n            \"command\": \" \".join([\"python\", *args])}"
+        }
+      ],
+      "id": "ST_RESULT_TAIL",
+      "name": "scanner ends root after returncode before stdout stderr",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scanner_writer.py",
+        "-k",
+        "test_root_spans_each_result_field_after_actual_child_effect"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/scanner.py",
+          "func": "run_tool",
+          "new": "        cp = subprocess.run([sys.executable, *args], cwd=str(p), capture_output=True, encoding=\"utf-8\",\n                            errors=\"replace\", timeout=timeout, env={**os.environ, \"PYTHONIOENCODING\": \"utf-8\"})\n        cp = subprocess.run([sys.executable, *args], cwd=str(p), capture_output=True, encoding=\"utf-8\",\n                            errors=\"replace\", timeout=timeout, env={**os.environ, \"PYTHONIOENCODING\": \"utf-8\"})",
+          "old": "        cp = subprocess.run([sys.executable, *args], cwd=str(p), capture_output=True, encoding=\"utf-8\",\n                            errors=\"replace\", timeout=timeout, env={**os.environ, \"PYTHONIOENCODING\": \"utf-8\"})"
+        }
+      ],
+      "id": "ST_REPLAY",
+      "name": "scanner runs owned tool twice",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scanner_writer.py",
+        "-k",
+        "test_actual_tools_preserve_arguments_utf8_nonzero_and_effect_once"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/scanner.py",
+          "func": "run_tool",
+          "new": "return {\"ok\": False, \"error\": \"시간 초과\", \"returncode\": 0}",
+          "old": "return {\"ok\": False, \"error\": \"시간 초과\", \"returncode\": 124}"
+        }
+      ],
+      "id": "ST_TIMEOUT_RESULT",
+      "name": "scanner timeout is reported as returncode zero",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scanner_writer.py",
+        "-k",
+        "test_real_timeout_reaps_direct_child_before_timeout_result_and_no_retry"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/scanner.py",
+          "new": "from wsflow.writer_admission import writer_function, default_domain",
+          "old": "from wsflow.writer_admission import writer_function"
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/scanner.py",
+          "new": "        with default_domain().writing():\n            return function(project_path, *args, **kwargs)",
+          "old": "        return admitted(project_path, *args, **kwargs)"
+        }
+      ],
+      "id": "ST_DEFAULT_DOMAIN",
+      "name": "scanner ignores nested domain and resolves environment again",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scanner_writer.py",
+        "-k",
+        "test_nested_and_independent_calls_resolve_current_or_call_time_domain"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/backend.py",
+          "func": "Backend.dispatch",
+          "new": "        pass",
+          "old": "        self.preflight(request, method, path)"
+        }
+      ],
+      "id": "ST_HOST_PREFLIGHT",
+      "name": "backend admission precedes scanner storage validation",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scanner_host_writer.py",
+        "-k",
+        "test_host_invalid_userdata_rejects_before_control_files_or_spawn"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/routes.py",
+          "func": "Routes.preflight",
+          "new": "        seg = path.split('/')[1:]",
+          "old": "        seg = [part for part in path.split('/') if part][1:]"
+        }
+      ],
+      "id": "ST_PREFLIGHT_PATHS",
+      "name": "scanner preflight misses normalized legacy paths",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scanner_host_writer.py",
+        "-k",
+        "test_host_invalid_userdata_rejects_before_control_files_or_spawn"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "new": "                pass",
+          "old": "                preflight(self, method, path)"
+        }
+      ],
+      "id": "ST_HTTP_PREFLIGHT",
+      "name": "HTTP outer activity precedes optional read-only preflight",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scanner_host_writer.py",
+        "-k",
+        "test_loopback_http_preflight_precedes_outer_host_activity"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 """워크스페이스 스캐너 — 루트 아래 후보 폴더 나열, 프로젝트별 규칙 준수 지표 계산.
 
-읽기 전용이다. 지표는 GLOBAL_RULES 가 요구하는 파일의 존재·버전·상태를 기계적으로 집계한 것이며,
+조회 지표는 읽기 전용이다. run_tool의 프로젝트 검사기는 증적 파일을 쓸 수 있다.
+지표는 GLOBAL_RULES 가 요구하는 파일의 존재·버전·상태를 기계적으로 집계한 것이며,
 "프로젝트가 잘 되고 있는가"가 아니라 "규칙이 요구하는 근거 사슬이 파일로 존재하는가"를 본다.
 """
 from __future__ import annotations
@@ -11,9 +12,12 @@ import json
 import os
 import subprocess
 import sys
+from functools import wraps
 from pathlib import Path
 
 from . import gitops
+from wsflow import operations
+from wsflow.writer_admission import writer_function
 
 VALID_LEDGER_STATUS = {"open", "fixed", "verified", "rejected", "superseded", "deferred"}
 TRACKED_TOOLS = ["GLOBAL_RULES.md", "tools/graph_checks.py", "tools/worklog/validate_worklog.py",
@@ -170,6 +174,18 @@ def rules_report(project_path: str | Path, template: Path | None) -> dict:
 
 # ---------------------------------------------------------------- 검사 도구 실행
 
+def _tool_writer(function):
+    """Reject invalid userdata before admission creates control files."""
+    admitted = writer_function(function)
+
+    @wraps(function)
+    def invoke(project_path, *args, **kwargs):
+        operations.Store(project_path)
+        return admitted(project_path, *args, **kwargs)
+    return invoke
+
+
+@_tool_writer
 def run_tool(project_path: str | Path, tool: str, timeout: int = 120) -> dict:
     """프로젝트 자체의 검사기를 실행한다. 프로젝트에 파일이 없으면 실행하지 않는다(다른 버전을 섞지 않는다)."""
     p = Path(project_path)

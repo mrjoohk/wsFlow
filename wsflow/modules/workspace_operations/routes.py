@@ -30,6 +30,14 @@ class Routes:
         from wsflow import common_writes
         return common_writes.Service(project, kind, home, git_adapter=gitops)
 
+    def preflight(self, method, path):
+        """Check scanner storage before the backend promotes its host root."""
+        if method != 'POST':
+            return
+        seg = [part for part in path.split('/') if part][1:]
+        if len(seg) == 4 and seg[0] == 'projects' and seg[2:] == ['rules', 'run']:
+            operations.Store(self._project(seg[1])['path'])
+
     def dispatch(self, method, path, query, body):
         seg = [part for part in path.split('/') if part][1:]
         if seg[:1] == ['v1']:

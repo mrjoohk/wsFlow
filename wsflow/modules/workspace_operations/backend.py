@@ -33,8 +33,16 @@ class Backend:
     def summary(self, project):
         return Routes(None, self.services)._summary(project)
 
-    @admitted
+    def preflight(self, request, method, path):
+        """Read-only target validation before any host admission control files."""
+        Routes(request, self.services).preflight(method, path)
+
     def dispatch(self, request, method, path, query, body):
+        self.preflight(request, method, path)
+        return self._dispatch_admitted(request, method, path, query, body)
+
+    @admitted
+    def _dispatch_admitted(self, request, method, path, query, body):
         try:
             with (self._writing() if method != 'GET' else nullcontext()):
                 return Routes(request, self.services).dispatch(method, path, query, body)

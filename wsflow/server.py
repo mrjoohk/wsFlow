@@ -271,6 +271,11 @@ def make_handler(store: Store, token: str, google=None, google_error=None, write
                 (len(segments) >= 5 and segments[:2] == ['v1','modules'] and segments[3] == 'assets'))
             if control_read:
                 return self._route_admitted(method, path, query)
+            owner = route_owner(method, path)
+            backend = services.feature(owner) if owner is not None else None
+            preflight = getattr(backend, 'preflight', None)
+            if callable(preflight):
+                preflight(self, method, path)
             with services.activity():
                 return self._route_admitted(method, path, query)
 
