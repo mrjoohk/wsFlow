@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-11-04T14:20:00.698824+00:00",
+  "created_at": "2026-11-04T16:02:13.816529+00:00",
   "files": {
     ".github/workflows/verify.yml": {
       "raw_sha256": "9c4e1d5116114579583bf77d597b3f6b61c59cca998ce7909afc79b6d87a0f6b",
@@ -34,8 +34,8 @@
       "sha256": "9d5dd7cb0797e64087970ce1b060f57e31b939317bece54c192f60146fb00c13"
     },
     "ci/profile-baseline.json": {
-      "raw_sha256": "a86d6477fa76da03a18c7e2f3ae69d5e323bb21f2abd9aafdf6271407c4fd449",
-      "sha256": "a86d6477fa76da03a18c7e2f3ae69d5e323bb21f2abd9aafdf6271407c4fd449"
+      "raw_sha256": "ac34ad3767fc8f0272d093dfee6b3676e9ac7975e3d9d5e6177654270b3ef1fb",
+      "sha256": "ac34ad3767fc8f0272d093dfee6b3676e9ac7975e3d9d5e6177654270b3ef1fb"
     },
     "ci/python-requirements.txt": {
       "raw_sha256": "4300e5e4d59a547918e2c8b6bfa494651017cfd6669708c888cfa97690f22e2e",
@@ -50,8 +50,8 @@
       "sha256": "26cdb01de0cf640d95159ff198598594644e57858cce56bf46e21f2f3c7790a9"
     },
     "ci/selection.json": {
-      "raw_sha256": "44afe676c5a025bb9150b287130f0713b79559a7309c2a039c8a3e0a30c8932e",
-      "sha256": "44afe676c5a025bb9150b287130f0713b79559a7309c2a039c8a3e0a30c8932e"
+      "raw_sha256": "e67945898babfd732c2d15771d2620dd00a9987e59e150fb1b47d03a643dc0bb",
+      "sha256": "e67945898babfd732c2d15771d2620dd00a9987e59e150fb1b47d03a643dc0bb"
     },
     "ci/specs/calendar_identity.json": {
       "raw_sha256": "6c77009186cc2a5cf84fda712c76a129fd36e20dc548b669c8be911fbc326a8e",
@@ -76,6 +76,10 @@
     "ci/specs/fixture_reliability.json": {
       "raw_sha256": "bf231ec39503f3b5e471730e2aa860c77b38d65abf43efb4c1be3a57c50e7b9d",
       "sha256": "1043c8569b18feef2c5788167122e4c40826c20b883faa7758be82f647913698"
+    },
+    "ci/specs/git_local_writer.json": {
+      "raw_sha256": "e455a4a73e1eeede48bd11072d938df3d73ec5aa21ea7afa2916f57a78f94938",
+      "sha256": "e455a4a73e1eeede48bd11072d938df3d73ec5aa21ea7afa2916f57a78f94938"
     },
     "ci/specs/git_writer.json": {
       "raw_sha256": "46fc5df3af27fd470185cc9106d025a724c41cb3603d5d0c6050d1dbe4742ecb",
@@ -452,6 +456,10 @@
     "tests/test_deploy_writer.py": {
       "raw_sha256": "80a54154900e302727ac51f266feab5eb4d4cf2e920284e77fa571d53dd4dc46",
       "sha256": "80a54154900e302727ac51f266feab5eb4d4cf2e920284e77fa571d53dd4dc46"
+    },
+    "tests/test_git_local_writer.py": {
+      "raw_sha256": "23d6390ede5e7c3e673e9d883ae266af664a87cbe8a1bea83e2b1ca5089ba932",
+      "sha256": "23d6390ede5e7c3e673e9d883ae266af664a87cbe8a1bea83e2b1ca5089ba932"
     },
     "tests/test_git_writer.py": {
       "raw_sha256": "3e8fab7bb4b9355d9986b47129ab1bafce17379d8738de4f2ef903534a01306e",
@@ -946,8 +954,8 @@
       "sha256": "e36e99f781e5ed944bbf0e0e8ae7bd85935d277c003aef732335c8a0947a8767"
     },
     "wsflow/modules/workspace_operations/gitops.py": {
-      "raw_sha256": "14fd8183b8bb691675c0465877de9a731b1bf678de0b08efc17eb003d1689f08",
-      "sha256": "1a77349acc6624557c5aaa34dbacd22497169dac55827b32dfdf5a301160420b"
+      "raw_sha256": "87d80c522a3ea4bb24cf8589f8fea5340946a17993adc14ef3f651ddd99cb4ef",
+      "sha256": "7bf2e56fc3f23ef3de9dcde436ddfe1ef20f3c438dee6fa4c3d186fca5480fce"
     },
     "wsflow/modules/workspace_operations/module.json": {
       "raw_sha256": "3e41a63e40e884ca36b926eea44018c9b028e41e818e0f7dd742db81dae474a7",
@@ -1042,7 +1050,7 @@
       "sha256": "8bf9ecf8d757f6e80d2a0e603db31f61cd76ad01ffb74ae73807c0a6d27d07ff"
     }
   },
-  "fingerprint": "b952628320509b60ae805f40f0b9b9515eea6482816a44248fe82f7fe4e3b73c",
+  "fingerprint": "1c7bc8c558cec7a541ef56fa43fa56516ed10b1f0d8522b976b6e77040aced05",
   "normalization": "CRLF to LF; raw bytes retained in frozen archive",
   "schema_version": 1
 }

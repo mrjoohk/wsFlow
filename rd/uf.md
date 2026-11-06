@@ -94,3 +94,7 @@ UF-GT-01/02와 Gate G2는 [261103_P072_git_writer_contracts.md](261103_P072_git_
 ## P073 OAuth 완료 관측
 
 UF-PA-T01과 Gate G2는 [261104_P073_oauth_completion_contract.md](261104_P073_oauth_completion_contract.md)를 따른다. 기존 콜백 시험의 클라이언트 응답과 서버 활동 종료 관측을 연결한다.
+
+## P074 로컬 Git 전체 호출
+
+UF-GL-01~03과 Gate G2는 [261105_P074_git_local_writer_contracts.md](261105_P074_git_local_writer_contracts.md)를 따른다. 기존 UF-I7-01의 로컬 config/index/commit/lock 공개 호출을 같은 협조 쓰기 보호에 연결한다.

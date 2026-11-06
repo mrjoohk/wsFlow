@@ -50,3 +50,7 @@ P-021: [i7_contracts.md](i7_contracts.md)의 UF01→05, UF02→03→04→05가 G
 ## P073 OAuth 완료 관측
 
 [261104_P073_oauth_completion_contract.md](261104_P073_oauth_completion_contract.md)의 UF-PA-T01은 기존 모듈 pause/콜백 완료 책임을 같은 시험에 연결한다. Gate G2 PASS, 범위 내 누락/중복 없음. 제품 변경과 전체 CI 수용은 별도다.
+
+## P074 로컬 Git 전체 호출
+
+[261105_P074_git_local_writer_contracts.md](261105_P074_git_local_writer_contracts.md)의 UF-GL-01~03을 UF-I7-01에 연결했다. userdata 선검사→config/index/objects/refs 효과→임시 메시지 정리→최종 조회/반환과 lock 조사/skip/삭제의 수명 검증을 연결한다. Gate G2 PASS, 범위 내 누락/중복 없음. push/tool/Jira/C3는 이 게이트 밖의 후속 범위다.

@@ -1,0 +1,214 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONIOENCODING": "utf-8",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def remote_add(",
+          "old": "@_git_writer\ndef remote_add("
+        }
+      ],
+      "id": "GL_REMOTE_ADD_ENTRY",
+      "name": "remote_add skips complete cooperative root",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_local_writer.py",
+        "-k",
+        "test_barrier_refuses_all_six_before_git_temp_or_unlink"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def remote_set_url(",
+          "old": "@_git_writer\ndef remote_set_url("
+        }
+      ],
+      "id": "GL_REMOTE_SET_URL_ENTRY",
+      "name": "remote_set_url skips complete cooperative root",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_local_writer.py",
+        "-k",
+        "test_barrier_refuses_all_six_before_git_temp_or_unlink"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def remote_remove(",
+          "old": "@_git_writer\ndef remote_remove("
+        }
+      ],
+      "id": "GL_REMOTE_REMOVE_ENTRY",
+      "name": "remote_remove skips complete cooperative root",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_local_writer.py",
+        "-k",
+        "test_barrier_refuses_all_six_before_git_temp_or_unlink"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def add(",
+          "old": "@_git_writer\ndef add("
+        }
+      ],
+      "id": "GL_ADD_ENTRY",
+      "name": "add skips complete cooperative root",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_local_writer.py",
+        "-k",
+        "test_barrier_refuses_all_six_before_git_temp_or_unlink"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def commit(",
+          "old": "@_git_writer\ndef commit("
+        }
+      ],
+      "id": "GL_COMMIT_ENTRY",
+      "name": "commit skips complete cooperative root",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_local_writer.py",
+        "-k",
+        "test_barrier_refuses_all_six_before_git_temp_or_unlink"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def clean_locks(",
+          "old": "@_git_writer\ndef clean_locks("
+        }
+      ],
+      "id": "GL_CLEAN_LOCKS_ENTRY",
+      "name": "clean_locks skips complete cooperative root",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_local_writer.py",
+        "-k",
+        "test_barrier_refuses_all_six_before_git_temp_or_unlink"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "from wsflow.writer_admission import writer_function, default_domain",
+          "old": "from wsflow.writer_admission import writer_function"
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "new": "def commit(",
+          "old": "@_git_writer\ndef commit("
+        },
+        {
+          "file": "wsflow/modules/workspace_operations/gitops.py",
+          "func": "commit",
+          "new": "        with default_domain().writing():\n            cp = run_git(repo, \"commit\", \"-F\", tmp, check=False, timeout=120)",
+          "old": "        cp = run_git(repo, \"commit\", \"-F\", tmp, check=False, timeout=120)"
+        }
+      ],
+      "id": "GL_COMMIT_GIT_ONLY",
+      "name": "commit root ends before message cleanup and final HEAD",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_git_local_writer.py",
+        "-k",
+        "test_commit_holds_actual_utf8_message_cleanup_after_git_effect"
+      ]
+    }
+  ]
+}

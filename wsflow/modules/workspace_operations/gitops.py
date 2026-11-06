@@ -147,9 +147,9 @@ def _git_writer(function):
     admitted = writer_function(function)
 
     @wraps(function)
-    def invoke(repo):
+    def invoke(repo, *args, **kwargs):
         _sync_path(repo)
-        return admitted(repo)
+        return admitted(repo, *args, **kwargs)
     return invoke
 
 
@@ -237,16 +237,19 @@ def remotes(repo: str | Path) -> list[dict]:
     return list(table.values())
 
 
+@_git_writer
 def remote_add(repo: str | Path, name: str, url: str) -> None:
     _check_name(name)
     run_git(repo, "remote", "add", name, url, timeout=30)
 
 
+@_git_writer
 def remote_set_url(repo: str | Path, name: str, url: str) -> None:
     _check_name(name)
     run_git(repo, "remote", "set-url", name, url, timeout=30)
 
 
+@_git_writer
 def remote_remove(repo: str | Path, name: str) -> None:
     _check_name(name)
     run_git(repo, "remote", "remove", name, timeout=30)
@@ -274,6 +277,7 @@ def push(repo: str | Path, remote: str = "origin", branch: str | None = None, se
             "command": "git " + " ".join(args)}
 
 
+@_git_writer
 def add(repo: str | Path, paths: list[str] | None = None, all_: bool = False) -> None:
     if all_:
         run_git(repo, "add", "-A", timeout=120)
@@ -286,6 +290,7 @@ def add(repo: str | Path, paths: list[str] | None = None, all_: bool = False) ->
     run_git(repo, "add", "--", *paths, timeout=120)
 
 
+@_git_writer
 def commit(repo: str | Path, message: str, add_all: bool = False) -> dict:
     """메시지를 UTF-8(BOM 없음) 임시 파일로 써서 `git commit -F` 한다 — 콘솔 인코딩과 무관하게 한글이 보존된다."""
     if not message or not message.strip():
@@ -344,6 +349,7 @@ def find_locks(repo: str | Path) -> list[dict]:
     return found
 
 
+@_git_writer
 def clean_locks(repo: str | Path, min_age_sec: int = 5) -> dict:
     """git 프로세스가 없고 lock 이 min_age_sec 보다 오래됐을 때만 삭제한다."""
     locks = find_locks(repo)

@@ -245,7 +245,12 @@
       "source": "rd/261103_P072_git_writer_contracts.md",
       "spec": "ci/specs/git_writer.json",
       "stage": "git_writer"
+    },
+    {
+      "count": 7,
+      "spec": "ci/specs/git_local_writer.json",
+      "stage": "git_local_writer"
     }
   ],
-  "total": 519
+  "total": 526
 }
