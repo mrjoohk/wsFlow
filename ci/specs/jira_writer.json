@@ -1,0 +1,577 @@
+{
+  "copy": [
+    "wsflow",
+    "static",
+    "tests",
+    "vendor",
+    "tools",
+    "ci",
+    ".github",
+    "examples"
+  ],
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONIOENCODING": "utf-8",
+    "TEMP": "{tmp}",
+    "TMP": "{tmp}",
+    "TMPDIR": "{tmp}"
+  },
+  "mutants": [
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/jirawrite.py",
+          "new": "def approve(",
+          "old": "@_jira_writer\ndef approve("
+        }
+      ],
+      "id": "JW_APPROVE",
+      "name": "approve",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_approval_export_is_inside_same_root_as_sql"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/jirawrite.py",
+          "new": "def execute(",
+          "old": "@_jira_writer\ndef execute("
+        }
+      ],
+      "id": "JW_EXECUTE",
+      "name": "execute",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_execute_holds_one_root_through_post_finish_and_export"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/jirawrite.py",
+          "new": "def reconcile(",
+          "old": "@_jira_writer\ndef reconcile("
+        }
+      ],
+      "id": "JW_RECONCILE",
+      "name": "reconcile",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_response_loss_retains_effect_and_reconciles_without_replay"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/jirawrite.py",
+          "new": "def repair(",
+          "old": "@_jira_writer\ndef repair("
+        }
+      ],
+      "id": "JW_REPAIR",
+      "name": "repair",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_repair_retains_root_across_local_record_and_is_idempotent"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/newtask.py",
+          "new": "def create(",
+          "old": "@jirawrite._jira_writer\ndef create("
+        }
+      ],
+      "id": "JW_CREATE",
+      "name": "create",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_caller_barrier_precedes_workflow_lock"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/newtask.py",
+          "new": "def record(",
+          "old": "@jirawrite._jira_writer\ndef record("
+        }
+      ],
+      "id": "JW_RECORD",
+      "name": "record",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_caller_barrier_precedes_workflow_lock"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/writeplans.py",
+          "new": "def preview_close(",
+          "old": "@_plan_writer\ndef preview_close("
+        }
+      ],
+      "id": "JW_PREVIEW_CLOSE",
+      "name": "preview close",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_caller_barrier_precedes_workflow_lock"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/writeplans.py",
+          "new": "def preview_new(",
+          "old": "@_plan_writer\ndef preview_new("
+        }
+      ],
+      "id": "JW_PREVIEW_NEW",
+      "name": "preview new",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_caller_barrier_precedes_workflow_lock"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/writeplans.py",
+          "new": "def apply_close(",
+          "old": "@_plan_writer\ndef apply_close("
+        }
+      ],
+      "id": "JW_APPLY_CLOSE",
+      "name": "apply close",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_caller_barrier_precedes_workflow_lock"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/writeplans.py",
+          "new": "def apply_new(",
+          "old": "@_plan_writer\ndef apply_new("
+        }
+      ],
+      "id": "JW_APPLY_NEW",
+      "name": "apply new",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_caller_barrier_precedes_workflow_lock"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/jirawrite.py",
+          "new": "        return admitted",
+          "old": "        operations.Store(wf_home)\n        return admitted"
+        }
+      ],
+      "id": "JW_JIRAWRITE_STORAGE",
+      "name": "jirawrite storage",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_invalid_userdata_precedes_both_lock_layers"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/writeplans.py",
+          "new": "        return admitted",
+          "old": "        operations.Store(home)\n        return admitted"
+        }
+      ],
+      "id": "JW_WRITEPLANS_STORAGE",
+      "name": "writeplans storage",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_invalid_userdata_precedes_both_lock_layers"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/backend.py",
+          "func": "Service.dispatch",
+          "new": "        pass",
+          "old": "        self.preflight(request, method, path)"
+        }
+      ],
+      "id": "JW_BACKEND_PREFLIGHT",
+      "name": "backend preflight",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_host_preflight_precedes_first_control_io"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/routes.py",
+          "new": "or rest == ['jira', 'new', 'plan']",
+          "old": "or rest[:3] == ['jira', 'new', 'plan']"
+        }
+      ],
+      "id": "JW_NEW_PLAN_PREFIX",
+      "name": "new plan prefix",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_host_preflight_precedes_first_control_io"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/routes.py",
+          "func": "Routes.dispatch",
+          "new": "                pass",
+          "old": "                operations.Store(wfhome.wf_home_for(project))"
+        }
+      ],
+      "id": "JW_ROUTE_RECHECK",
+      "name": "route recheck",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_route_rechecks_changed_home_before_workflow_lock"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/server.py",
+          "new": "                pass",
+          "old": "                preflight(self, method, path)"
+        }
+      ],
+      "id": "JW_HTTP_PREFLIGHT",
+      "name": "http preflight",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_host_preflight_precedes_first_control_io"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/closeflow.py",
+          "new": "def approve(",
+          "old": "@jirawrite._jira_writer\ndef approve("
+        }
+      ],
+      "id": "JW_CLOSE_APPROVE",
+      "name": "close approve permits admission gaps between items",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_close_batches_keep_one_root_between_items"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/closeflow.py",
+          "new": "def apply(",
+          "old": "@jirawrite._jira_writer\ndef apply("
+        }
+      ],
+      "id": "JW_CLOSE_APPLY",
+      "name": "close apply permits admission gaps between items",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_close_batches_keep_one_root_between_items"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/routes.py",
+          "func": "Routes._jira_write_admitted",
+          "new": "    def _jira_write_admitted(",
+          "old": "    @writer_function\n    def _jira_write_admitted("
+        }
+      ],
+      "id": "JW_STANDALONE_ROUTE",
+      "name": "standalone Jira route takes workflow lock before admission",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_standalone_backend_refuses_before_workflow_lock"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/newtask.py",
+          "new": "@jirawrite._jira_writer\ndef _create_preflight(wf_home):\n    pass\n\n\ndef create(",
+          "old": "@jirawrite._jira_writer\ndef create("
+        },
+        {
+          "file": "wsflow/modules/work_calendar/newtask.py",
+          "func": "create",
+          "new": "    _create_preflight(wf_home)\n    with fileio.locked(wf_home):",
+          "old": "    with fileio.locked(wf_home):"
+        }
+      ],
+      "id": "JW_CREATE_SPLIT",
+      "name": "create closes its outer writer root before the actual body",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_create_keeps_root_through_local_record"
+      ]
+    },
+    {
+      "edits": [
+        {
+          "file": "wsflow/modules/work_calendar/routes.py",
+          "func": "Routes._jira_write_admitted",
+          "new": "        return self._jira_route(method, project, rest, query, body)",
+          "old": "        home = operations.Store(wfhome.wf_home_for(project)).home\n        return self._jira_route(method, {**project, 'wf_home': home}, rest, query, body)"
+        }
+      ],
+      "id": "JW_ADMITTED_HOME",
+      "name": "admitted Jira route uses an unchecked WF_HOME alias",
+      "test": [
+        "python",
+        "-B",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_jira_writer_lifetime.py",
+        "-k",
+        "test_standalone_rechecks_alias_after_admission"
+      ]
+    }
+  ]
+}

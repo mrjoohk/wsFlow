@@ -8,8 +8,17 @@ import time
 
 from wsflow import common_writes, fileio, operations
 from wsflow.module_services import ApiError
+from wsflow.writer_admission import writer_function
 from . import (auth, calendar_query, calendar_store, calendar_view, google_calendar,
                jiraapi, jirawrite, newtask, wfhome, wfinit, workflow, wf_migrate, writeplans)
+
+
+def _jira_writer_route(rest):
+    return (rest in (['jira', 'close', 'plan'], ['jira', 'close', 'apply'],
+                     ['jira', 'new', 'create'])
+            or rest[:3] == ['jira', 'new', 'plan']
+            or (len(rest) == 4 and rest[:2] == ['jira', 'operations']
+                and rest[3] in ('reconcile', 'repair')))
 
 
 class Routes:
@@ -21,6 +30,16 @@ class Routes:
 
     def _repo(self, project_id):
         return self.request._repo(project_id)
+
+    def preflight(self, method, path):
+        """Validate Jira storage before either host admission layer opens its lock."""
+        if method != 'POST':
+            return
+        segments = [part for part in path.split('/') if part][1:]
+        if len(segments) < 3 or segments[0] != 'projects' or segments[2] != 'jira':
+            return
+        if _jira_writer_route(segments[2:]):
+            operations.Store(wfhome.wf_home_for(self._project(segments[1])))
 
     def dispatch(self, method, path, query, body):
         seg = [part for part in path.split('/') if part][1:]
@@ -36,8 +55,20 @@ class Routes:
         if seg[:2] == ['jira', 'status'] and method == 'GET':
             return auth.status((query.get('site') or [None])[0])
         if len(seg) >= 3 and seg[0] == 'projects' and seg[2] == 'jira':
-            return self._jira_route(method, self._project(seg[1]), seg[2:], query, body)
+            project = self._project(seg[1])
+            rest = seg[2:]
+            if method == 'POST' and _jira_writer_route(rest):
+                # Check the binding resolved for this dispatch, even after host preflight.
+                operations.Store(wfhome.wf_home_for(project))
+                return self._jira_write_admitted(method, project, rest, query, body)
+            return self._jira_route(method, project, rest, query, body)
         raise ApiError(404, '지원하지 않는 업무·일정 API입니다')
+
+    @writer_function
+    def _jira_write_admitted(self, method, project, rest, query, body):
+        """Admit standalone adapters and reuse the root of host-managed requests."""
+        home = operations.Store(wfhome.wf_home_for(project)).home
+        return self._jira_route(method, {**project, 'wf_home': home}, rest, query, body)
 
     def _calendar_v2(self, method, rest, q, body):
         store = self.services.store

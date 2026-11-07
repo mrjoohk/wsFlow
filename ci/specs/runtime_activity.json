@@ -534,9 +534,9 @@
       "edits": [
         {
           "file": "wsflow/modules/work_calendar/backend.py",
-          "func": "Service.dispatch",
-          "new": "    def dispatch(",
-          "old": "    @admitted\n    def dispatch("
+          "func": "Service._dispatch_admitted",
+          "new": "    def _dispatch_admitted(",
+          "old": "    @admitted\n    def _dispatch_admitted("
         }
       ],
       "id": "RA_CALENDAR_DISPATCH",

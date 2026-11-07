@@ -3,11 +3,25 @@ from __future__ import annotations
 
 import time
 import re
+from functools import wraps
 from pathlib import Path
 
 from . import closeflow, jiraapi, jirawrite, newtask, wfhome
 from wsflow import fileio, operations
 from wsflow.write_context import binding
+from wsflow.writer_admission import writer_function
+
+
+def _plan_writer(function):
+    """Take the same root as Jira before a plan acquires its WF_HOME lock."""
+    admitted = writer_function(function)
+
+    @wraps(function)
+    def invoke(project, home, *args, **kwargs):
+        operations.Store(home)
+        return admitted(project, home, *args, **kwargs)
+
+    return invoke
 
 
 def state_hash(home):
@@ -31,6 +45,7 @@ def _source(project, home, kind, ymd=None):
     return result
 
 
+@_plan_writer
 def preview_close(project, home, ymd, known_keys):
     with fileio.locked(home):
         raw = closeflow.plan(home, ymd, known_keys)
@@ -56,6 +71,7 @@ def _reserved(home, epic_key, state):
             if op.get('kind') == 'create_issue' and op.get('epic_key') == epic_key and op.get('task_kind') == 'task']
 
 
+@_plan_writer
 def preview_new(project, home, state, request, trusted_view=None, *, creation=None):
     with fileio.locked(home):
         state = wfhome.read_state(home)
@@ -120,6 +136,7 @@ def selected(project, home, plan_id, ids, kind):
     return plan, chosen
 
 
+@_plan_writer
 def apply_close(project, home, plan_id, ids, creds, trusted_keys, ack_lint=False):
     with fileio.locked(home):
         plan, items = selected(project, home, plan_id, ids, 'close')
@@ -145,6 +162,7 @@ def apply_close(project, home, plan_id, ids, creds, trusted_keys, ack_lint=False
         return {'done': done, 'failed': failed, 'plan_id': plan_id}
 
 
+@_plan_writer
 def apply_new(project, home, plan_id, ident, creds, trusted_keys):
     with fileio.locked(home):
         plan, items = selected(project, home, plan_id, [ident], 'new')

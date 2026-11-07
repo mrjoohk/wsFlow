@@ -264,7 +264,7 @@
       "edits": [
         {
           "file": "wsflow/modules/work_calendar/backend.py",
-          "func": "Service.dispatch",
+          "func": "Service._dispatch_admitted",
           "new": "with nullcontext():",
           "old": "with (self._writing() if method != 'GET' else nullcontext()):"
         }

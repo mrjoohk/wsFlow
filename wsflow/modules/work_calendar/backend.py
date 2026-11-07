@@ -68,8 +68,15 @@ class Service:
             return self.google.close() if timeout is None else self.google.close(timeout=timeout)
         return True
 
-    @admitted
+    def preflight(self, request, method, path):
+        Routes(request, self.services, self).preflight(method, path)
+
     def dispatch(self, request, method, path, query, body):
+        self.preflight(request, method, path)
+        return self._dispatch_admitted(request, method, path, query, body)
+
+    @admitted
+    def _dispatch_admitted(self, request, method, path, query, body):
         try:
             with (self._writing() if method != 'GET' else nullcontext()):
                 return Routes(request, self.services, self).dispatch(method, path, query, body)

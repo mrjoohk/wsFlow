@@ -151,6 +151,7 @@ def plan(wf_home: str | Path, state: dict, *, summary: str, kind: str = "task",
             "origin": "local", "epic_key": parent, "task_kind": "task"}
 
 
+@jirawrite._jira_writer
 def create(wf_home: str | Path, creds: dict, base: str, intent: dict, send=None,
            *, operation_id: str | None = None) -> dict:
     """승인 게이트를 지나 만들고, `state.json` 에 기록한다.
@@ -183,6 +184,7 @@ def create(wf_home: str | Path, creds: dict, base: str, intent: dict, send=None,
         return {"key": key, "result": res, 'operation_id': operation_id}
 
 
+@jirawrite._jira_writer
 def record(wf_home: str | Path, intent: dict, key: str, *, approved_at: str, operation_id: str) -> dict:
     """생성 결과를 state.json 에 남긴다 — 메인이면 새 root, 파생이면 부모의 children."""
     if not approved_at or not operation_id:

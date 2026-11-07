@@ -262,7 +262,13 @@
       "source": "rd/261106_P076_scanner_writer_contracts.md",
       "spec": "ci/specs/scanner_writer.json",
       "stage": "scanner_writer"
+    },
+    {
+      "count": 21,
+      "source": "rd/261107_P077_jira_writer_contracts.md",
+      "spec": "ci/specs/jira_writer.json",
+      "stage": "jira_writer"
     }
   ],
-  "total": 540
+  "total": 561
 }

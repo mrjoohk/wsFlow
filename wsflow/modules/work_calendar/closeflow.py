@@ -57,11 +57,13 @@ def plan(wf_home: str | Path, ymd: str, known_keys) -> dict:
     }
 
 
+@jirawrite._jira_writer
 def approve(wf_home: str | Path, items: list) -> list:
     """사람이 고른 항목만 승인 기록으로 남긴다. 여기서도 Jira 는 건드리지 않는다."""
     return [jirawrite.approve(wf_home, it["kind"], it["target"], it["payload"]) for it in items]
 
 
+@jirawrite._jira_writer
 def apply(wf_home: str | Path, creds: dict, base: str, items: list, send=None) -> dict:
     """승인된 것만 올린다. 한 건이 실패해도 나머지를 계속하되 결과를 전부 돌려준다.
 

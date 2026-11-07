@@ -24,8 +24,10 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
 from wsflow import fileio, operations
+from wsflow.writer_admission import writer_function
 
 from .jiraapi import JiraError, _send, request
 
@@ -85,6 +87,19 @@ def _append(path: Path, rec: dict) -> dict:
     return fileio.append_json(path, rec)
 
 
+def _jira_writer(function):
+    """Check storage before taking the writer root and then the workflow lock."""
+    admitted = writer_function(function)
+
+    @wraps(function)
+    def invoke(wf_home, *args, **kwargs):
+        operations.Store(wf_home)
+        return admitted(wf_home, *args, **kwargs)
+
+    return invoke
+
+
+@_jira_writer
 def approve(wf_home: str | Path, kind: str, target: str, payload: dict,
             operation_id: str | None = None, site: str | None = None) -> dict:
     """사람이 승인한 사실을 **쓰기 전에** 남긴다. 반환값의 id 로 execute 를 부른다."""
@@ -169,6 +184,7 @@ def _transition_is_done(creds, base, issue_key: str, transition_id: str, send) -
     raise JiraError(f"{issue_key} 에 전이 {transition_id} 가 없습니다")
 
 
+@_jira_writer
 def execute(wf_home: str | Path, creds: dict, base: str, kind: str, target: str,
             payload: dict, send=None, *, operation_id: str | None = None) -> dict:
     """**Jira 로 나가는 유일한 문.** 승인 기록이 없으면 호출조차 하지 않는다."""
@@ -244,6 +260,7 @@ def _export_result(wf_home, op):
                              op['operation_id'], 'succeeded') from exc
 
 
+@_jira_writer
 def reconcile(wf_home, creds, base, operation_id, remote_id, send=None):
     """Positive evidence only: read a specific remote resource, never infer absence."""
     import re
@@ -283,6 +300,7 @@ def reconcile(wf_home, creds, base, operation_id, remote_id, send=None):
         return result
 
 
+@_jira_writer
 def repair(wf_home, operation_id):
     """Known success only: repair local exports without sending a Jira request."""
     with fileio.locked(wf_home):
